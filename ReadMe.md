@@ -1,6 +1,6 @@
-# sonus
-A VST3/LV2/AU plugin and standalone software that analyzes the incoming audio and computes a series of audio descriptors, that are sent as OSC (Open Sound Control) messages, so that they can be used in other softwares (e.g. sound visualization or real time audio analysis).
-The Informer runs on Windows, Linux and macOS. Pre-build binaries coming soon.
+# The Informer
+A VST3/LV2/AU plugin and standalone software that analyzes incoming audio and computes a range of audio descriptors, which are sent as OSC (Open Sound Control) messages. These can be used in other software, such as for sound visualization or real-time audio analysis.
+The Informer is compatible with Windows, Linux, and macOS. Pre-built binaries will be available soon.
 
 ## Compiled binaries
 
@@ -11,10 +11,10 @@ Soon...
 Grab the source with `git clone https://github.com/valeriorlandini/theinformer.git` 
 
 `cd theinformer` and then create the necessary build files with:
-* `cmake -S . -B build -G "Visual Studio 17 2022"` on Windows (you may neeed to adjust the Visual Studio version if you have an older one)
+* `cmake -S . -B build -G "Visual Studio 17 2022"` on Windows (adjust the Visual Studio version if you have an older one.)
 * `cmake -S . -B build -G "Unix Makefiles"` on Linux
 * `cmake -S . -B build -G Xcode` on Mac
 
-`cd build` to put yourself into build folder.
+Navigate to the build folder with `cd build`
 
 Next run `cmake --build . --config Release`
