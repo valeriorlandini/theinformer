@@ -84,12 +84,25 @@ private:
     std::array<float, 64> sqrGains = { 0.0f };
     std::array<std::vector<float>, 64> samples;
 
-    static constexpr int order = 12;
-    static constexpr int fftSize = 1 << order;
-    juce::dsp::FFT fftProcessor;
-    juce::dsp::WindowingFunction<float> window;
-    std::array<std::array<float, fftSize * 2>, 64> fftData;
-    float fftBandwidth = 44100.0f / (float)fftSize;
+    // 2048 samples, for sample rates up to 48000 Hz
+    static constexpr int orderSmall = 11;
+    static constexpr int fftSizeSmall = 1 << orderSmall;
+    juce::dsp::FFT fftProcessorSmall;
+    juce::dsp::WindowingFunction<float> windowSmall;
+    
+    // 4096 samples, for sample rates over 48000 Hz
+    static constexpr int orderLarge = 12;
+    static constexpr int fftSizeLarge = 1 << orderLarge;
+    juce::dsp::FFT fftProcessorLarge;
+    juce::dsp::WindowingFunction<float> windowLarge;
+    
+    float fftBandwidth = 44100.0f / (float)fftSizeSmall;
+    int fftSize = fftSizeSmall;
+
+    std::reference_wrapper<juce::dsp::FFT> fftProcessor = fftProcessorSmall;
+    std::reference_wrapper<juce::dsp::WindowingFunction<float>> window = windowSmall;
+    std::array<std::vector<float>, 64> fftData;
+
     int port = 9000;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TheInformerAudioProcessor)
