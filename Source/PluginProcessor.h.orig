@@ -68,7 +68,7 @@ public:
     void setStateInformation(const void* data, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState treeState;
-
+    
     std::atomic<float>* portParameter = nullptr;
     juce::String address = "/informer/";
 

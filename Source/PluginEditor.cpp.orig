@@ -65,7 +65,7 @@ void TheInformerAudioProcessorEditor::resized()
     portSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, blockUI * 4, blockUI * 2);
     portSlider.setBounds(blockUI * 8, blockUI * 8, blockUI * 8, blockUI);
 
-
+    
     addressLabel.setJustificationType(juce::Justification::right);
     addressLabel.setBounds(blockUI * 2, blockUI * 10, blockUI * 5, blockUI);
     /*

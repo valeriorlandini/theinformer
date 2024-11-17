@@ -31,6 +31,8 @@ public:
 private:
     TheInformerAudioProcessor& audioProcessor;
     juce::Label title;
+    juce::Label addressLabel;
+    juce::Label portLabel;
     juce::Slider portSlider;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> portAttachment;
 

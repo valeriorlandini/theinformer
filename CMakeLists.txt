@@ -93,10 +93,9 @@ else()
     set(ARTIFACTS_DIR ${CMAKE_BINARY_DIR}/${BaseTargetName}_artefacts/Release)
 endif()
 
-# Find all files inside ARTIFACTS_DIR, excluding .lib files
 file(GLOB_RECURSE ALL_FILES ${ARTIFACTS_DIR}/*)
 
-# Filter out .lib files
+# Filter out .lib and .exp files
 list(FILTER ALL_FILES EXCLUDE REGEX ".*\\.(lib|exp)$")
 
 # Copy the remaining files/folders to the 'binaries' folder

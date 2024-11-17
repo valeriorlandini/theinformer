@@ -32,6 +32,17 @@ TheInformerAudioProcessor::TheInformerAudioProcessor() :
     treeState(*this, nullptr, juce::Identifier("InformerParameters"),
 {
     std::make_unique<juce::AudioParameterInt>("port", "Port", 1, 10000, 9000),
+        std::make_unique<juce::AudioParameterInt>("bit2Status", "Bit 2", 0, 3, 0),
+        std::make_unique<juce::AudioParameterInt>("bit3Status", "Bit 3", 0, 3, 0),
+        std::make_unique<juce::AudioParameterInt>("bit4Status", "Bit 4", 0, 3, 0),
+        std::make_unique<juce::AudioParameterInt>("bit5Status", "Bit 5", 0, 3, 0),
+        std::make_unique<juce::AudioParameterInt>("bit6Status", "Bit 6", 0, 3, 0),
+        std::make_unique<juce::AudioParameterInt>("bit7Status", "Bit 7", 0, 3, 0),
+        std::make_unique<juce::AudioParameterInt>("bit8Status", "Bit 8", 0, 3, 0),
+        std::make_unique<juce::AudioParameterBool>("randomize", "Randomize Bits", false),
+        std::make_unique<juce::AudioParameterBool>("dcfilter", "DC Filter", true),
+        std::make_unique<juce::AudioParameterFloat>("lowcut", "Master Lowpass", juce::NormalisableRange<float>(20.0f, 20000.0f), 20000.0f),
+        std::make_unique<juce::AudioParameterFloat>("wet", "Wet", juce::NormalisableRange<float>(0.0f, 1.0f), 1.0f)
 }),
 fftProcessor(order),
 window(fftSize, juce::dsp::WindowingFunction<float>::hann)
@@ -363,10 +374,11 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         }
 
         std::function<void()> reportStats = [this,
-                                             centroid, centroids, scf, scfs,
+        centroid, centroids, scf, scfs,
                                              flatness, flatnesses, spread, spreads,
                                              bandwidth, bandwidths, peak, peaks,
-                                             rms, chRms, variance, variances,
+                                             rms, chRms,
+                                             variance, variances,
                                              kurtosis, kurtoses]() mutable
         {
             if (int(*portParameter) != port)
