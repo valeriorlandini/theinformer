@@ -67,14 +67,21 @@ public:
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
 
+    void setHost(const juce::String& newHost);
+    bool connect();
+
     juce::AudioProcessorValueTreeState treeState;
 
+    std::array<std::atomic<float>*, 4> ipParameters = {nullptr, nullptr, nullptr, nullptr};
+    juce::String host = "127.0.0.1";
+
+    //juce::Value hostValue;
+
     std::atomic<float>* portParameter = nullptr;
-    juce::String address = "/informer/";
 
-    juce::Value prefixValue;
-    juce::Value addressValue;
+    std::atomic<juce::String>* hostParameter = nullptr;
 
+    juce::Value rootValue;
 
 private:
     juce::OSCSender sender;
@@ -104,6 +111,25 @@ private:
     std::array<std::vector<float>, 64> fftData;
 
     int port = 9000;
+
+    inline juce::String makeHost()
+    {
+        juce::String hostString = "";
+
+        for (unsigned int i = 0; i < 4; i++)
+        {
+            hostString += juce::String(int(*(ipParameters[i])));
+            if (i < 3)
+            {
+                hostString += ".";
+            }
+        }
+
+        return hostString;
+    }
+
+    static std::atomic<int> instanceCounter;
+    int instance; 
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TheInformerAudioProcessor)
 };

@@ -18,6 +18,8 @@ The Informer. If not, see <https://www.gnu.org/licenses/>.
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
+std::atomic<int> TheInformerAudioProcessor::instanceCounter{ 0 };
+
 TheInformerAudioProcessor::TheInformerAudioProcessor() :
 #ifndef JucePlugin_PreferredChannelConfigurations
     AudioProcessor(BusesProperties()
@@ -32,19 +34,39 @@ TheInformerAudioProcessor::TheInformerAudioProcessor() :
     treeState(*this, nullptr, juce::Identifier("InformerParameters"),
 {
     std::make_unique<juce::AudioParameterInt>("port", "Port", 1, 10000, 9000),
+    std::make_unique<juce::AudioParameterInt>("ip1", "IP address Octet 1", 0, 255, 127),
+    std::make_unique<juce::AudioParameterInt>("ip2", "IP address Octet 2", 0, 255, 0),
+    std::make_unique<juce::AudioParameterInt>("ip3", "IP address Octet 3", 0, 255, 0),
+    std::make_unique<juce::AudioParameterInt>("ip4", "IP address Octet 4", 0, 255, 1),
 }),
 fftProcessorSmall(orderSmall),
 windowSmall(fftSizeSmall, juce::dsp::WindowingFunction<float>::hann),
 fftProcessorLarge(orderLarge),
 windowLarge(fftSizeLarge, juce::dsp::WindowingFunction<float>::hann)
 {
+    instance = ++instanceCounter;
+
+     if (!treeState.state.hasProperty("root"))
+     {
+        treeState.state.setProperty("root", "informer_" + juce::String(instance), nullptr);
+     }
+
+    rootValue.referTo(treeState.state.getPropertyAsValue("root", nullptr));
+
     portParameter = treeState.getRawParameterValue("port");
     port = int(*portParameter);
-    sender.connect("127.0.0.1", port);
+
+    for (unsigned int i = 0; i < 4; i++)
+    {
+        ipParameters[i] = treeState.getRawParameterValue("ip" + std::to_string(i+1));
+    }
+    host = makeHost();
+    connect();
 }
 
 TheInformerAudioProcessor::~TheInformerAudioProcessor()
 {
+    --instanceCounter;
 }
 
 const juce::String TheInformerAudioProcessor::getName() const
@@ -260,7 +282,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                     magnLnSum += std::log(0.00001f);
                 }
             }
-            if (abs(magnSum) < 0.00001f)
+            if (abs(magnSum) > 0.00001f)
             {
                 chCentroid = a / magnSum;
                 chScf = maxMagnitude / magnSum;
@@ -303,7 +325,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 a += power * std::powf(frequency - chCentroid, 2.0);
                 powerSum += power;
             }
-            if (abs(powerSum) < 0.00001f)
+            if (abs(powerSum) > 0.00001f)
             {
                 chSpread = std::sqrtf(a / powerSum);
             }
@@ -347,7 +369,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 
             // If variance is (almost or equal to) 0, invSqrVariance is left
             // to 0 so that kurtosis and skewness are not undefined
-            if (abs(invSqrChVariance) < 0.00001f)
+            if (abs(invSqrChVariance) > 0.00001f)
             {
                 invSqrChVariance = 1.0f / invSqrChVariance;
                 for (auto const& s : samples.at(ch))
@@ -388,20 +410,23 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                                              rms, chRms, variance, variances,
                                              kurtosis, kurtoses]() mutable
         {
-            if (int(*portParameter) != port)
+            if (int(*portParameter) != port || makeHost() != host)
             {
+                host = makeHost();
                 port = int(*portParameter);
-                sender.disconnect();
-                sender.connect("127.0.0.1", port);
+                connect();
             }
-            sender.send(juce::OSCAddressPattern(address + "rms"), rms);
-            sender.send(juce::OSCAddressPattern(address + "variance"), variance);
-            sender.send(juce::OSCAddressPattern(address + "kurtosis"), kurtosis);
-            sender.send(juce::OSCAddressPattern(address + "centroid"), centroid);
-            sender.send(juce::OSCAddressPattern(address + "scf"), scf);
-            sender.send(juce::OSCAddressPattern(address + "flatness"), flatness);
-            sender.send(juce::OSCAddressPattern(address + "bandwidth"), bandwidth);
-            sender.send(juce::OSCAddressPattern(address + "spread"), spread);
+
+            juce::String root = "/" + rootValue.toString() + "/";
+
+            sender.send(juce::OSCAddressPattern(root + "rms"), rms);
+            sender.send(juce::OSCAddressPattern(root + "variance"), variance);
+            sender.send(juce::OSCAddressPattern(root + "kurtosis"), kurtosis);
+            sender.send(juce::OSCAddressPattern(root + "centroid"), centroid);
+            sender.send(juce::OSCAddressPattern(root + "scf"), scf);
+            sender.send(juce::OSCAddressPattern(root + "flatness"), flatness);
+            sender.send(juce::OSCAddressPattern(root + "bandwidth"), bandwidth);
+            sender.send(juce::OSCAddressPattern(root + "spread"), spread);
             for (unsigned int ch = 0; ch < chRms.size(); ch++)
             {
                 std::string ch_str = "ch";
@@ -411,15 +436,15 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 }
                 ch_str += std::to_string(ch + 1) + "/";
 
-                sender.send(juce::OSCAddressPattern(address + ch_str + "centroid"), centroids.at(ch));
-                sender.send(juce::OSCAddressPattern(address + ch_str + "scf"), scfs.at(ch));
-                sender.send(juce::OSCAddressPattern(address + ch_str + "flatness"), flatnesses.at(ch));
-                sender.send(juce::OSCAddressPattern(address + ch_str + "bandwidth"), bandwidths.at(ch));
-                sender.send(juce::OSCAddressPattern(address + ch_str + "spread"), spreads.at(ch));
-                sender.send(juce::OSCAddressPattern(address + ch_str + "peak"), peaks.at(ch));
-                sender.send(juce::OSCAddressPattern(address + ch_str + "rms"), chRms.at(ch));
-                sender.send(juce::OSCAddressPattern(address + ch_str + "var"), variances.at(ch));
-                sender.send(juce::OSCAddressPattern(address + ch_str + "kur"), kurtoses.at(ch));
+                sender.send(juce::OSCAddressPattern(root + ch_str + "centroid"), centroids.at(ch));
+                sender.send(juce::OSCAddressPattern(root + ch_str + "scf"), scfs.at(ch));
+                sender.send(juce::OSCAddressPattern(root + ch_str + "flatness"), flatnesses.at(ch));
+                sender.send(juce::OSCAddressPattern(root + ch_str + "bandwidth"), bandwidths.at(ch));
+                sender.send(juce::OSCAddressPattern(root + ch_str + "spread"), spreads.at(ch));
+                sender.send(juce::OSCAddressPattern(root + ch_str + "peak"), peaks.at(ch));
+                sender.send(juce::OSCAddressPattern(root + ch_str + "rms"), chRms.at(ch));
+                sender.send(juce::OSCAddressPattern(root + ch_str + "var"), variances.at(ch));
+                sender.send(juce::OSCAddressPattern(root + ch_str + "kur"), kurtoses.at(ch));
             }
         };
         juce::MessageManager::callAsync(reportStats);
@@ -430,7 +455,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 
 bool TheInformerAudioProcessor::hasEditor() const
 {
-    return true; // (change this to false if you choose to not supply an editor)
+    return true;
 }
 
 juce::AudioProcessorEditor* TheInformerAudioProcessor::createEditor()
@@ -452,9 +477,29 @@ void TheInformerAudioProcessor::setStateInformation(const void* data, int sizeIn
         if (xmlState->hasTagName(treeState.state.getType()))
         {
             treeState.state = juce::ValueTree::fromXml(*xmlState);
-            //addressValue = treeState.state.getPropertyAsValue("address", nullptr);
+
+            if (treeState.state.hasProperty("root"))
+            {
+                rootValue.referTo(treeState.state.getPropertyAsValue("root", nullptr));
+            }
         }
     }
+}
+
+bool TheInformerAudioProcessor::connect()
+{
+    bool returnValue = false;
+    try
+    {
+        sender.disconnect();
+        returnValue = sender.connect(host, port);
+    }
+    catch (...)
+    {
+        juce::AlertWindow("Error", "Error while trying to connect to " + host, juce::MessageBoxIconType::WarningIcon);
+    }
+
+    return returnValue;
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()

@@ -31,10 +31,17 @@ public:
 private:
     TheInformerAudioProcessor& audioProcessor;
     juce::Label title;
-    juce::Label addressLabel;
+    juce::Label hostLabel;
+    std::array<juce::Slider, 4> ipSliders;
+    std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>, 4> ipAttachments;
     juce::Label portLabel;
     juce::Slider portSlider;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> portAttachment;
+    juce::Label rootLabel;
+    juce::TextEditor rootEditor;
+    juce::TextButton connectButton;
+
+    juce::String allowedChars = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890-_";
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TheInformerAudioProcessorEditor)
 };

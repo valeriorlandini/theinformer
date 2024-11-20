@@ -92,28 +92,3 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 else()
     set(ARTIFACTS_DIR ${CMAKE_BINARY_DIR}/${BaseTargetName}_artefacts/Release)
 endif()
-
-file(GLOB_RECURSE ALL_FILES ${ARTIFACTS_DIR}/*)
-
-# Filter out .lib and .exp files
-list(FILTER ALL_FILES EXCLUDE REGEX ".*\\.(lib|exp)$")
-
-# Copy the remaining files/folders to the 'binaries' folder
-foreach(file ${ALL_FILES})
-    get_filename_component(file_name ${file} NAME)  # Extract the file name
-    get_filename_component(file_dir ${file} DIRECTORY)  # Extract the file directory
-
-    # Calculate the relative path of the directory
-    file(RELATIVE_PATH relative_path ${ARTIFACTS_DIR} ${file_dir})
-
-    # Create the corresponding directory in 'binaries'
-    file(MAKE_DIRECTORY ${BINARY_OUTPUT_DIR}/${relative_path})
-
-    # Copy the file to the corresponding directory in 'binaries'
-    add_custom_command(
-        TARGET ${BaseTargetName}
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy ${file} ${BINARY_OUTPUT_DIR}/${relative_path}/${file_name}
-        COMMENT "Copying ${file_name} to ${BINARY_OUTPUT_DIR}/${relative_path}"
-    )
-endforeach()
