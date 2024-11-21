@@ -18,6 +18,7 @@ The Informer. If not, see <https://www.gnu.org/licenses/>.
 #pragma once
 
 #include "PluginProcessor.h"
+#include "CustomLookAndFeel.h"
 
 class TheInformerAudioProcessorEditor : public juce::AudioProcessorEditor
 {
@@ -30,6 +31,7 @@ public:
 
 private:
     TheInformerAudioProcessor& audioProcessor;
+    CustomLookAndFeel customLookAndFeel;
     juce::Label title;
     juce::Label hostLabel;
     std::array<juce::Slider, 4> ipSliders;
@@ -42,6 +44,10 @@ private:
     juce::TextButton connectButton;
 
     juce::String allowedChars = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890-_";
+
+    juce::Typeface::Ptr customTypeface;
+    juce::Font customFont;
+    float fontSize;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TheInformerAudioProcessorEditor)
 };

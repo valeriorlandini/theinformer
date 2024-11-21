@@ -63,7 +63,13 @@ set(BINARY_OUTPUT_DIR ${CMAKE_BINARY_DIR}/binaries)
 
 target_sources(${BaseTargetName} PRIVATE
         Source/PluginProcessor.cpp
-        Source/PluginEditor.cpp)
+        Source/PluginEditor.cpp
+        Source/CustomLookAndFeel.cpp)
+
+juce_add_binary_data(BinaryData SOURCES
+        Resources/Logo.svg
+        Resources/Font.ttf
+)
 
 target_compile_definitions(${BaseTargetName}
         PUBLIC
@@ -72,6 +78,7 @@ target_compile_definitions(${BaseTargetName}
         JUCE_VST3_CAN_REPLACE_VST2=0)
 
 target_link_libraries(${BaseTargetName} PRIVATE
+        BinaryData
 	    juce_dsp
 	    juce_osc
 	    juce_audio_utils
