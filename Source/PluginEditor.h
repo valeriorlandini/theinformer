@@ -32,6 +32,8 @@ public:
 private:
     TheInformerAudioProcessor& audioProcessor;
     CustomLookAndFeel customLookAndFeel;
+    std::unique_ptr<juce::Drawable> logo;
+    juce::Rectangle<float> logoBounds;
     juce::Label title;
     juce::Label hostLabel;
     std::array<juce::Slider, 4> ipSliders;

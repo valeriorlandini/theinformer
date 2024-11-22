@@ -34,10 +34,10 @@ TheInformerAudioProcessor::TheInformerAudioProcessor() :
     treeState(*this, nullptr, juce::Identifier("InformerParameters"),
 {
     std::make_unique<juce::AudioParameterInt>("port", "Port", 1, 10000, 9000),
-    std::make_unique<juce::AudioParameterInt>("ip1", "IP address Octet 1", 0, 255, 127),
-    std::make_unique<juce::AudioParameterInt>("ip2", "IP address Octet 2", 0, 255, 0),
-    std::make_unique<juce::AudioParameterInt>("ip3", "IP address Octet 3", 0, 255, 0),
-    std::make_unique<juce::AudioParameterInt>("ip4", "IP address Octet 4", 0, 255, 1),
+        std::make_unique<juce::AudioParameterInt>("ip1", "IP address Octet 1", 0, 255, 127),
+        std::make_unique<juce::AudioParameterInt>("ip2", "IP address Octet 2", 0, 255, 0),
+        std::make_unique<juce::AudioParameterInt>("ip3", "IP address Octet 3", 0, 255, 0),
+        std::make_unique<juce::AudioParameterInt>("ip4", "IP address Octet 4", 0, 255, 1),
 }),
 fftProcessorSmall(orderSmall),
 windowSmall(fftSizeSmall, juce::dsp::WindowingFunction<float>::hann),
@@ -46,10 +46,10 @@ windowLarge(fftSizeLarge, juce::dsp::WindowingFunction<float>::hann)
 {
     instance = ++instanceCounter;
 
-     if (!treeState.state.hasProperty("root"))
-     {
+    if (!treeState.state.hasProperty("root"))
+    {
         treeState.state.setProperty("root", "informer_" + juce::String(instance), nullptr);
-     }
+    }
 
     rootValue.referTo(treeState.state.getPropertyAsValue("root", nullptr));
 
@@ -313,7 +313,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 
             bandwidths.push_back(chBandwidth);
             bandwidth += chBandwidth;
-            
+
             float chSpread = 0.0f;
             float powerSum = 0.0f;
             a = 0.0f;

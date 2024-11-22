@@ -97,13 +97,13 @@ private:
     static constexpr int fftSizeSmall = 1 << orderSmall;
     juce::dsp::FFT fftProcessorSmall;
     juce::dsp::WindowingFunction<float> windowSmall;
-    
+
     // 4096 samples, for sample rates over 48000 Hz
     static constexpr int orderLarge = 12;
     static constexpr int fftSizeLarge = 1 << orderLarge;
     juce::dsp::FFT fftProcessorLarge;
     juce::dsp::WindowingFunction<float> windowLarge;
-    
+
     float fftBandwidth = 44100.0f / (float)fftSizeSmall;
     int fftSize = fftSizeSmall;
 
@@ -130,7 +130,7 @@ private:
     }
 
     static std::atomic<int> instanceCounter;
-    int instance; 
+    int instance;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TheInformerAudioProcessor)
 };

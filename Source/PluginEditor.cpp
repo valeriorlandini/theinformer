@@ -18,26 +18,35 @@ The Informer. If not, see <https://www.gnu.org/licenses/>.
 #include "PluginEditor.h"
 
 TheInformerAudioProcessorEditor::TheInformerAudioProcessorEditor(TheInformerAudioProcessor& p)
-    : AudioProcessorEditor(&p), audioProcessor(p)
+    : AudioProcessorEditor(&p),
+      audioProcessor(p),
+      customTypeface(juce::Typeface::createSystemTypefaceFor(BinaryData::Font_ttf, BinaryData::Font_ttfSize)),
+      customFont(juce::Font(juce::FontOptions().withTypeface(customTypeface)))
 {
-    setSize(500, 250);
-    setResizeLimits(500, 250, 3000, 1500);
+    setSize(500, 200);
+    setResizeLimits(500, 200, 3000, 1200);
     setResizable(true, p.wrapperType != TheInformerAudioProcessor::wrapperType_AudioUnitv3);
-    getConstrainer()->setFixedAspectRatio(2.0f);
+    getConstrainer()->setFixedAspectRatio(2.5f);
 
-    customTypeface = juce::Typeface::createSystemTypefaceFor(
-            BinaryData::Font_ttf, BinaryData::Font_ttfSize);
-    customFont = juce::Font(customTypeface);
-    
+    std::unique_ptr<juce::XmlElement> svgXml(juce::XmlDocument::parse(BinaryData::Logo_svg));
+    if (svgXml != nullptr)
+    {
+        logo = juce::Drawable::createFromSVG(*svgXml);
+    }
+
     getLookAndFeel().setColour(juce::TextEditor::textColourId, juce::Colours::darkslategrey);
     getLookAndFeel().setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
-    getLookAndFeel().setColour(juce::Label::textColourId, juce::Colours::darkslategrey);
+    getLookAndFeel().setColour(juce::Label::textColourId, juce::Colours::whitesmoke);
+    getLookAndFeel().setColour(juce::Label::backgroundColourId, juce::Colours::darkslategrey);
+    getLookAndFeel().setColour(juce::Slider::textBoxTextColourId, juce::Colours::darkslategrey);
     getLookAndFeel().setDefaultSansSerifTypeface(customTypeface);
+
+    title.setText("the informer", juce::dontSendNotification);
+    addAndMakeVisible(title);
 
     for (unsigned int i = 0; i < 4; i++)
     {
         ipSliders[i].setLookAndFeel(&customLookAndFeel);
-        ipSliders[i].setColour(juce::Slider::textBoxTextColourId, juce::Colours::darkslategrey);
         ipSliders[i].setColour(juce::Slider::trackColourId, juce::Colours::transparentBlack);
         ipSliders[i].setSliderStyle(juce::Slider::LinearBar);
         ipSliders[i].setTextBoxStyle(juce::Slider::TextBoxLeft, false, 0, 0);
@@ -51,26 +60,21 @@ TheInformerAudioProcessorEditor::TheInformerAudioProcessorEditor(TheInformerAudi
     addAndMakeVisible(hostLabel);
 
     portSlider.setLookAndFeel(&customLookAndFeel);
-    portSlider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::darkslategrey);
     portSlider.setColour(juce::Slider::trackColourId, juce::Colours::transparentBlack);
     portSlider.setSliderStyle(juce::Slider::LinearBar);
     portSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 0, 0);
     portSlider.setPopupDisplayEnabled(false, false, this);
-
     addAndMakeVisible(&portSlider);
     portAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(p.treeState, "port", portSlider);
 
+    portLabel.setJustificationType(juce::Justification::centred);
     portLabel.setText("port", juce::dontSendNotification);
     addAndMakeVisible(portLabel);
 
-    title.setText("the informer", juce::dontSendNotification);
-    addAndMakeVisible(title);
-
-    rootLabel.setText("root", juce::dontSendNotification);
-    addAndMakeVisible(rootLabel);
-
     rootEditor.setInputRestrictions(64, allowedChars);
     rootEditor.setText(audioProcessor.rootValue.toString(), juce::dontSendNotification);
+    rootEditor.setColour(juce::TextEditor::outlineColourId, juce::Colours::darkslategrey);
+
     rootEditor.onTextChange = [this]()
     {
         if (rootEditor.getText() != "")
@@ -78,9 +82,10 @@ TheInformerAudioProcessorEditor::TheInformerAudioProcessorEditor(TheInformerAudi
             audioProcessor.rootValue = rootEditor.getText();
         }
     };
-    rootEditor.setTextToShowWhenEmpty("ENTER OSC ADDRESS ROOT", juce::Colours::grey);
-    //addressEditor.setFont(juce::Font(14.0f));
     addAndMakeVisible(rootEditor);
+
+    rootLabel.setText("root", juce::dontSendNotification);
+    addAndMakeVisible(rootLabel);
 }
 
 TheInformerAudioProcessorEditor::~TheInformerAudioProcessorEditor()
@@ -90,42 +95,42 @@ TheInformerAudioProcessorEditor::~TheInformerAudioProcessorEditor()
 void TheInformerAudioProcessorEditor::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colours::whitesmoke);
+
+    if (logo != nullptr)
+    {
+        logo->drawWithin(g, logoBounds, juce::RectanglePlacement::xRight | juce::RectanglePlacement::yBottom, 1.0f);
+    }
 }
 
 void TheInformerAudioProcessorEditor::resized()
 {
     const int blockUI = (int)ceil(getWidth() / 20.0f);
-    fontSize = (float)blockUI * 0.8f;
+    fontSize = (float)blockUI * 0.75f;
     customFont = customFont.withHeight(fontSize);
 
-    portLabel.setJustificationType(juce::Justification::right);
-    portLabel.setBounds(blockUI * 2, blockUI * 5, blockUI * 5, blockUI);
-    portLabel.setFont(customFont.withHeight(fontSize));
-    portSlider.setBounds(blockUI * 8, blockUI * 5, blockUI * 8, blockUI);
-    
-    portSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, blockUI * 8, blockUI);
-    
-    hostLabel.setJustificationType(juce::Justification::right);
-    hostLabel.setBounds(blockUI * 2, blockUI * 4, blockUI * 5, blockUI);
+    title.setJustificationType(juce::Justification::centred);
+    title.setBounds(blockUI, blockUI, blockUI * 12, blockUI * 2);
+    title.setFont(customFont.withHeight(fontSize * 2.0f));
+
+    logoBounds = juce::Rectangle<float>(0.0f, (float)blockUI / 1.25f, (float)getWidth(), (float)getHeight() - ((float)blockUI / 1.25f));
+
+    hostLabel.setJustificationType(juce::Justification::centred);
+    hostLabel.setBounds(blockUI, blockUI * 4, blockUI * 3, blockUI);
     hostLabel.setFont(customFont.withHeight(fontSize));
     for (unsigned int i = 0; i < 4; i++)
     {
-        ipSliders[i].setBounds(blockUI * (8 + (int)(i*2)), blockUI * 4, blockUI * 2, blockUI);
+        ipSliders[i].setBounds(blockUI * (5 + (int)(i*2)), blockUI * 4, blockUI * 2, blockUI);
         ipSliders[i].setTextBoxStyle(juce::Slider::TextBoxLeft, false, blockUI * 2, blockUI);
     }
-    
-    rootLabel.setJustificationType(juce::Justification::right);
-    rootLabel.setBounds(blockUI * 2, blockUI * 6, blockUI * 5, blockUI);
+
+    portLabel.setBounds(blockUI, blockUI * 5, blockUI * 3, blockUI);
+    portLabel.setFont(customFont.withHeight(fontSize));
+    portSlider.setBounds(blockUI * 5, blockUI * 5, blockUI * 8, blockUI);
+    portSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, blockUI * 8, blockUI);
+
+    rootLabel.setJustificationType(juce::Justification::centred);
+    rootLabel.setBounds(blockUI, blockUI * 6, blockUI * 3, blockUI);
     rootLabel.setFont(customFont.withHeight(fontSize));
-    rootEditor.setBounds(blockUI * 8, blockUI * 6, blockUI * 8, blockUI);
-    rootEditor.setFont(customFont.withHeight(fontSize));
-    /*
-    float dpi = juce::Desktop::getInstance().getDisplays().getMainDisplay().dpi;
-    float fontPoints = juce::jmax(1.0f, 2.0f * blockUI * 72.0f / dpi);
-    customFont.setHeight(fontPoints);
-    title.setFont(customFont);
-    */
-    title.setJustificationType(juce::Justification::centred);
-    title.setBounds(blockUI * 2, blockUI, blockUI * 18, blockUI * 2);
-    title.setFont(customFont.withHeight(fontSize * 2.0f));
+    rootEditor.setBounds(blockUI * 5, blockUI * 6, blockUI * 8, blockUI);
+    rootEditor.applyFontToAllText(customFont.withHeight(fontSize));
 }
