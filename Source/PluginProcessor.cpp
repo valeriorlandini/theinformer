@@ -66,6 +66,7 @@ windowLarge(fftSizeLarge, juce::dsp::WindowingFunction<float>::hann)
 
 TheInformerAudioProcessor::~TheInformerAudioProcessor()
 {
+    sender.disconnect();
     --instanceCounter;
 }
 
@@ -419,14 +420,18 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 
             juce::String root = "/" + rootValue.toString() + "/";
 
-            sender.send(juce::OSCAddressPattern(root + "rms"), rms);
-            sender.send(juce::OSCAddressPattern(root + "variance"), variance);
-            sender.send(juce::OSCAddressPattern(root + "kurtosis"), kurtosis);
-            sender.send(juce::OSCAddressPattern(root + "centroid"), centroid);
-            sender.send(juce::OSCAddressPattern(root + "scf"), scf);
-            sender.send(juce::OSCAddressPattern(root + "flatness"), flatness);
-            sender.send(juce::OSCAddressPattern(root + "bandwidth"), bandwidth);
-            sender.send(juce::OSCAddressPattern(root + "spread"), spread);
+            juce::String mix = "mix/";
+
+            sender.send(juce::OSCAddressPattern(root + mix + "rms"), rms);
+            sender.send(juce::OSCAddressPattern(root + mix + "variance"), variance);
+            sender.send(juce::OSCAddressPattern(root + mix + "kurtosis"), kurtosis);
+            sender.send(juce::OSCAddressPattern(root + mix + "peak"), peak);
+            sender.send(juce::OSCAddressPattern(root + mix + "centroid"), centroid);
+            sender.send(juce::OSCAddressPattern(root + mix + "scf"), scf);
+            sender.send(juce::OSCAddressPattern(root + mix + "flatness"), flatness);
+            sender.send(juce::OSCAddressPattern(root + mix + "bandwidth"), bandwidth);
+            sender.send(juce::OSCAddressPattern(root + mix + "spread"), spread);
+            
             for (unsigned int ch = 0; ch < chRms.size(); ch++)
             {
                 std::string ch_str = "ch";

@@ -76,8 +76,6 @@ public:
     std::array<std::atomic<float>*, 4> ipParameters = {nullptr, nullptr, nullptr, nullptr};
     juce::String host = "127.0.0.1";
 
-    //juce::Value hostValue;
-
     std::atomic<float>* portParameter = nullptr;
 
     std::atomic<juce::String>* hostParameter = nullptr;

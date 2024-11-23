@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.19)
 
 project(TheInformer VERSION 0.1.0)
 
-#This is temporarily needed due to a bug in Xcode 15:
+# This is temporarily needed due to a bug in Xcode 15:
 if (CMAKE_CXX_COMPILER_ID MATCHES "AppleClang")
     if (NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS "15.0")
         add_compile_definitions(JUCE_SILENCE_XCODE_15_LINKER_WARNING=1)
@@ -10,19 +10,15 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "AppleClang")
     endif ()
 endif ()
 
-#First, we'll add the CMake folder, incase we'll need to find_package later:
+# Add the CMake folder
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake")
 
-#Compile commands, useful for some IDEs like VS-Code
+# Compile commands
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
-#Minimum MacOS target, set globally
+# Minimum MacOS target, set globally
 if (${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
     set(CMAKE_OSX_DEPLOYMENT_TARGET 11.0 CACHE STRING "Minimum OS X deployment version" FORCE)
-
-    #code signing to run on an iOS device:
-    #    set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "iPhone Developer" CACHE STRING "" FORCE)
-    #    set(CMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "XXXXXXXXXX" CACHE STRING "" FORCE)
 else ()
     set(CMAKE_OSX_DEPLOYMENT_TARGET "10.11" CACHE STRING "Minimum OS X deployment version" FORCE)
 endif ()
@@ -33,17 +29,17 @@ if (UniversalBinary)
     set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE INTERNAL "")
 endif ()
 
-#static linking in Windows
+# Static linking in Windows
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-#We 'require' that we need juce. If JUCE isn't found, it will revert to what's in
-#CMake/Findjuce.cmake, where you can see how JUCE is brought in/configured
+# Require JUCE
 find_package(juce REQUIRED)
 
-set (BaseTargetName TheInformer)
+set(BaseTargetName TheInformer)
+set(PluginName "The Informer")
 
 juce_add_plugin("${BaseTargetName}"
-        # ICON_BIG ...                              # ICON_* arguments specify a path to an image file to use as an icon for the Standalone
+        # ICON_BIG ...
         # ICON_SMALL ...
         COMPANY_NAME "Valerio Orlandini"
         IS_SYNTH FALSE
@@ -58,8 +54,6 @@ juce_add_plugin("${BaseTargetName}"
         PRODUCT_NAME "The Informer"
 	    BUNDLE_ID "com.valeriorlandini.theinformer"
 	    LV2URI "http://www.valeriorlandini.com/plugins/theinformer")
-# Define the output directory for binaries
-set(BINARY_OUTPUT_DIR ${CMAKE_BINARY_DIR}/binaries)
 
 target_sources(${BaseTargetName} PRIVATE
         Source/PluginProcessor.cpp
@@ -95,7 +89,32 @@ file(MAKE_DIRECTORY ${BINARY_OUTPUT_DIR})
 
 # Determine the build type (Release or Debug)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(ARTIFACTS_DIR ${CMAKE_BINARY_DIR}/${BaseTargetName}_artefacts/Debug)
+    set(ARTEFACTS_DIR ${CMAKE_BINARY_DIR}/${BaseTargetName}_artefacts/Debug)
 else()
-    set(ARTIFACTS_DIR ${CMAKE_BINARY_DIR}/${BaseTargetName}_artefacts/Release)
+    set(ARTEFACTS_DIR ${CMAKE_BINARY_DIR}/${BaseTargetName}_artefacts/Release)
 endif()
+
+# Set the subfolders to copy based on the operating system
+if(WIN32)
+    set(SUBFOLDERS "LV2/${PluginName}.lv2" "VST3/${PluginName}.vst3" "Standalone")
+elseif(APPLE)
+    set(SUBFOLDERS "AU" "VST3/${PluginName}.vst3" "Standalone")
+elseif(UNIX)
+    set(SUBFOLDERS "LV2/${PluginName}.lv2" "VST3/${PluginName}.vst3" "Standalone")
+endif()
+
+# Create a custom target to copy the required folders
+add_custom_target(copy_binaries ALL)
+
+# Loop over the subfolders and add conditional copy commands
+foreach(SUBFOLDER IN LISTS SUBFOLDERS)
+    add_custom_command(TARGET copy_binaries POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${BINARY_OUTPUT_DIR}/${SUBFOLDER}"
+        COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --green "Copying ${SUBFOLDER} from ${ARTEFACTS_DIR} to ${BINARY_OUTPUT_DIR}"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${ARTEFACTS_DIR}/${SUBFOLDER}"
+            "${BINARY_OUTPUT_DIR}/${SUBFOLDER}"
+    )
+endforeach()
+
+add_dependencies(copy_binaries ${BaseTargetName})
