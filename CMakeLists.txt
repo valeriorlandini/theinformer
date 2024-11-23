@@ -88,26 +88,30 @@ set(BINARY_OUTPUT_DIR ${CMAKE_BINARY_DIR}/binaries)
 file(MAKE_DIRECTORY ${BINARY_OUTPUT_DIR})
 
 # Determine the build type (Release or Debug)
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(ARTEFACTS_DIR ${CMAKE_BINARY_DIR}/${BaseTargetName}_artefacts/Debug)
-else()
-    set(ARTEFACTS_DIR ${CMAKE_BINARY_DIR}/${BaseTargetName}_artefacts/Release)
+if (UNIX)
+    set(ARTEFACTS_DIR ${CMAKE_BINARY_DIR}/${BaseTargetName}_artefacts)
+else ()
+    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+        set(ARTEFACTS_DIR ${CMAKE_BINARY_DIR}/${BaseTargetName}_artefacts/Debug)
+    else ()
+        set(ARTEFACTS_DIR ${CMAKE_BINARY_DIR}/${BaseTargetName}_artefacts/Release)
+    endif ()
 endif()
 
 # Set the subfolders to copy based on the operating system
-if(WIN32)
+if (WIN32)
     set(SUBFOLDERS "LV2/${PluginName}.lv2" "VST3/${PluginName}.vst3" "Standalone")
-elseif(APPLE)
+elseif (APPLE)
     set(SUBFOLDERS "AU" "VST3/${PluginName}.vst3" "Standalone")
-elseif(UNIX)
+elseif (UNIX)
     set(SUBFOLDERS "LV2/${PluginName}.lv2" "VST3/${PluginName}.vst3" "Standalone")
-endif()
+endif ()
 
 # Create a custom target to copy the required folders
 add_custom_target(copy_binaries ALL)
 
 # Loop over the subfolders and add conditional copy commands
-foreach(SUBFOLDER IN LISTS SUBFOLDERS)
+foreach (SUBFOLDER IN LISTS SUBFOLDERS)
     add_custom_command(TARGET copy_binaries POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory "${BINARY_OUTPUT_DIR}/${SUBFOLDER}"
         COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --green "Copying ${SUBFOLDER} from ${ARTEFACTS_DIR} to ${BINARY_OUTPUT_DIR}"
@@ -115,6 +119,6 @@ foreach(SUBFOLDER IN LISTS SUBFOLDERS)
             "${ARTEFACTS_DIR}/${SUBFOLDER}"
             "${BINARY_OUTPUT_DIR}/${SUBFOLDER}"
     )
-endforeach()
+endforeach ()
 
 add_dependencies(copy_binaries ${BaseTargetName})
