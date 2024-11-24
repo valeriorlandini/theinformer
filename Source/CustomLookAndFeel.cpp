@@ -21,7 +21,7 @@ juce::Label* CustomLookAndFeel::createSliderTextBox(juce::Slider& slider)
     label->setColour(juce::Label::textColourId, juce::Colours::darkslategrey);
     label->setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
     label->setColour(juce::Label::outlineColourId, juce::Colours::darkslategrey);
-
+    label->setColour(juce::Label::textWhenEditingColourId, juce::Colours::darkslategrey);
 
     return label;
 }
