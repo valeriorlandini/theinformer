@@ -219,10 +219,13 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
     {
         float peak = 0.0f;
         std::vector<float> peaks;
+
         float rms = 0.0f;
         std::vector<float> chRms;
+
         float variance = 0.0f;
         std::vector<float> variances;
+
         float kurtosis = 0.0f;
         std::vector<float> kurtoses;
 
@@ -241,6 +244,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         float bandwidth = 0.0f;
         std::vector<float> bandwidths;
 
+        float fpeak = 0.0f;
         std::vector<float> fpeaks;
 
         for (unsigned int ch = 0; ch < (unsigned int)std::min(totalNumInputChannels, 64); ch++)
@@ -333,8 +337,11 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             spreads.push_back(chSpread);
             spread += chSpread;
 
-            auto fpeak = std::max_element(fftData.at(ch).begin(), fftData.at(ch).end());
-            fpeaks.push_back((float)std::distance(fftData.at(ch).begin(), fpeak) * fftBandwidth);
+            auto fpeakBand = std::max_element(fftData.at(ch).begin(), fftData.at(ch).end());
+            float chFpeak = (float)std::distance(fftData.at(ch).begin(), fpeakBand) * fftBandwidth;
+            fpeaks.push_back(chFpeak);
+            fpeak += chFpeak;
+
             chRms.push_back(std::sqrt(sqrGains[ch] / (buffer.getNumSamples() * (float)counter)));
             rms += chRms.at(ch);
             sqrGains[ch] = 0.0f;
@@ -398,6 +405,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         spread /= totalNumInputChannels;
         flatness /= totalNumInputChannels;
         bandwidth /= totalNumInputChannels;
+        fpeak /= totalNumInputChannels;
 
         for (unsigned int i = 0; i < 64; i++)
         {
@@ -405,11 +413,16 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         }
 
         std::function<void()> reportStats = [this,
-                                             centroid, centroids, scf, scfs,
-                                             flatness, flatnesses, spread, spreads,
-                                             bandwidth, bandwidths, peak, peaks,
-                                             rms, chRms, variance, variances,
-                                             kurtosis, kurtoses]() mutable
+                                             bandwidth, bandwidths,
+                                             centroid, centroids,
+                                             flatness, flatnesses,
+                                             fpeak, fpeaks,
+                                             kurtosis, kurtoses,
+                                             peak, peaks,
+                                             rms, chRms,
+                                             scf, scfs,
+                                             spread, spreads,
+                                             variance, variances]() mutable
         {
             if (int(*portParameter) != port || makeHost() != host)
             {
@@ -426,6 +439,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             sender.send(juce::OSCAddressPattern(root + mix + "variance"), variance);
             sender.send(juce::OSCAddressPattern(root + mix + "kurtosis"), kurtosis);
             sender.send(juce::OSCAddressPattern(root + mix + "peak"), peak);
+            sender.send(juce::OSCAddressPattern(root + mix + "freqpeak"), fpeak);
             sender.send(juce::OSCAddressPattern(root + mix + "centroid"), centroid);
             sender.send(juce::OSCAddressPattern(root + mix + "scf"), scf);
             sender.send(juce::OSCAddressPattern(root + mix + "flatness"), flatness);
@@ -447,6 +461,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 sender.send(juce::OSCAddressPattern(root + ch_str + "bandwidth"), bandwidths.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "spread"), spreads.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "peak"), peaks.at(ch));
+                sender.send(juce::OSCAddressPattern(root + ch_str + "freqpeak"), fpeaks.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "rms"), chRms.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "var"), variances.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "kur"), kurtoses.at(ch));

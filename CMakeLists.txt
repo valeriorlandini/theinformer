@@ -43,7 +43,7 @@ juce_add_plugin("${BaseTargetName}"
         # ICON_SMALL ...
         COMPANY_NAME "Valerio Orlandini"
         IS_SYNTH FALSE
-        NEEDS_MIDI_INPUT TRUE
+        NEEDS_MIDI_INPUT FALSE
         NEEDS_MIDI_OUTPUT FALSE
         IS_MIDI_EFFECT FALSE
         EDITOR_WANTS_KEYBOARD_FOCUS FALSE
@@ -80,45 +80,3 @@ target_link_libraries(${BaseTargetName} PRIVATE
         juce_recommended_config_flags
         juce_recommended_lto_flags
         juce_recommended_warning_flags)
-
-# Define the output directory for binaries
-set(BINARY_OUTPUT_DIR ${CMAKE_BINARY_DIR}/binaries)
-
-# Ensure the 'binaries' folder exists
-file(MAKE_DIRECTORY ${BINARY_OUTPUT_DIR})
-
-# Determine the build type (Release or Debug)
-if (UNIX)
-    set(ARTEFACTS_DIR ${CMAKE_BINARY_DIR}/${BaseTargetName}_artefacts)
-else ()
-    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-        set(ARTEFACTS_DIR ${CMAKE_BINARY_DIR}/${BaseTargetName}_artefacts/Debug)
-    else ()
-        set(ARTEFACTS_DIR ${CMAKE_BINARY_DIR}/${BaseTargetName}_artefacts/Release)
-    endif ()
-endif()
-
-# Set the subfolders to copy based on the operating system
-if (WIN32)
-    set(SUBFOLDERS "LV2/${PluginName}.lv2" "VST3/${PluginName}.vst3" "Standalone")
-elseif (APPLE)
-    set(SUBFOLDERS "AU" "VST3/${PluginName}.vst3" "Standalone")
-elseif (UNIX)
-    set(SUBFOLDERS "LV2/${PluginName}.lv2" "VST3/${PluginName}.vst3" "Standalone")
-endif ()
-
-# Create a custom target to copy the required folders
-add_custom_target(copy_binaries ALL)
-
-# Loop over the subfolders and add conditional copy commands
-foreach (SUBFOLDER IN LISTS SUBFOLDERS)
-    add_custom_command(TARGET copy_binaries POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${BINARY_OUTPUT_DIR}/${SUBFOLDER}"
-        COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --green "Copying ${SUBFOLDER} from ${ARTEFACTS_DIR} to ${BINARY_OUTPUT_DIR}"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${ARTEFACTS_DIR}/${SUBFOLDER}"
-            "${BINARY_OUTPUT_DIR}/${SUBFOLDER}"
-    )
-endforeach ()
-
-add_dependencies(copy_binaries ${BaseTargetName})

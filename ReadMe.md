@@ -21,4 +21,4 @@ Navigate to the build folder with `cd build`
 
 Next run `cmake --build . --config Release`
 
-The compiled binaries can be found inside `binaries` folder.
+The compiled binaries can be found inside `TheInformer_artefacts/Release` (or simply `TheInformer_artefacts` in Linux) folder.
