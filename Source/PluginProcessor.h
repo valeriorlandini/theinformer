@@ -83,7 +83,6 @@ public:
     juce::Value rootValue;
 
 private:
-    juce::OSCSender sender;
     int updateBlocks = 1;
     int counter = 0;
     float updateInterval = 0.05f;

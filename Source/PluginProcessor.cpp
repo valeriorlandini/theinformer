@@ -61,12 +61,10 @@ windowLarge(fftSizeLarge, juce::dsp::WindowingFunction<float>::hann)
         ipParameters[i] = treeState.getRawParameterValue("ip" + std::to_string(i+1));
     }
     host = makeHost();
-    connect();
 }
 
 TheInformerAudioProcessor::~TheInformerAudioProcessor()
 {
-    sender.disconnect();
     --instanceCounter;
 }
 
@@ -334,7 +332,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             {
                 float magnitude = abs(fftData.at(ch).at((unsigned int)k));
                 power.push_back(magnitude * magnitude);
-                powerSum += power.at(k);
+                powerSum += power.at((unsigned int)k);
                 if (magnitude > maxMagnitude)
                 {
                     maxMagnitude = magnitude;
@@ -369,11 +367,11 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             for (auto k = 0; k < fftSize / 2; k++)
             {
                 float frequency = k * fftBandwidth;
-                a += power[k] * std::powf(frequency - chCentroid, 2.0);
+                a += power.at((unsigned int)k) * std::powf(frequency - chCentroid, 2.0);
                 
                 if (cumulPower < rolloffThresh)
                 {
-                    cumulPower += power[k];
+                    cumulPower += power.at((unsigned int)k);
                 }
                 if (cumulPower >= rolloffThresh && !threshReached)
                 {
@@ -418,8 +416,9 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             samples.at(i).clear();
         }
 
-        std::function<void()> reportStats = [this,
-                                             centroid, centroids,
+        juce::String root = "/" + rootValue.toString() + "/";
+
+        std::function<void()> reportStats = [centroid, centroids,
                                              flatness, flatnesses,
                                              fpeak, fpeaks,
                                              kurtosis, kurtoses,
@@ -428,16 +427,13 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                                              rolloff, rolloffs,
                                              scf, scfs,
                                              spread, spreads,
-                                             variance, variances]() mutable
+                                             variance, variances,
+                                             host = makeHost(),
+                                             port = int(*portParameter),
+                                             root]() mutable
         {
-            if (int(*portParameter) != port || makeHost() != host)
-            {
-                host = makeHost();
-                port = int(*portParameter);
-                connect();
-            }
-
-            juce::String root = "/" + rootValue.toString() + "/";
+            juce::OSCSender sender;
+            sender.connect(host, port);
 
             juce::String mix = "mix/";
 
@@ -472,6 +468,8 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 sender.send(juce::OSCAddressPattern(root + ch_str + "scf"), scfs.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "spread"), spreads.at(ch));
             }
+
+            sender.disconnect();
         };
         juce::MessageManager::callAsync(reportStats);
 
@@ -510,22 +508,6 @@ void TheInformerAudioProcessor::setStateInformation(const void* data, int sizeIn
             }
         }
     }
-}
-
-bool TheInformerAudioProcessor::connect()
-{
-    bool returnValue = false;
-    try
-    {
-        sender.disconnect();
-        returnValue = sender.connect(host, port);
-    }
-    catch (...)
-    {
-        juce::AlertWindow("Error", "Error while trying to connect to " + host, juce::MessageBoxIconType::WarningIcon);
-    }
-
-    return returnValue;
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
