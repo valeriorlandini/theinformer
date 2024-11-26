@@ -6,7 +6,7 @@ The Informer is compatible with Windows, Linux, and macOS. Pre-built binaries wi
 
 ## Pre-built binaries
 
-Soon!
+Compiled binaries for Linux, Windows and macOS can be found in the [Releases section](https://github.com/valeriorlandini/theinformer/releases).
 
 ## How to build
 
