@@ -164,6 +164,11 @@ void TheInformerAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
     }
 
     fftBandwidth = (float)sampleRate / (float)fftSize;
+    frequencies.fill(0.0f);
+    for (auto b = 0; b < fftSize / 2; b++)
+    {
+        frequencies.at((unsigned int)b) = b * fftBandwidth;
+    }
 }
 
 void TheInformerAudioProcessor::releaseResources()
@@ -241,6 +246,9 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 
         float scf = 0.0f;
         std::vector<float> scfs;
+
+        float skewness = 0.0f;
+        std::vector<float> skewnesses;
 
         float slope = 0.0f;
         std::vector<float> slopes;
@@ -324,6 +332,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             float chFlatness = 0.0f;
             float chRolloff = 0.0f;
             float chScf = 0.0f;
+            float chSkewness = 0.0f;
             float chSlope = 0.0f;
             float chSpread = 0.0f;
             float cumulPower = 0.0f;
@@ -344,7 +353,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 {
                     maxMagnitude = magnitude;
                 }
-                float frequency = k * fftBandwidth;
+                float frequency = frequencies.at((unsigned int)k);
                 freqSum += frequency;
                 freqSqSum += frequency * frequency;
 
@@ -378,7 +387,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             a = 0.0f;
             for (auto k = 0; k < fftSize / 2; k++)
             {
-                float frequency = k * fftBandwidth;
+                float frequency = frequencies.at((unsigned int)k);
                 a += power.at((unsigned int)k) * std::powf(frequency - chCentroid, 2.0);
 
                 if (cumulPower < rolloffThresh)
@@ -388,12 +397,28 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 if (cumulPower >= rolloffThresh && !threshReached)
                 {
                     threshReached = true;
-                    chRolloff = k * fftBandwidth;
+                    chRolloff = frequencies.at((unsigned int)k);
                 }
             }
             if (abs(powerSum) > 0.00001f)
             {
                 chSpread = std::sqrtf(a / powerSum);
+            }
+
+            float skewNum = 0.0f;
+            float skewDen = 0.0f;
+            for (auto k = 0; k < fftSize / 2; k++)
+            {
+                float frequency = frequencies.at((unsigned int)k);
+                float magnitude = abs(fftData.at(ch).at((unsigned int)k));
+
+                skewNum += std::powf(frequency - chCentroid, 3.0f) * magnitude;
+                skewDen += magnitude; 
+            }
+            skewDen *= std::powf(chSpread, 3.0f);
+            if (abs(skewDen) > 0.00001f)
+            {
+                chSkewness = skewNum / skewDen;
             }
 
             auto fpeakBand = std::max_element(fftData.at(ch).begin(), fftData.at(ch).end());
@@ -409,6 +434,8 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             rolloff += chRolloff;
             scfs.push_back(chScf);
             scf += chScf;
+            skewnesses.push_back(chSkewness);
+            skewness += chSkewness;
             slopes.push_back(chSlope);
             slope += chSlope;
             spreads.push_back(chSpread);
@@ -422,6 +449,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         rolloff /= totalNumInputChannels;
         rms /= totalNumInputChannels;
         scf /= totalNumInputChannels;
+        skewness /= totalNumInputChannels;
         slope /= totalNumInputChannels;
         spread /= totalNumInputChannels;
         variance /= totalNumInputChannels;
@@ -441,6 +469,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                                              rms, chRms,
                                              rolloff, rolloffs,
                                              scf, scfs,
+                                             skewness, skewnesses,
                                              slope, slopes,
                                              spread, spreads,
                                              variance, variances,
@@ -462,6 +491,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             sender.send(juce::OSCAddressPattern(root + mix + "freqpeak"), fpeak);
             sender.send(juce::OSCAddressPattern(root + mix + "rolloff"), rolloff);
             sender.send(juce::OSCAddressPattern(root + mix + "scf"), scf);
+            sender.send(juce::OSCAddressPattern(root + mix + "skewness"), skewness);
             sender.send(juce::OSCAddressPattern(root + mix + "slope"), slope);
             sender.send(juce::OSCAddressPattern(root + mix + "spread"), spread);
 
@@ -483,6 +513,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 sender.send(juce::OSCAddressPattern(root + ch_str + "freqpeak"), fpeaks.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "rolloff"), rolloffs.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "scf"), scfs.at(ch));
+                sender.send(juce::OSCAddressPattern(root + ch_str + "skewness"), skewnesses.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "slope"), slopes.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "spread"), spreads.at(ch));
             }

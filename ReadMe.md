@@ -4,6 +4,28 @@ The Informer is compatible with Windows, Linux, and macOS.
 
 ![immagine](https://github.com/user-attachments/assets/fbb00638-e4ec-4510-88c2-30177856e2fa)
 
+Currently, these descriptors have been implemented:
+
+### Amplitude descriptors
+
+* Kurtosis
+* Peak level
+* Root mean square
+* Variance
+
+### Spectral descriptors
+
+* Centroid
+* Crest factor
+* Flatness
+* Peak frequency
+* Rolloff (at 85%)
+* Skewness
+* Slope
+* Spread
+
+*<small>Please note that some of these descriptors may be available in the latest source version, and not in the latest binary release</small>*
+
 ## Pre-built binaries
 
 Compiled binaries for Linux, Windows and macOS can be found in the [Releases section](https://github.com/valeriorlandini/theinformer/releases).
