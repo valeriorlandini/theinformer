@@ -103,6 +103,7 @@ private:
 
     float fftBandwidth = 44100.0f / (float)fftSizeSmall;
     std::array<float, fftSizeLarge / 2> frequencies = { 0.0f };
+    std::array<float, fftSizeLarge / 2> magnitudes = { 0.0f };
     int fftSize = fftSizeSmall;
 
     std::reference_wrapper<juce::dsp::FFT> fftProcessor = fftProcessorSmall;

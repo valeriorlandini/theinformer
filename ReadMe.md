@@ -17,6 +17,7 @@ Currently, these descriptors have been implemented:
 
 * Centroid
 * Crest factor
+* Entropy
 * Flatness
 * Peak frequency
 * Rolloff (at 85%)
@@ -24,7 +25,7 @@ Currently, these descriptors have been implemented:
 * Slope
 * Spread
 
-*<small>Please note that some of these descriptors may be available in the latest source version, and not in the latest binary release</small>*
+*Please note that some of these descriptors may be available in the latest source version only, and not in the latest binary release yet*
 
 ## Pre-built binaries
 

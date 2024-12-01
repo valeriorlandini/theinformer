@@ -235,6 +235,9 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         float centroid = 0.0f;
         std::vector<float> centroids;
 
+        float entropy = 0.0f;
+        std::vector<float> entropies;
+
         float flatness = 0.0f;
         std::vector<float> flatnesses;
 
@@ -329,6 +332,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 
             float a = 0.0f;
             float chCentroid = 0.0f;
+            float chEntropy = 0.0f;
             float chFlatness = 0.0f;
             float chRolloff = 0.0f;
             float chScf = 0.0f;
@@ -343,10 +347,15 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             float magnSum = 0.0f;
             std::vector<float> power;
             float powerSum = 0.0f;
-            float n = (float)(fftSize / 2);
-            for (auto k = 0; k < fftSize / 2; k++)
+            auto fftHalf = fftSize / 2;
+            for (auto k = 0; k < fftHalf; k++)
             {
-                float magnitude = abs(fftData.at(ch).at((unsigned int)k));
+                magnitudes.at((unsigned int)k) = fabs(fftData.at(ch).at((unsigned int)k));
+            }
+
+            for (auto k = 0; k < fftHalf; k++)
+            {
+                float magnitude = magnitudes.at((unsigned int)k);
                 power.push_back(magnitude * magnitude);
                 powerSum += power.at((unsigned int)k);
                 if (magnitude > maxMagnitude)
@@ -369,23 +378,36 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                     magnLnSum += std::log(0.00001f);
                 }
             }
+            if (powerSum > 0.0f)
+            {
+                for (auto k = 0; k < fftHalf; k++)
+                {
+                    if (power.at(k) > 0.0f)
+                    {
+                        float powerNorm = power.at(k) / powerSum;
+                        chEntropy += powerNorm * std::log(powerNorm);
+                    }
+                }
+            }
+            chEntropy *= -1.0f;
+            chEntropy /= std::log((float)fftHalf);
             if (abs(magnSum) > 0.00001f)
             {
                 chCentroid = a / magnSum;
                 chScf = maxMagnitude / magnSum;
 
-                float magnMean = magnSum / n;
-                float magnGeoMean = std::exp(magnLnSum / n);
+                float magnMean = magnSum / (float)fftHalf;
+                float magnGeoMean = std::exp(magnLnSum / (float)fftHalf);
                 chFlatness = magnGeoMean / magnMean;
 
                 chSlope = 1.0f / magnSum;
-                chSlope *= (n * a - (freqSum * magnSum)) / (n * freqSqSum - (freqSum * freqSum));
+                chSlope *= ((float)fftHalf * a - (freqSum * magnSum)) / ((float)fftHalf * freqSqSum - (freqSum * freqSum));
             }
 
             float rolloffThresh = powerSum * 0.85f;
             bool threshReached = false;
             a = 0.0f;
-            for (auto k = 0; k < fftSize / 2; k++)
+            for (auto k = 0; k < fftHalf; k++)
             {
                 float frequency = frequencies.at((unsigned int)k);
                 a += power.at((unsigned int)k) * std::powf(frequency - chCentroid, 2.0);
@@ -407,10 +429,10 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 
             float skewNum = 0.0f;
             float skewDen = 0.0f;
-            for (auto k = 0; k < fftSize / 2; k++)
+            for (auto k = 0; k < fftHalf; k++)
             {
                 float frequency = frequencies.at((unsigned int)k);
-                float magnitude = abs(fftData.at(ch).at((unsigned int)k));
+                float magnitude = magnitudes.at((unsigned int)k);
 
                 skewNum += std::powf(frequency - chCentroid, 3.0f) * magnitude;
                 skewDen += magnitude; 
@@ -426,6 +448,8 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 
             centroids.push_back(chCentroid);
             centroid += chCentroid;
+            entropies.push_back(chEntropy);
+            entropy += chEntropy;
             flatnesses.push_back(chFlatness);
             flatness += chFlatness;
             fpeaks.push_back(chFpeak);
@@ -443,6 +467,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         }
 
         centroid /= totalNumInputChannels;
+        entropy /= totalNumInputChannels;
         flatness /= totalNumInputChannels;
         fpeak /= totalNumInputChannels;
         kurtosis /= totalNumInputChannels;
@@ -462,6 +487,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         juce::String root = "/" + rootValue.toString() + "/";
 
         std::function<void()> reportStats = [centroid, centroids,
+                                             entropy, entropies,
                                              flatness, flatnesses,
                                              fpeak, fpeaks,
                                              kurtosis, kurtoses,
@@ -487,6 +513,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             sender.send(juce::OSCAddressPattern(root + mix + "rms"), rms);
             sender.send(juce::OSCAddressPattern(root + mix + "variance"), variance);
             sender.send(juce::OSCAddressPattern(root + mix + "centroid"), centroid);
+            sender.send(juce::OSCAddressPattern(root + mix + "entropy"), entropy);
             sender.send(juce::OSCAddressPattern(root + mix + "flatness"), flatness);
             sender.send(juce::OSCAddressPattern(root + mix + "freqpeak"), fpeak);
             sender.send(juce::OSCAddressPattern(root + mix + "rolloff"), rolloff);
@@ -509,6 +536,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 sender.send(juce::OSCAddressPattern(root + ch_str + "rms"), chRms.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "variance"), variances.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "centroid"), centroids.at(ch));
+                sender.send(juce::OSCAddressPattern(root + ch_str + "entropy"), entropies.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "flatness"), flatnesses.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "freqpeak"), fpeaks.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "rolloff"), rolloffs.at(ch));
