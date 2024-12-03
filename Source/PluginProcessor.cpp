@@ -400,8 +400,15 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 float magnGeoMean = std::exp(magnLnSum / (float)fftHalf);
                 chFlatness = magnGeoMean / magnMean;
 
-                chSlope = 1.0f / magnSum;
-                chSlope *= ((float)fftHalf * a - (freqSum * magnSum)) / ((float)fftHalf * freqSqSum - (freqSum * freqSum));
+                float chSlopeNum = 0.0f;
+                float chSlopeDen = 0.0f;
+                float freqMean = freqSum / (float)fftHalf;
+                for (auto k = 0; k < fftHalf; k++)
+                {
+                    chSlopeNum += (frequencies.at(k) - freqMean) * (magnitudes.at(k) - magnMean);
+                    chSlopeDen += (frequencies.at(k) - freqMean) * (frequencies.at(k) - freqMean);
+                }
+                chSlope = chSlopeNum / chSlopeDen;
             }
 
             float rolloffThresh = powerSum * 0.85f;
