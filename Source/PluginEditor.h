@@ -43,6 +43,9 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> portAttachment;
     juce::Label rootLabel;
     juce::TextEditor rootEditor;
+    juce::Label normLabel;
+    juce::Slider normSlider;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> normAttachment;
 
     juce::String allowedChars = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890-_";
 

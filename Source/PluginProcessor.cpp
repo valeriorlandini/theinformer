@@ -38,6 +38,7 @@ TheInformerAudioProcessor::TheInformerAudioProcessor() :
     std::make_unique<juce::AudioParameterInt>("ip2", "IP address Octet 2", 0, 255, 0),
     std::make_unique<juce::AudioParameterInt>("ip3", "IP address Octet 3", 0, 255, 0),
     std::make_unique<juce::AudioParameterInt>("ip4", "IP address Octet 4", 0, 255, 1),
+    std::make_unique<juce::AudioParameterBool>("normalize", "Normalize Values", false),
 }),
 fftProcessorSmall(orderSmall),
 windowSmall(fftSizeSmall, juce::dsp::WindowingFunction<float>::hann),
@@ -61,6 +62,9 @@ windowLarge(fftSizeLarge, juce::dsp::WindowingFunction<float>::hann)
         ipParameters[i] = treeState.getRawParameterValue("ip" + std::to_string(i+1));
     }
     host = makeHost();
+
+    normParameter = treeState.getRawParameterValue("normalize");
+    normalize = *normParameter > 0.5f;
 }
 
 TheInformerAudioProcessor::~TheInformerAudioProcessor()
@@ -145,7 +149,7 @@ void TheInformerAudioProcessor::changeProgramName(int index, const juce::String&
 
 void TheInformerAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    if (sampleRate > 48000.0f)
+    if (sampleRate > 48000.0)
     {
         fftSize = (unsigned int)fftSizeLarge;
         fftProcessor = fftProcessorLarge;
@@ -168,6 +172,11 @@ void TheInformerAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
     for (auto b = 0; b < fftSize / 2; b++)
     {
         frequencies.at((unsigned int)b) = b * fftBandwidth;
+    }
+
+    if (sampleRate > 0.0)
+    {
+        invNyquist = 1.0f / (float)sampleRate;        
     }
 }
 
@@ -380,11 +389,11 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             }
             if (powerSum > 0.0f)
             {
-                for (auto k = 0; k < fftHalf; k++)
+                for (unsigned int k = 0; k < (unsigned int)fftHalf; k++)
                 {
                     if (power.at(k) > 0.0f)
                     {
-                        float powerNorm = power.at(k) / powerSum;
+                        float powerNorm = power.at((unsigned int)k) / powerSum;
                         chEntropy += powerNorm * std::log(powerNorm);
                     }
                 }
@@ -403,12 +412,14 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 float chSlopeNum = 0.0f;
                 float chSlopeDen = 0.0f;
                 float freqMean = freqSum / (float)fftHalf;
-                for (auto k = 0; k < fftHalf; k++)
+                for (unsigned int k = 0; k < (unsigned int)fftHalf; k++)
                 {
                     chSlopeNum += (frequencies.at(k) - freqMean) * (magnitudes.at(k) - magnMean);
                     chSlopeDen += (frequencies.at(k) - freqMean) * (frequencies.at(k) - freqMean);
                 }
                 chSlope = chSlopeNum / chSlopeDen;
+                // Multiply by 100 to have a range closer to [-1.0, 1.0]
+                chSlope *= 100.0f;
             }
 
             float rolloffThresh = powerSum * 0.85f;
@@ -485,6 +496,63 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         slope /= totalNumInputChannels;
         spread /= totalNumInputChannels;
         variance /= totalNumInputChannels;
+
+        if (normalize)
+        {
+            kurtosis += 2.0f;
+            kurtosis = std::clamp(kurtosis, 0.0f, 4.0f);
+            kurtosis *= 0.25f;
+            for (float& k : kurtoses)
+            {
+                k += 2.0f;
+                k = std::clamp(k, 0.0f, 4.0f);
+                k *= 0.25f;
+            }
+
+            centroid *= invNyquist;
+            for (float& c : centroids)
+            {
+                c *= invNyquist;
+            }
+
+            fpeak *= invNyquist;
+            for (float& f : fpeaks)
+            {
+                f *= invNyquist;
+            }
+
+            rolloff *= invNyquist;
+            for (float& r : rolloffs)
+            {
+                r *= invNyquist;
+            }
+
+            skewness = std::clamp(skewness, -5.0f, 5.0f);
+            skewness += 5.0f;
+            skewness *= 0.1f;
+            for (float& s : skewnesses)
+            {
+                s = std::clamp(s, -5.0f, 5.0f);
+                s += 5.0f;
+                s *= 0.1f;
+            }
+
+            slope += 1.0f;
+            slope *= 0.5;
+            slope = std::clamp(slope, 0.0f, 1.0f);
+            for (float& s : slopes)
+            {
+                s += 1.0f;
+                s *= 0.5;
+                s = std::clamp(s, 0.0f, 1.0f);
+            }
+
+            spread *= invNyquist;
+            for (float& s : spreads)
+            {
+                s *= invNyquist;
+            }
+        }
 
         for (unsigned int i = 0; i < 64; i++)
         {

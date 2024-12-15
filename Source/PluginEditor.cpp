@@ -23,10 +23,10 @@ TheInformerAudioProcessorEditor::TheInformerAudioProcessorEditor(TheInformerAudi
       customTypeface(juce::Typeface::createSystemTypefaceFor(BinaryData::Font_ttf, BinaryData::Font_ttfSize)),
       customFont(juce::Font(juce::FontOptions().withTypeface(customTypeface)))
 {
-    setSize(500, 200);
-    setResizeLimits(500, 200, 3000, 1200);
+    setSize(500, 230);
+    setResizeLimits(500, 230, 3000, 1380);
     setResizable(true, p.wrapperType != TheInformerAudioProcessor::wrapperType_AudioUnitv3);
-    getConstrainer()->setFixedAspectRatio(2.5f);
+    getConstrainer()->setFixedAspectRatio(500.0f/230.0f);
 
     std::unique_ptr<juce::XmlElement> svgXml(juce::XmlDocument::parse(BinaryData::Logo_svg));
     if (svgXml != nullptr)
@@ -70,7 +70,7 @@ TheInformerAudioProcessorEditor::TheInformerAudioProcessorEditor(TheInformerAudi
     portLabel.setJustificationType(juce::Justification::centred);
     portLabel.setText("port", juce::dontSendNotification);
     addAndMakeVisible(portLabel);
-
+    
     rootEditor.setInputRestrictions(64, allowedChars);
     rootEditor.setText(audioProcessor.rootValue.toString(), juce::dontSendNotification);
     rootEditor.setColour(juce::TextEditor::outlineColourId, juce::Colours::darkslategrey);
@@ -86,6 +86,28 @@ TheInformerAudioProcessorEditor::TheInformerAudioProcessorEditor(TheInformerAudi
 
     rootLabel.setText("root", juce::dontSendNotification);
     addAndMakeVisible(rootLabel);
+
+    normSlider.setLookAndFeel(&customLookAndFeel);
+    normSlider.setColour(juce::Slider::trackColourId, juce::Colours::transparentBlack);
+    normSlider.setSliderStyle(juce::Slider::LinearBar);
+    normSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 0, 0);
+    normSlider.setPopupDisplayEnabled(false, false, this);
+    addAndMakeVisible(&normSlider);
+    normAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(p.treeState, "normalize", normSlider);
+    normSlider.textFromValueFunction = [](double value)
+    {
+        if (value < 0.5)
+        {
+            return "off";
+        }
+        
+        return "on";
+    };
+
+    normLabel.setJustificationType(juce::Justification::centred);
+    normLabel.setText("norm", juce::dontSendNotification);
+    addAndMakeVisible(normLabel);
+
 }
 
 TheInformerAudioProcessorEditor::~TheInformerAudioProcessorEditor()
@@ -123,6 +145,7 @@ void TheInformerAudioProcessorEditor::resized()
         ipSliders[i].setTextBoxStyle(juce::Slider::TextBoxLeft, false, blockUI * 2, blockUI);
     }
 
+    portLabel.setJustificationType(juce::Justification::centred);
     portLabel.setBounds(blockUI, blockUI * 5, blockUI * 3, blockUI);
     portLabel.setFont(customFont.withHeight(fontSize));
     portSlider.setBounds(blockUI * 5, blockUI * 5, blockUI * 8, blockUI);
@@ -133,4 +156,11 @@ void TheInformerAudioProcessorEditor::resized()
     rootLabel.setFont(customFont.withHeight(fontSize));
     rootEditor.setBounds(blockUI * 5, blockUI * 6, blockUI * 8, blockUI);
     rootEditor.applyFontToAllText(customFont.withHeight(fontSize));
+    rootEditor.setJustification(juce::Justification::centred);
+ 
+    normLabel.setJustificationType(juce::Justification::centred);
+    normLabel.setBounds(blockUI, blockUI * 7, blockUI * 3, blockUI);
+    normLabel.setFont(customFont.withHeight(fontSize));
+    normSlider.setBounds(blockUI * 5, blockUI * 7, blockUI * 8, blockUI);
+    normSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, blockUI * 8, blockUI);
 }
