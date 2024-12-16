@@ -96,18 +96,13 @@ TheInformerAudioProcessorEditor::TheInformerAudioProcessorEditor(TheInformerAudi
     normAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(p.treeState, "normalize", normSlider);
     normSlider.textFromValueFunction = [](double value)
     {
-        if (value < 0.5)
-        {
-            return "off";
-        }
-        
-        return "on";
+        return value < 0.5 ? "off" : "on";
     };
+    normSlider.updateText();
 
     normLabel.setJustificationType(juce::Justification::centred);
     normLabel.setText("norm", juce::dontSendNotification);
     addAndMakeVisible(normLabel);
-
 }
 
 TheInformerAudioProcessorEditor::~TheInformerAudioProcessorEditor()
