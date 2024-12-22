@@ -2,7 +2,7 @@
 A VST3/LV2/AU plugin and standalone software that analyzes incoming audio and computes a range of audio descriptors, which are sent as OSC (Open Sound Control) messages. These can be used in other software, such as for sound visualization or real-time audio analysis.
 The Informer is compatible with Windows, Linux, and macOS.
 
-![immagine](https://github.com/user-attachments/assets/fbb00638-e4ec-4510-88c2-30177856e2fa)
+![image](https://github.com/user-attachments/assets/65eaa577-4e5b-4e60-a69f-e085281d5c74)
 
 Currently, these descriptors have been implemented:
 
