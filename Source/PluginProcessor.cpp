@@ -17,6 +17,7 @@ The Informer. If not, see <https://www.gnu.org/licenses/>.
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include <cmath>
 
 std::atomic<int> TheInformerAudioProcessor::instanceCounter{ 0 };
 
@@ -64,7 +65,6 @@ windowLarge(fftSizeLarge, juce::dsp::WindowingFunction<float>::hann)
     host = makeHost();
 
     normParameter = treeState.getRawParameterValue("normalize");
-    normalize = *normParameter > 0.5f;
 }
 
 TheInformerAudioProcessor::~TheInformerAudioProcessor()
@@ -250,6 +250,9 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         float flatness = 0.0f;
         std::vector<float> flatnesses;
 
+        float flux = 0.0f;
+        std::vector<float> fluxes;
+
         float fpeak = 0.0f;
         std::vector<float> fpeaks;
 
@@ -343,6 +346,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             float chCentroid = 0.0f;
             float chEntropy = 0.0f;
             float chFlatness = 0.0f;
+            float chFlux = 0.0f;
             float chRolloff = 0.0f;
             float chScf = 0.0f;
             float chSkewness = 0.0f;
@@ -359,12 +363,14 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             auto fftHalf = fftSize / 2;
             for (auto k = 0; k < fftHalf; k++)
             {
-                magnitudes.at((unsigned int)k) = fabs(fftData.at(ch).at((unsigned int)k));
+                prev_magnitudes.at(ch).at((unsigned int)k) = magnitudes.at(ch).at((unsigned int)k);
+                magnitudes.at(ch).at((unsigned int)k) = fabs(fftData.at(ch).at((unsigned int)k));
             }
 
             for (auto k = 0; k < fftHalf; k++)
             {
-                float magnitude = magnitudes.at((unsigned int)k);
+                float magnitude = magnitudes.at(ch).at((unsigned int)k);
+                float prev_magnitude = prev_magnitudes.at(ch).at((unsigned int)k);
                 power.push_back(magnitude * magnitude);
                 powerSum += power.at((unsigned int)k);
                 if (magnitude > maxMagnitude)
@@ -386,7 +392,10 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 {
                     magnLnSum += std::log(0.00001f);
                 }
+
+                chFlux += std::powf(magnitude - prev_magnitude, 2.0f);
             }
+            chFlux = std::sqrtf(chFlux);
             if (powerSum > 0.0f)
             {
                 for (unsigned int k = 0; k < (unsigned int)fftHalf; k++)
@@ -414,7 +423,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 float freqMean = freqSum / (float)fftHalf;
                 for (unsigned int k = 0; k < (unsigned int)fftHalf; k++)
                 {
-                    chSlopeNum += (frequencies.at(k) - freqMean) * (magnitudes.at(k) - magnMean);
+                    chSlopeNum += (frequencies.at(k) - freqMean) * (magnitudes.at(ch).at(k) - magnMean);
                     chSlopeDen += (frequencies.at(k) - freqMean) * (frequencies.at(k) - freqMean);
                 }
                 chSlope = chSlopeNum / chSlopeDen;
@@ -450,7 +459,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             for (auto k = 0; k < fftHalf; k++)
             {
                 float frequency = frequencies.at((unsigned int)k);
-                float magnitude = magnitudes.at((unsigned int)k);
+                float magnitude = magnitudes.at(ch).at((unsigned int)k);
 
                 skewNum += std::powf(frequency - chCentroid, 3.0f) * magnitude;
                 skewDen += magnitude; 
@@ -470,6 +479,8 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             entropy += chEntropy;
             flatnesses.push_back(chFlatness);
             flatness += chFlatness;
+            fluxes.push_back(chFlux);
+            flux += chFlux;
             fpeaks.push_back(chFpeak);
             fpeak += chFpeak;
             rolloffs.push_back(chRolloff);
@@ -487,6 +498,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         centroid /= totalNumInputChannels;
         entropy /= totalNumInputChannels;
         flatness /= totalNumInputChannels;
+        flux /= totalNumInputChannels;
         fpeak /= totalNumInputChannels;
         kurtosis /= totalNumInputChannels;
         rolloff /= totalNumInputChannels;
@@ -497,7 +509,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         spread /= totalNumInputChannels;
         variance /= totalNumInputChannels;
 
-        if (normalize)
+        if (*normParameter > 0.5f)
         {
             kurtosis += 2.0f;
             kurtosis = std::clamp(kurtosis, 0.0f, 4.0f);
@@ -513,6 +525,14 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             for (float& c : centroids)
             {
                 c *= invNyquist;
+            }
+
+            flux /= (float)fftSize * 0.5f;
+            flux = std::clamp(flux, 0.0f, 1.0f);
+            for (float& f : fluxes)
+            {
+                f /= (float)fftSize * 0.5f;
+                f = std::clamp(f, 0.0f, 1.0f);
             }
 
             fpeak *= invNyquist;
@@ -564,6 +584,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         std::function<void()> reportStats = [centroid, centroids,
                                              entropy, entropies,
                                              flatness, flatnesses,
+                                             flux, fluxes,
                                              fpeak, fpeaks,
                                              kurtosis, kurtoses,
                                              peak, peaks,
@@ -590,6 +611,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             sender.send(juce::OSCAddressPattern(root + mix + "centroid"), centroid);
             sender.send(juce::OSCAddressPattern(root + mix + "entropy"), entropy);
             sender.send(juce::OSCAddressPattern(root + mix + "flatness"), flatness);
+            sender.send(juce::OSCAddressPattern(root + mix + "flux"), flux);
             sender.send(juce::OSCAddressPattern(root + mix + "freqpeak"), fpeak);
             sender.send(juce::OSCAddressPattern(root + mix + "rolloff"), rolloff);
             sender.send(juce::OSCAddressPattern(root + mix + "scf"), scf);
@@ -613,6 +635,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 sender.send(juce::OSCAddressPattern(root + ch_str + "centroid"), centroids.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "entropy"), entropies.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "flatness"), flatnesses.at(ch));
+                sender.send(juce::OSCAddressPattern(root + ch_str + "flux"), fluxes.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "freqpeak"), fpeaks.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "rolloff"), rolloffs.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "scf"), scfs.at(ch));

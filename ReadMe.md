@@ -19,6 +19,7 @@ Currently, these descriptors have been implemented:
 * Crest factor
 * Entropy
 * Flatness
+* Flux
 * Peak frequency
 * Rolloff (at 85%)
 * Skewness

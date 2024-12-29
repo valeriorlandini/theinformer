@@ -106,8 +106,9 @@ private:
     juce::dsp::WindowingFunction<float> windowLarge;
 
     float fftBandwidth = 44100.0f / (float)fftSizeSmall;
-    std::array<float, fftSizeLarge / 2> frequencies = { 0.0f };
-    std::array<float, fftSizeLarge / 2> magnitudes = { 0.0f };
+    std::array<float, fftSizeLarge / 2> frequencies = {};
+    std::array<std::array<float, fftSizeLarge / 2>, 64> magnitudes = {};
+    std::array<std::array<float, fftSizeLarge / 2>, 64> prev_magnitudes = {};
     int fftSize = fftSizeSmall;
 
     std::reference_wrapper<juce::dsp::FFT> fftProcessor = fftProcessorSmall;
@@ -131,8 +132,6 @@ private:
 
         return hostString;
     }
-
-    bool normalize = false;
 
     static std::atomic<int> instanceCounter;
     int instance;
