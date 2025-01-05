@@ -121,30 +121,19 @@ int TheInformerAudioProcessor::getCurrentProgram()
 
 void TheInformerAudioProcessor::setCurrentProgram(int index)
 {
-    index = 0;
-
-    if (index)
-    {
-        // Dummy, to avoid warnings from some compilers
-    }
+    juce::ignoreUnused(index);
 }
 
 const juce::String TheInformerAudioProcessor::getProgramName(int index)
 {
-    if (index)
-    {
-        // Dummy, to avoid warnings from some compilers
-    }
+    juce::ignoreUnused(index);
+
     return {};
 }
 
 void TheInformerAudioProcessor::changeProgramName(int index, const juce::String& newName)
 {
-    if (index)
-    {
-        // Dummy, to avoid warnings from some compilers
-    }
-    auto dummy = newName;
+    juce::ignoreUnused(index, newName);
 }
 
 void TheInformerAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
@@ -203,10 +192,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
     auto totalNumInputChannels = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-    if (midiMessages.isEmpty())
-    {
-        // Dummy, to avoid warnings from some compilers
-    }
+    juce::ignoreUnused(midiMessages);
 
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
     {
