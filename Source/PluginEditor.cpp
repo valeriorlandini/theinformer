@@ -121,22 +121,22 @@ void TheInformerAudioProcessorEditor::paint(juce::Graphics& g)
 
 void TheInformerAudioProcessorEditor::resized()
 {
-    const int blockUI = (int)ceil(getWidth() / 20.0f);
-    fontSize = (float)blockUI * 0.75f;
+    const int blockUI = static_cast<int>(ceil(getWidth() / 20.0f));
+    fontSize = static_cast<float>(blockUI) * 0.75f;
     customFont = customFont.withHeight(fontSize);
 
     title.setJustificationType(juce::Justification::centred);
     title.setBounds(blockUI, blockUI, blockUI * 12, blockUI * 2);
     title.setFont(customFont.withHeight(fontSize * 2.0f));
 
-    logoBounds = juce::Rectangle<float>(0.0f, (float)blockUI / 1.25f, (float)getWidth(), (float)getHeight() - ((float)blockUI / 1.25f));
+    logoBounds = juce::Rectangle<float>(0.0f, static_cast<float>(blockUI) / 1.25f, static_cast<float>(getWidth()), static_cast<float>(getHeight()) - (static_cast<float>(blockUI) / 1.25f));
 
     hostLabel.setJustificationType(juce::Justification::centred);
     hostLabel.setBounds(blockUI, blockUI * 4, blockUI * 3, blockUI);
     hostLabel.setFont(customFont.withHeight(fontSize));
     for (unsigned int i = 0; i < 4; i++)
     {
-        ipSliders[i].setBounds(blockUI * (5 + (int)(i*2)), blockUI * 4, blockUI * 2, blockUI);
+        ipSliders[i].setBounds(blockUI * (5 + static_cast<int>(i*2)), blockUI * 4, blockUI * 2, blockUI);
         ipSliders[i].setTextBoxStyle(juce::Slider::TextBoxLeft, false, blockUI * 2, blockUI);
     }
 

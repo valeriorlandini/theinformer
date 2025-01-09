@@ -140,13 +140,13 @@ void TheInformerAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
 {
     if (sampleRate > 48000.0)
     {
-        fftSize = (unsigned int)fftSizeLarge;
+        fftSize = static_cast<unsigned int>(fftSizeLarge);
         fftProcessor = fftProcessorLarge;
         window = windowLarge;
     }
     else
     {
-        fftSize = (unsigned int)fftSizeSmall;
+        fftSize = static_cast<unsigned int>(fftSizeSmall);
         fftProcessor = fftProcessorSmall;
         window = windowSmall;
     }
@@ -156,16 +156,16 @@ void TheInformerAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
         updateBlocks++;
     }
 
-    fftBandwidth = (float)sampleRate / (float)fftSize;
+    fftBandwidth = static_cast<float>(sampleRate) / static_cast<float>(fftSize);
     frequencies.fill(0.0f);
     for (auto b = 0; b < fftSize / 2; b++)
     {
-        frequencies.at((unsigned int)b) = b * fftBandwidth;
+        frequencies.at(static_cast<unsigned int>(b)) = b * fftBandwidth;
     }
 
     if (sampleRate > 0.0)
     {
-        invNyquist = 1.0f / (float)sampleRate;        
+        invNyquist = 1.0f / static_cast<float>(sampleRate);        
     }
 }
 
@@ -261,7 +261,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         {
             /* AMPLITUDE DESCRIPTORS */
 
-            chRms.push_back(std::sqrt(sqrGains[ch] / (buffer.getNumSamples() * (float)counter)));
+            chRms.push_back(std::sqrt(sqrGains[ch] / (buffer.getNumSamples() * static_cast<float>(counter))));
             rms += chRms.at(ch);
             sqrGains[ch] = 0.0f;
 
@@ -287,7 +287,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             {
                 chVariance += powf(s - mean, 2.0f);
             }
-            chVariance /= buffer.getNumSamples() * (float)counter;
+            chVariance /= buffer.getNumSamples() * static_cast<float>(counter);
 
             float invSqrChVariance = chVariance * chVariance;
 
@@ -301,7 +301,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                     chKurtosis += powf(s - mean, 4.0f) * invSqrChVariance;
                 }
 
-                chKurtosis /= buffer.getNumSamples() * (float)counter;
+                chKurtosis /= buffer.getNumSamples() * static_cast<float>(counter);
                 chKurtosis -= 3.0f;
             }
             else
@@ -320,12 +320,12 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             /* SPECTRAL DESCRIPTORS */
 
             fftData.at(ch).clear();
-            fftData.at(ch).resize((unsigned int)fftSize * 2);
-            for (unsigned int s = 0; s < (unsigned int)std::min((int)samples.at(ch).size(), fftSize); s++)
+            fftData.at(ch).resize(static_cast<unsigned int>(fftSize) * 2);
+            for (unsigned int s = 0; s < static_cast<unsigned int>(std::min(static_cast<int>(samples.at(ch).size()), fftSize)); s++)
             {
                 fftData.at(ch).at(s) = samples.at(ch).at(s);
             }
-            window.get().multiplyWithWindowingTable(fftData.at(ch).data(), (unsigned int)fftSize);
+            window.get().multiplyWithWindowingTable(fftData.at(ch).data(), static_cast<unsigned int>(fftSize));
             fftProcessor.get().performFrequencyOnlyForwardTransform(fftData.at(ch).data());
 
             float a = 0.0f;
@@ -346,24 +346,24 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             float magnSum = 0.0f;
             std::vector<float> power;
             float powerSum = 0.0f;
-            auto fftHalf = fftSize / 2;
-            for (auto k = 0; k < fftHalf; k++)
+            unsigned int fftHalf = static_cast<unsigned int>(fftSize) / 2;
+            for (unsigned int k = 0; k < fftHalf; k++)
             {
-                prev_magnitudes.at(ch).at((unsigned int)k) = magnitudes.at(ch).at((unsigned int)k);
-                magnitudes.at(ch).at((unsigned int)k) = fabs(fftData.at(ch).at((unsigned int)k));
+                prev_magnitudes.at(ch).at(k) = magnitudes.at(ch).at(k);
+                magnitudes.at(ch).at(k) = fabs(fftData.at(ch).at(k));
             }
 
-            for (auto k = 0; k < fftHalf; k++)
+            for (unsigned int k = 0; k < fftHalf; k++)
             {
-                float magnitude = magnitudes.at(ch).at((unsigned int)k);
-                float prev_magnitude = prev_magnitudes.at(ch).at((unsigned int)k);
+                float magnitude = magnitudes.at(ch).at(k);
+                float prev_magnitude = prev_magnitudes.at(ch).at(k);
                 power.push_back(magnitude * magnitude);
-                powerSum += power.at((unsigned int)k);
+                powerSum += power.at(k);
                 if (magnitude > maxMagnitude)
                 {
                     maxMagnitude = magnitude;
                 }
-                float frequency = frequencies.at((unsigned int)k);
+                float frequency = frequencies.at(k);
                 freqSum += frequency;
                 freqSqSum += frequency * frequency;
 
@@ -384,30 +384,30 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             chFlux = std::sqrtf(chFlux);
             if (powerSum > 0.0f)
             {
-                for (unsigned int k = 0; k < (unsigned int)fftHalf; k++)
+                for (unsigned int k = 0; k < fftHalf; k++)
                 {
                     if (power.at(k) > 0.0f)
                     {
-                        float powerNorm = power.at((unsigned int)k) / powerSum;
+                        float powerNorm = power.at(k) / powerSum;
                         chEntropy += powerNorm * std::log(powerNorm);
                     }
                 }
             }
             chEntropy *= -1.0f;
-            chEntropy /= std::log((float)fftHalf);
+            chEntropy /= std::log(static_cast<float>(fftHalf));
             if (abs(magnSum) > 0.00001f)
             {
                 chCentroid = a / magnSum;
                 chScf = maxMagnitude / magnSum;
 
-                float magnMean = magnSum / (float)fftHalf;
-                float magnGeoMean = std::exp(magnLnSum / (float)fftHalf);
+                float magnMean = magnSum / static_cast<float>(fftHalf);
+                float magnGeoMean = std::exp(magnLnSum / static_cast<float>(fftHalf));
                 chFlatness = magnGeoMean / magnMean;
 
                 float chSlopeNum = 0.0f;
                 float chSlopeDen = 0.0f;
-                float freqMean = freqSum / (float)fftHalf;
-                for (unsigned int k = 0; k < (unsigned int)fftHalf; k++)
+                float freqMean = freqSum / static_cast<float>(fftHalf);
+                for (unsigned int k = 0; k < fftHalf; k++)
                 {
                     chSlopeNum += (frequencies.at(k) - freqMean) * (magnitudes.at(ch).at(k) - magnMean);
                     chSlopeDen += (frequencies.at(k) - freqMean) * (frequencies.at(k) - freqMean);
@@ -420,19 +420,19 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             float rolloffThresh = powerSum * 0.85f;
             bool threshReached = false;
             a = 0.0f;
-            for (auto k = 0; k < fftHalf; k++)
+            for (unsigned int k = 0; k < fftHalf; k++)
             {
-                float frequency = frequencies.at((unsigned int)k);
-                a += power.at((unsigned int)k) * std::powf(frequency - chCentroid, 2.0);
+                float frequency = frequencies.at(k);
+                a += power.at(k) * std::powf(frequency - chCentroid, 2.0);
 
                 if (cumulPower < rolloffThresh)
                 {
-                    cumulPower += power.at((unsigned int)k);
+                    cumulPower += power.at(k);
                 }
                 if (cumulPower >= rolloffThresh && !threshReached)
                 {
                     threshReached = true;
-                    chRolloff = frequencies.at((unsigned int)k);
+                    chRolloff = frequencies.at(k);
                 }
             }
             if (abs(powerSum) > 0.00001f)
@@ -442,10 +442,10 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 
             float skewNum = 0.0f;
             float skewDen = 0.0f;
-            for (auto k = 0; k < fftHalf; k++)
+            for (unsigned int k = 0; k < fftHalf; k++)
             {
-                float frequency = frequencies.at((unsigned int)k);
-                float magnitude = magnitudes.at(ch).at((unsigned int)k);
+                float frequency = frequencies.at(k);
+                float magnitude = magnitudes.at(ch).at(k);
 
                 skewNum += std::powf(frequency - chCentroid, 3.0f) * magnitude;
                 skewDen += magnitude; 
@@ -457,7 +457,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             }
 
             auto fpeakBand = std::max_element(fftData.at(ch).begin(), fftData.at(ch).end());
-            float chFpeak = (float)std::distance(fftData.at(ch).begin(), fpeakBand) * fftBandwidth;
+            float chFpeak = static_cast<float>(std::distance(fftData.at(ch).begin(), fpeakBand)) * fftBandwidth;
 
             centroids.push_back(chCentroid);
             centroid += chCentroid;
@@ -513,11 +513,11 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 c *= invNyquist;
             }
 
-            flux /= (float)fftSize * 0.5f;
+            flux /= static_cast<float>(fftSize) * 0.5f;
             flux = std::clamp(flux, 0.0f, 1.0f);
             for (float& f : fluxes)
             {
-                f /= (float)fftSize * 0.5f;
+                f /= static_cast<float>(fftSize) * 0.5f;
                 f = std::clamp(f, 0.0f, 1.0f);
             }
 

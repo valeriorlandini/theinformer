@@ -90,6 +90,7 @@ private:
     float updateInterval = 0.05f;
     std::array<float, 64> sqrGains = { 0.0f };
     std::array<std::vector<float>, 64> samples;
+    std::array<std::vector<float>, 64> nextSamples;
 
     float invNyquist = 1.0f / 44100.0f;
 
@@ -114,7 +115,7 @@ private:
     std::reference_wrapper<juce::dsp::FFT> fftProcessor = fftProcessorSmall;
     std::reference_wrapper<juce::dsp::WindowingFunction<float>> window = windowSmall;
     std::array<std::vector<float>, 64> fftData;
-
+    
     int port = 9000;
 
     inline juce::String makeHost()
@@ -123,7 +124,7 @@ private:
 
         for (unsigned int i = 0; i < 4; i++)
         {
-            hostString += juce::String(int(*(ipParameters[i])));
+            hostString += juce::String(static_cast<int>((*(ipParameters[i]))));
             if (i < 3)
             {
                 hostString += ".";
