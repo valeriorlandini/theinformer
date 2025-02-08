@@ -87,6 +87,7 @@ public:
 private:
     int updateBlocks = 1;
     int counter = 0;
+    int expectedSamples = 0;
     float updateInterval = 0.05f;
     std::array<float, 64> sqrGains = { 0.0f };
     std::array<std::vector<float>, 64> samples;
@@ -94,14 +95,14 @@ private:
 
     float invNyquist = 1.0f / 44100.0f;
 
-    // 2048 samples, for sample rates up to 48000 Hz
-    static constexpr int orderSmall = 11;
+    // 4096 samples, for sample rates up to 48000 Hz
+    static constexpr int orderSmall = 12;
     static constexpr int fftSizeSmall = 1 << orderSmall;
     juce::dsp::FFT fftProcessorSmall;
     juce::dsp::WindowingFunction<float> windowSmall;
 
-    // 4096 samples, for sample rates over 48000 Hz
-    static constexpr int orderLarge = 12;
+    // 8192 samples, for sample rates over 48000 Hz
+    static constexpr int orderLarge = 13;
     static constexpr int fftSizeLarge = 1 << orderLarge;
     juce::dsp::FFT fftProcessorLarge;
     juce::dsp::WindowingFunction<float> windowLarge;

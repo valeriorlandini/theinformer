@@ -18,6 +18,7 @@ The Informer. If not, see <https://www.gnu.org/licenses/>.
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include <cmath>
+#include <iostream>
 
 std::atomic<int> TheInformerAudioProcessor::instanceCounter{ 0 };
 
@@ -150,10 +151,17 @@ void TheInformerAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
         fftProcessor = fftProcessorSmall;
         window = windowSmall;
     }
-    updateBlocks = fftSize / samplesPerBlock;
+
+    updateBlocks = fftSize / (samplesPerBlock * 2);
     if (updateBlocks == 0)
     {
-        updateBlocks++;
+        ++updateBlocks;
+    }
+    expectedSamples = samplesPerBlock * updateBlocks * 2;
+    counter = 0;
+    for (auto &s : samples)
+    {
+        s.clear();
     }
 
     fftBandwidth = static_cast<float>(sampleRate) / static_cast<float>(fftSize);
@@ -213,7 +221,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         }
     }
 
-    if (++counter > updateBlocks)
+    if (++counter >= updateBlocks)
     {
         float peak = 0.0f;
         std::vector<float> peaks;
@@ -562,7 +570,11 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 
         for (unsigned int i = 0; i < 64; i++)
         {
-            samples.at(i).clear();
+            // Erase the first half of the samples if it is not the first cycle
+            if (samples.at(i).size() >= expectedSamples)
+            {
+                samples.at(i).erase(samples.at(i).begin(), samples.at(i).begin() + expectedSamples / 2);
+            }
         }
 
         juce::String root = "/" + rootValue.toString() + "/";
