@@ -9,9 +9,20 @@ Currently, these descriptors have been implemented:
 ### Amplitude descriptors
 
 * Kurtosis
+
+$$ K_n = \frac{\frac{1}{N} \sum_{n=1}^{N} (x[n] - \mu)^4}{\left(\frac{1}{N} \sum_{n=1}^{N} (x[n] - \mu)^2 \right)^2} - 3 $$
+
 * Peak level
+
+$$ P_n = \max_{1 \leq n \leq N}\{\left|x(n)\right|\} $$
+
 * Root mean square
+
+$$ RMS_n = \sqrt{\frac{\sum_{n=1}^{N} x(n)^2}{N}} $$
+
 * Variance
+
+$$ \sigma_n = (\frac{1}{N} \sum_{n=1}^{N} (x[n] - \mu)^2) $$
 
 ### Spectral descriptors
 
@@ -38,9 +49,12 @@ $$ SF_n = \frac{\sqrt{\sum_{k=0}^{K/2-1} \Big( | X(k,n) | - | X(k,n-1) | \Big)^2
 
 * Peak frequency
 
-$$ PK_n = \frac{\argmax_k \{ |X(k,n)| \} f_s}{K}  $$
+$$ PK_n = \frac{{argmax}_k \{ |X(k,n)| \} f_s}{K}  $$
 
 * Rolloff (at 85%)
+
+$$ R_n = i \text{  such that  } \sum_{k=0}^{i} | X(k,n) | = 0.85 \sum_{k=0}^{K/2-1} | X(k,n) | $$
+
 * Skewness
 
 $$ SK_n = \frac{\sum_{k=0}^{K/2-1}(f(k) - CF_n)^3 |X(k,n)|}{\sum_{k=0}^{K/2-1} |X(k,n)|} $$
