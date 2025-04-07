@@ -38,6 +38,10 @@ $$ SC_n = \frac{\sum_{k=0}^{K/2-1} f(k) \cdot |X(k,n)|}{\sum_{k=0}^{K/2-1} |X(k,
 
 $$ CF_n = \frac{\max_{0 \leq k \leq K/2-1} \{ |X(k,n)| \}}{\sum_{k=0}^{K/2-1} |X(k,n)|} $$
 
+* Decrease
+
+$$ D_n = \frac{\sum_{k=1}^{K/2-1}  \frac{|X(k,n)| - |X(0,n)|}{k}}{\sum_{k=1}^{K/2-1}|X(k,n)| $$
+
 * Entropy
 
 $$ H_n = - \frac{\sum_{k=0}^{K/2-1}  \frac{|X(k,n)|^2}{\sum_{k=0}^{K/2-1}|X(k,n)|^2} ln(\frac{|X(k,n)|^2}{\sum_{k=0}^{K/2-1}|X(k,n)|^2})}{ln (K/2)} $$

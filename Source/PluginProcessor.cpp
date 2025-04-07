@@ -241,6 +241,9 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         float centroid = 0.0f;
         std::vector<float> centroids;
 
+        float decrease = 0.0f;
+        std::vector<float> decreases;
+
         float entropy = 0.0f;
         std::vector<float> entropies;
 
@@ -286,7 +289,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 
                 if (n > 0)
                 {
-                    chZerocrossing += std::fabs(static_cast<float>(!std::signbit(s)) - static_cast<float>(std::signbit(samples.at(ch).at(n - 1))));
+                    chZerocrossing += std::fabs(static_cast<float>(!std::signbit(s)) - static_cast<float>(!std::signbit(samples.at(ch).at(n - 1))));
                 }
                 
                 if (abs(s) > chPeak)
@@ -353,6 +356,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 
             float a = 0.0f;
             float chCentroid = 0.0f;
+            float chDecrease = 0.0f;
             float chEntropy = 0.0f;
             float chFlatness = 0.0f;
             float chFlux = 0.0f;
@@ -457,10 +461,25 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                     threshReached = true;
                     chRolloff = frequencies.at(k);
                 }
+
+                if (k > 0)
+                {
+                    chDecrease += (magnitudes.at(ch).at(k) - magnitudes.at(ch).at(0)) / static_cast<float>(k);
+                }
             }
             if (abs(powerSum) > 0.00001f)
             {
                 chSpread = std::sqrtf(a / powerSum);
+            }
+
+            float magnSumNoDC = magnSum - magnitudes.at(ch).at(0);
+            if (magnSumNoDC > 0.0f)
+            {
+                chDecrease /= magnSumNoDC;
+            }
+            else
+            {
+                decrease = 0.0f;
             }
 
             float skewNum = 0.0f;
@@ -484,6 +503,8 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 
             centroids.push_back(chCentroid);
             centroid += chCentroid;
+            decreases.push_back(chDecrease);
+            decrease += chDecrease;
             entropies.push_back(chEntropy);
             entropy += chEntropy;
             flatnesses.push_back(chFlatness);
@@ -505,6 +526,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         }
 
         centroid /= totalNumInputChannels;
+        decrease /= totalNumInputChannels;
         entropy /= totalNumInputChannels;
         flatness /= totalNumInputChannels;
         flux /= totalNumInputChannels;
@@ -517,6 +539,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         slope /= totalNumInputChannels;
         spread /= totalNumInputChannels;
         variance /= totalNumInputChannels;
+        zerocrossing /= totalNumInputChannels;
 
         if (*normParameter > 0.5f)
         {
@@ -534,6 +557,16 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             for (float& c : centroids)
             {
                 c *= invNyquist;
+            }
+
+            decrease -= 0.15f;
+            decrease *= 2.0f;
+            decrease = std::clamp(decrease, 0.0f, 1.0f);
+            for (float& d : decreases)
+            {
+                d -= 0.15f;
+                d *= 2.0f;
+                d = std::clamp(d, 0.0f, 1.0f);
             }
 
             flux /= static_cast<float>(fftSize) * 0.5f;
@@ -576,10 +609,10 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 s = std::clamp(s, 0.0f, 1.0f);
             }
 
-            spread *= invNyquist;
+            spread *= invNyquist * 0.5f;
             for (float& s : spreads)
             {
-                s *= invNyquist;
+                s *= invNyquist * 0.5f;
             }
         }
 
@@ -595,6 +628,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         juce::String root = "/" + rootValue.toString() + "/";
 
         std::function<void()> reportStats = [centroid, centroids,
+                                             decrease, decreases,
                                              entropy, entropies,
                                              flatness, flatnesses,
                                              flux, fluxes,
@@ -624,6 +658,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             sender.send(juce::OSCAddressPattern(root + mix + "variance"), variance);
             sender.send(juce::OSCAddressPattern(root + mix + "zerocrossing"), zerocrossing);
             sender.send(juce::OSCAddressPattern(root + mix + "centroid"), centroid);
+            sender.send(juce::OSCAddressPattern(root + mix + "decrease"), decrease);
             sender.send(juce::OSCAddressPattern(root + mix + "entropy"), entropy);
             sender.send(juce::OSCAddressPattern(root + mix + "flatness"), flatness);
             sender.send(juce::OSCAddressPattern(root + mix + "flux"), flux);
@@ -649,6 +684,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 sender.send(juce::OSCAddressPattern(root + ch_str + "variance"), variances.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "zerocrossing"), zerocrossings.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "centroid"), centroids.at(ch));
+                sender.send(juce::OSCAddressPattern(root + ch_str + "decrease"), decreases.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "entropy"), entropies.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "flatness"), flatnesses.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "flux"), fluxes.at(ch));
