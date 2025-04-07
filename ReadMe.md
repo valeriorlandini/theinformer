@@ -24,6 +24,10 @@ $$ RMS_n = \sqrt{\frac{\sum_{n=1}^{N} x(n)^2}{N}} $$
 
 $$ \sigma_n = (\frac{1}{N} \sum_{n=1}^{N} (x[n] - \mu)^2) $$
 
+* Zero crossing rate
+
+$$ ZCR_n = \frac{1}{N-1} \sum_{n=2}^{N}|\mathrm{sgn}(x(n))-\mathrm{sgn}(x(n-1))| $$
+
 ### Spectral descriptors
 
 * Centroid

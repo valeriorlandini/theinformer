@@ -1,6 +1,6 @@
 /******************************************************************************
 This file is part of The Informer.
-Copyright 2024 Valerio Orlandini <valeriorlandini@gmail.com>.
+Copyright 2024-2025 Valerio Orlandini <valeriorlandini@gmail.com>.
 
 The Informer is free software: you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
@@ -232,6 +232,9 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         float variance = 0.0f;
         std::vector<float> variances;
 
+        float zerocrossing = 0.0f;
+        std::vector<float> zerocrossings;
+
         float kurtosis = 0.0f;
         std::vector<float> kurtoses;
 
@@ -275,9 +278,17 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 
             float mean = 0.0f;
             float chPeak = 0.0f;
-            for (auto const& s : samples.at(ch))
-            {
+            float chZerocrossing = 0.0f;
+            for (unsigned int n = 0; n < samples.at(ch).size(); n++)
+            {   
+                float s = samples.at(ch).at(n);
                 mean += s;
+                
+                if (n > 0)
+                {
+                    chZerocrossing += std::fabs(static_cast<float>(!std::signbit(s)) - static_cast<float>(std::signbit(samples.at(ch).at(n - 1))));
+                }
+                
                 if (abs(s) > chPeak)
                 {
                     chPeak = abs(s);
@@ -289,6 +300,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             }
 
             mean /= samples.at(ch).size();
+            chZerocrossing /= static_cast<float>(std::max(0, static_cast<int>(samples.at(ch).size()) - 1));
             float chVariance = 0.0f;
             float chKurtosis = 0.0f;
             for (auto const& s : samples.at(ch))
@@ -324,6 +336,9 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 
             variances.push_back(chVariance);
             variance += chVariance;
+
+            zerocrossings.push_back(chZerocrossing);
+            zerocrossing += chZerocrossing;
 
             /* SPECTRAL DESCRIPTORS */
 
@@ -593,6 +608,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                                              slope, slopes,
                                              spread, spreads,
                                              variance, variances,
+                                             zerocrossing, zerocrossings,
                                              host = makeHost(),
                                              port = int(*portParameter),
                                              root]() mutable
@@ -606,6 +622,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             sender.send(juce::OSCAddressPattern(root + mix + "peak"), peak);
             sender.send(juce::OSCAddressPattern(root + mix + "rms"), rms);
             sender.send(juce::OSCAddressPattern(root + mix + "variance"), variance);
+            sender.send(juce::OSCAddressPattern(root + mix + "zerocrossing"), zerocrossing);
             sender.send(juce::OSCAddressPattern(root + mix + "centroid"), centroid);
             sender.send(juce::OSCAddressPattern(root + mix + "entropy"), entropy);
             sender.send(juce::OSCAddressPattern(root + mix + "flatness"), flatness);
@@ -630,6 +647,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 sender.send(juce::OSCAddressPattern(root + ch_str + "peak"), peaks.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "rms"), chRms.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "variance"), variances.at(ch));
+                sender.send(juce::OSCAddressPattern(root + ch_str + "zerocrossing"), zerocrossings.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "centroid"), centroids.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "entropy"), entropies.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "flatness"), flatnesses.at(ch));
