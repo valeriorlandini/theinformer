@@ -256,6 +256,9 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         float fpeak = 0.0f;
         std::vector<float> fpeaks;
 
+        float irregularity = 0.0f;
+        std::vector<float> irregularities;
+
         float rolloff = 0.0f;
         std::vector<float> rolloffs;
 
@@ -360,6 +363,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             float chEntropy = 0.0f;
             float chFlatness = 0.0f;
             float chFlux = 0.0f;
+            float chIrregularity = 0.0f;
             float chRolloff = 0.0f;
             float chScf = 0.0f;
             float chSkewness = 0.0f;
@@ -465,6 +469,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 if (k > 0)
                 {
                     chDecrease += (magnitudes.at(ch).at(k) - magnitudes.at(ch).at(0)) / static_cast<float>(k);
+                    chIrregularity += std::fabs(magnitudes.at(ch).at(k) - magnitudes.at(ch).at(k - 1));
                 }
             }
             if (abs(powerSum) > 0.00001f)
@@ -480,6 +485,15 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             else
             {
                 decrease = 0.0f;
+            }
+
+            if (magnSum > 0.0f)
+            {
+                chIrregularity /= magnSum;
+            }
+            else
+            {
+                chIrregularity = 0.0f;
             }
 
             float skewNum = 0.0f;
@@ -513,6 +527,8 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             flux += chFlux;
             fpeaks.push_back(chFpeak);
             fpeak += chFpeak;
+            irregularities.push_back(chIrregularity);
+            irregularity += chIrregularity;
             rolloffs.push_back(chRolloff);
             rolloff += chRolloff;
             scfs.push_back(chScf);
@@ -531,6 +547,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         flatness /= totalNumInputChannels;
         flux /= totalNumInputChannels;
         fpeak /= totalNumInputChannels;
+        irregularity /= totalNumInputChannels;
         kurtosis /= totalNumInputChannels;
         rolloff /= totalNumInputChannels;
         rms /= totalNumInputChannels;
@@ -583,6 +600,14 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 f *= invNyquist;
             }
 
+            irregularity *= 0.5f;
+            irregularity = std::clamp(irregularity, 0.0f, 1.0f);
+            for (float& i : irregularities)
+            {
+                i *= 0.5f;
+                i = std::clamp(i, 0.0f, 1.0f);
+            }
+
             rolloff *= invNyquist;
             for (float& r : rolloffs)
             {
@@ -633,6 +658,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                                              flatness, flatnesses,
                                              flux, fluxes,
                                              fpeak, fpeaks,
+                                             irregularity, irregularities,
                                              kurtosis, kurtoses,
                                              peak, peaks,
                                              rms, chRms,
@@ -663,6 +689,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             sender.send(juce::OSCAddressPattern(root + mix + "flatness"), flatness);
             sender.send(juce::OSCAddressPattern(root + mix + "flux"), flux);
             sender.send(juce::OSCAddressPattern(root + mix + "freqpeak"), fpeak);
+            sender.send(juce::OSCAddressPattern(root + mix + "irregularity"), irregularity);
             sender.send(juce::OSCAddressPattern(root + mix + "rolloff"), rolloff);
             sender.send(juce::OSCAddressPattern(root + mix + "scf"), scf);
             sender.send(juce::OSCAddressPattern(root + mix + "skewness"), skewness);
@@ -689,6 +716,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 sender.send(juce::OSCAddressPattern(root + ch_str + "flatness"), flatnesses.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "flux"), fluxes.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "freqpeak"), fpeaks.at(ch));
+                sender.send(juce::OSCAddressPattern(root + ch_str + "irregularity"), irregularities.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "rolloff"), rolloffs.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "scf"), scfs.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "skewness"), skewnesses.at(ch));

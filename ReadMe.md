@@ -40,7 +40,7 @@ $$ CF_n = \frac{\max_{0 \leq k \leq K/2-1} \{ |X(k,n)| \}}{\sum_{k=0}^{K/2-1} |X
 
 * Decrease
 
-$$ D_n = \frac{\sum_{k=1}^{K/2-1}  \frac{|X(k,n)| - |X(0,n)|}{k}}{\sum_{k=1}^{K/2-1}|X(k,n)| $$
+$$ D_n = \frac{\sum_{k=1}^{K/2-1}  \frac{|X(k,n)| - |X(0,n)|}{k}}{\sum_{k=1}^{K/2-1}|X(k,n)|} $$
 
 * Entropy
 
@@ -54,6 +54,10 @@ $$ FL_n = \frac{\exp\Big(\frac{\sum_{k=0}^{K/2-1} ln(| X(k,n) |)}{K/2}\Big)}{\fr
 
 $$ SF_n = \frac{\sqrt{\sum_{k=0}^{K/2-1} \Big( | X(k,n) | - | X(k,n-1) | \Big)^2
 }}{K/2}$$
+
+* Irregularity
+
+$$ SI_n = \frac{\sum_{k=1}^{K/2-1} | X(k,n) - X(k-1,n) |}{\sum_{k=0}^{K/2-1} | X(k,n) |} $$
 
 * Peak frequency
 
