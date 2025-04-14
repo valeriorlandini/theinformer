@@ -223,20 +223,23 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 
     if (++counter >= updateBlocks)
     {
+        float kurtosis = 0.0f;
+        std::vector<float> kurtoses;
+
         float peak = 0.0f;
         std::vector<float> peaks;
 
         float rms = 0.0f;
         std::vector<float> chRms;
 
+        float ampskewness = 0.0f;
+        std::vector<float> ampskewnesses;
+
         float variance = 0.0f;
         std::vector<float> variances;
 
         float zerocrossing = 0.0f;
         std::vector<float> zerocrossings;
-
-        float kurtosis = 0.0f;
-        std::vector<float> kurtoses;
 
         float centroid = 0.0f;
         std::vector<float> centroids;
@@ -278,7 +281,9 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         {
             /* AMPLITUDE DESCRIPTORS */
 
-            chRms.push_back(std::sqrt(sqrGains[ch] / (buffer.getNumSamples() * static_cast<float>(counter))));
+            float frameSamples = static_cast<float>(buffer.getNumSamples()) * static_cast<float>(counter);
+
+            chRms.push_back(std::sqrt(sqrGains[ch] / frameSamples));
             rms += chRms.at(ch);
             sqrGains[ch] = 0.0f;
 
@@ -309,11 +314,12 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             chZerocrossing /= static_cast<float>(std::max(0, static_cast<int>(samples.at(ch).size()) - 1));
             float chVariance = 0.0f;
             float chKurtosis = 0.0f;
+            float chAmpSkewness = 0.0f;
             for (auto const& s : samples.at(ch))
             {
                 chVariance += powf(s - mean, 2.0f);
             }
-            chVariance /= buffer.getNumSamples() * static_cast<float>(counter);
+            chVariance /= frameSamples;
 
             float invSqrChVariance = chVariance * chVariance;
 
@@ -324,21 +330,30 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 invSqrChVariance = 1.0f / invSqrChVariance;
                 for (auto const& s : samples.at(ch))
                 {
-                    chKurtosis += powf(s - mean, 4.0f) * invSqrChVariance;
+                    chKurtosis += powf(s - mean, 4.0f);
+                    chAmpSkewness += powf(s - mean, 3.0f);
                 }
 
-                chKurtosis /= buffer.getNumSamples() * static_cast<float>(counter);
+                chKurtosis /= frameSamples;
+                chKurtosis *= invSqrChVariance;
                 chKurtosis -= 3.0f;
+
+                chAmpSkewness /= frameSamples;
+                chAmpSkewness /= powf(sqrt(chVariance), 3.0f);
             }
             else
             {
                 chKurtosis = 0.0f;
+                chAmpSkewness = 0.0f;
             }
 
             kurtoses.push_back(chKurtosis);
             kurtosis += chKurtosis;
 
             peaks.push_back(chPeak);
+
+            ampskewnesses.push_back(chAmpSkewness);
+            ampskewness += chAmpSkewness;
 
             variances.push_back(chVariance);
             variance += chVariance;
@@ -552,6 +567,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         rolloff /= totalNumInputChannels;
         rms /= totalNumInputChannels;
         scf /= totalNumInputChannels;
+        ampskewness /= totalNumInputChannels;
         skewness /= totalNumInputChannels;
         slope /= totalNumInputChannels;
         spread /= totalNumInputChannels;
@@ -664,6 +680,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                                              rms, chRms,
                                              rolloff, rolloffs,
                                              scf, scfs,
+                                             ampskewness, ampskewnesses,
                                              skewness, skewnesses,
                                              slope, slopes,
                                              spread, spreads,
@@ -681,6 +698,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             sender.send(juce::OSCAddressPattern(root + mix + "kurtosis"), kurtosis);
             sender.send(juce::OSCAddressPattern(root + mix + "peak"), peak);
             sender.send(juce::OSCAddressPattern(root + mix + "rms"), rms);
+            sender.send(juce::OSCAddressPattern(root + mix + "ampskewness"), ampskewness);
             sender.send(juce::OSCAddressPattern(root + mix + "variance"), variance);
             sender.send(juce::OSCAddressPattern(root + mix + "zerocrossing"), zerocrossing);
             sender.send(juce::OSCAddressPattern(root + mix + "centroid"), centroid);
@@ -708,6 +726,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 sender.send(juce::OSCAddressPattern(root + ch_str + "kurtosis"), kurtoses.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "peak"), peaks.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "rms"), chRms.at(ch));
+                sender.send(juce::OSCAddressPattern(root + ch_str + "ampskewness"), ampskewnesses.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "variance"), variances.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "zerocrossing"), zerocrossings.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "centroid"), centroids.at(ch));

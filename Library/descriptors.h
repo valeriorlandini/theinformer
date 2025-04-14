@@ -124,10 +124,12 @@ typename Container::value_type kurtosis(const Container& buffer, const TSample &
 
     for (const auto &s : buffer)
     {
-        kurtosis += std::pow(s - mean, 4.0f) * invSqrChVariance;
+        kurtosis += std::pow(s - mean, (TSample)4.0);
     }
 
     kurtosis /= count;
+    kurtosis *= invSqrChVariance;
+    kurtosis -= (TSample)3.0;
 
     return kurtosis;
 }

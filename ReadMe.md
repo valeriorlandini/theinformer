@@ -10,7 +10,7 @@ Currently, these descriptors have been implemented:
 
 * Kurtosis
 
-$$ K_n = \frac{\frac{1}{N} \sum_{n=1}^{N} (x[n] - \mu)^4}{\left(\frac{1}{N} \sum_{n=1}^{N} (x[n] - \mu)^2 \right)^2} - 3 $$
+$$ K_n = \frac{\frac{1}{N} \sum_{n=1}^{N} (x(n) - \mu)^4}{\left(\sqrt{\frac{1}{N} \sum_{n=1}^{N} (x(n) - \mu)^2} \right)^4} - 3 $$
 
 * Peak level
 
@@ -19,6 +19,10 @@ $$ P_n = \max_{1 \leq n \leq N}\{\left|x(n)\right|\} $$
 * Root mean square
 
 $$ RMS_n = \sqrt{\frac{\sum_{n=1}^{N} x(n)^2}{N}} $$
+
+* Skewness
+
+$$ SK_n = \frac{\frac{1}{N}\sum_{n=1}^{N}(x - \mu)^3}{\left(\sqrt{\frac{1}{N} \sum_{n=1}^{N} (x(n) - \mu)^2} \right)^3} 
 
 * Variance
 
