@@ -262,6 +262,9 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         float irregularity = 0.0f;
         std::vector<float> irregularities;
 
+        float skurtosis = 0.0f;
+        std::vector<float> skurtoses;
+
         float rolloff = 0.0f;
         std::vector<float> rolloffs;
 
@@ -379,6 +382,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             float chFlatness = 0.0f;
             float chFlux = 0.0f;
             float chIrregularity = 0.0f;
+            float chSKurtosis = 0.0f;
             float chRolloff = 0.0f;
             float chScf = 0.0f;
             float chSkewness = 0.0f;
@@ -511,6 +515,8 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 chIrregularity = 0.0f;
             }
 
+            float kurtNum = 0.0f;
+            float kurtDen = 0.0f;
             float skewNum = 0.0f;
             float skewDen = 0.0f;
             for (unsigned int k = 0; k < fftHalf; k++)
@@ -518,13 +524,16 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 float frequency = frequencies.at(k);
                 float magnitude = magnitudes.at(ch).at(k);
 
+                kurtNum += std::powf(frequency - chCentroid, 4.0f) * magnitude;
                 skewNum += std::powf(frequency - chCentroid, 3.0f) * magnitude;
                 skewDen += magnitude; 
             }
+            kurtDen = skewDen * std::powf(chSpread, 4.0f);
             skewDen *= std::powf(chSpread, 3.0f);
             if (abs(skewDen) > 0.00001f)
             {
                 chSkewness = skewNum / skewDen;
+                chSKurtosis = (kurtNum / kurtDen) - 3.0f;
             }
 
             auto fpeakBand = std::max_element(fftData.at(ch).begin(), fftData.at(ch).end());
@@ -544,6 +553,8 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             fpeak += chFpeak;
             irregularities.push_back(chIrregularity);
             irregularity += chIrregularity;
+            skurtoses.push_back(chSKurtosis);
+            skurtosis += chSKurtosis;
             rolloffs.push_back(chRolloff);
             rolloff += chRolloff;
             scfs.push_back(chScf);
@@ -563,6 +574,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         flux /= totalNumInputChannels;
         fpeak /= totalNumInputChannels;
         irregularity /= totalNumInputChannels;
+        skurtosis /= totalNumInputChannels;
         kurtosis /= totalNumInputChannels;
         rolloff /= totalNumInputChannels;
         rms /= totalNumInputChannels;
@@ -675,6 +687,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                                              flux, fluxes,
                                              fpeak, fpeaks,
                                              irregularity, irregularities,
+                                             skurtosis, skurtoses,
                                              kurtosis, kurtoses,
                                              peak, peaks,
                                              rms, chRms,
@@ -708,6 +721,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             sender.send(juce::OSCAddressPattern(root + mix + "flux"), flux);
             sender.send(juce::OSCAddressPattern(root + mix + "freqpeak"), fpeak);
             sender.send(juce::OSCAddressPattern(root + mix + "irregularity"), irregularity);
+            sender.send(juce::OSCAddressPattern(root + mix + "skurtosis"), skurtosis);
             sender.send(juce::OSCAddressPattern(root + mix + "rolloff"), rolloff);
             sender.send(juce::OSCAddressPattern(root + mix + "scf"), scf);
             sender.send(juce::OSCAddressPattern(root + mix + "skewness"), skewness);
@@ -736,6 +750,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 sender.send(juce::OSCAddressPattern(root + ch_str + "flux"), fluxes.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "freqpeak"), fpeaks.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "irregularity"), irregularities.at(ch));
+                sender.send(juce::OSCAddressPattern(root + ch_str + "skurtosis"), skurtoses.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "rolloff"), rolloffs.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "scf"), scfs.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + "skewness"), skewnesses.at(ch));

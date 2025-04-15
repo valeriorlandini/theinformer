@@ -22,7 +22,7 @@ $$ RMS_n = \sqrt{\frac{\sum_{n=1}^{N} x(n)^2}{N}} $$
 
 * Skewness
 
-$$ SK_n = \frac{\frac{1}{N}\sum_{n=1}^{N}(x - \mu)^3}{\left(\sqrt{\frac{1}{N} \sum_{n=1}^{N} (x(n) - \mu)^2} \right)^3} $$
+$$ S_n = \frac{\frac{1}{N}\sum_{n=1}^{N}(x - \mu)^3}{\left(\sqrt{\frac{1}{N} \sum_{n=1}^{N} (x(n) - \mu)^2} \right)^3} $$
 
 * Variance
 
@@ -63,6 +63,10 @@ $$ SF_n = \frac{\sqrt{\sum_{k=0}^{K/2-1} \Big( | X(k,n) | - | X(k,n-1) | \Big)^2
 
 $$ SI_n = \frac{\sum_{k=1}^{K/2-1} | X(k,n) - X(k-1,n) |}{\sum_{k=0}^{K/2-1} | X(k,n) |} $$
 
+* Kurtosis
+
+$$ SK_n = \frac{\sum_{k=0}^{K/2-1}(f(k) - CF_n)^4 |X(k,n)|}{\left(\sqrt{\frac{\sum_{k=0}^{K/2-1} (f(k) - CF_n)^2|X(k,n)|^2}{\sum_{k=0}^{K/2-1}|X(k,n)|^2}}\right)^4\sum_{k=0}^{K/2-1} |X(k,n)|} - 3 $$
+
 * Peak frequency
 
 $$ PK_n = \frac{{argmax}_k \{ |X(k,n)| \} f_s}{K}  $$
@@ -73,7 +77,7 @@ $$ R_n = i \text{  such that  } \sum_{k=0}^{i} | X(k,n) | = 0.85 \sum_{k=0}^{K/2
 
 * Skewness
 
-$$ SK_n = \frac{\sum_{k=0}^{K/2-1}(f(k) - CF_n)^3 |X(k,n)|}{\sum_{k=0}^{K/2-1} |X(k,n)|} $$
+$$ SS_n = \frac{\sum_{k=0}^{K/2-1}(f(k) - CF_n)^3 |X(k,n)|}{\left(\sqrt{\frac{\sum_{k=0}^{K/2-1} (f(k) - CF_n)^2|X(k,n)|^2}{\sum_{k=0}^{K/2-1}|X(k,n)|^2}}\right)^3\sum_{k=0}^{K/2-1} |X(k,n)|} $$
 
 * Slope
 
