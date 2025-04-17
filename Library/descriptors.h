@@ -33,6 +33,13 @@ SOFTWARE.
 #include<concepts>
 #endif
 
+namespace Informer
+{
+
+/* AMPLITUDE DOMAIN DESCRIPTORS */
+
+namespace Amplitude
+{
 template <typename Container>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type>
@@ -153,6 +160,14 @@ typename Container::value_type kurtosis(const Container& buffer)
 
     return kurtosis(buffer, mean, variance);
 }
+
+} // namespace Informer::Amplitude
+
+
+/* FREQUENCY DOMAIN DESCRIPTORS */
+
+namespace Frequency
+{
 
 template <typename Container, typename TSample>
 #if __cplusplus >= 202002L
@@ -298,5 +313,21 @@ typename Container::value_type peak(const Container& stft, const TSample& sample
 
     return precomputed_frequencies.at(magn_max_idx);
 }
+
+} // namespace Informer::Frequency
+
+
+/* CLASS INTERFACE */
+
+template <typename TSample>
+#if __cplusplus >= 202002L
+requires std::floating_point<typename TSample>
+#endif
+class Informer
+{
+
+};
+
+} // namespace Informer 
 
 #endif // DESCRIPTORS_H_
