@@ -65,7 +65,7 @@ $$ SI_n = \frac{\sum_{k=1}^{K/2-1} | X(k,n) - X(k-1,n) |}{\sum_{k=0}^{K/2-1} | X
 
 * Kurtosis
 
-$$ SK_n = \frac{\sum_{k=0}^{K/2-1}(f(k) - CF_n)^4 |X(k,n)|}{\left(\sqrt{\frac{\sum_{k=0}^{K/2-1} (f(k) - SC_n)^2|X(k,n)|^2}{\sum_{k=0}^{K/2-1}|X(k,n)|^2}}\right)^4\sum_{k=0}^{K/2-1} |X(k,n)|} - 3 $$
+$$ SK_n = \frac{\sum_{k=0}^{K/2-1}(f(k) - SC_n)^4 |X(k,n)|}{\left(\sqrt{\frac{\sum_{k=0}^{K/2-1} (f(k) - SC_n)^2|X(k,n)|^2}{\sum_{k=0}^{K/2-1}|X(k,n)|^2}}\right)^4\sum_{k=0}^{K/2-1} |X(k,n)|} - 3 $$
 
 * Peak frequency
 
@@ -77,7 +77,7 @@ $$ R_n = i \text{  such that  } \sum_{k=0}^{i} | X(k,n) | = 0.85 \sum_{k=0}^{K/2
 
 * Skewness
 
-$$ SS_n = \frac{\sum_{k=0}^{K/2-1}(f(k) - CF_n)^3 |X(k,n)|}{\left(\sqrt{\frac{\sum_{k=0}^{K/2-1} (f(k) - SC_n)^2|X(k,n)|^2}{\sum_{k=0}^{K/2-1}|X(k,n)|^2}}\right)^3\sum_{k=0}^{K/2-1} |X(k,n)|} $$
+$$ SS_n = \frac{\sum_{k=0}^{K/2-1}(f(k) - SC_n)^3 |X(k,n)|}{\left(\sqrt{\frac{\sum_{k=0}^{K/2-1} (f(k) - SC_n)^2|X(k,n)|^2}{\sum_{k=0}^{K/2-1}|X(k,n)|^2}}\right)^3\sum_{k=0}^{K/2-1} |X(k,n)|} $$
 
 * Slope
 
@@ -85,7 +85,7 @@ $$ SL_n = \frac{\sum_{k=0}^{K/2-1}(f(k) - \mu_f)(|X(k,n)| - \frac{\sum_{k=0}^{K/
 
 * Spread
 
-$$ SP_n = \sqrt{\frac{\sum_{k=0}^{K/2-1} (f(k) - CF_n)^2|X(k,n)|^2}{\sum_{k=0}^{K/2-1}|X(k,n)|^2}} $$
+$$ SP_n = \sqrt{\frac{\sum_{k=0}^{K/2-1} (f(k) - SC_n)^2|X(k,n)|^2}{\sum_{k=0}^{K/2-1}|X(k,n)|^2}} $$
 
 Please note: when the _normalize_ parameter is enabled, all descriptors are adjusted to ensure they fall within the [0.0, 1.0] range. While some descriptors naturally adhere to this range or have well-defined boundaries (e.g., those typically limited to [0.0, Nyquist frequency]), others —such as kurtosis, skewness, and slope— are adjusted based on empirical observations. As a result, the normalize option is best suited for artistic purposes where exact precision is not essential, focusing instead on preventing values from falling outside the expected range, rather than for detailed sound analysis.
 
