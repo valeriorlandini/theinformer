@@ -47,7 +47,7 @@ requires std::floating_point<typename Container::value_type>
 typename Container::value_type peak(const Container& buffer)
 {
     using TSample = typename Container::value_type;
-    TSample peak = (TSample)0.0;
+    TSample peak = static_cast<TSample>(0.0);
 
     for (const auto &s : buffer)
     {
@@ -67,7 +67,7 @@ requires std::floating_point<typename Container::value_type>
 typename Container::value_type rms(const Container& buffer)
 {
     using TSample = typename Container::value_type;
-    TSample rms = (TSample)0.0;
+    TSample rms = static_cast<TSample>(0.0);
 
     for (const auto &s : buffer)
     {
@@ -90,7 +90,7 @@ requires std::floating_point<typename Container::value_type>
 typename Container::value_type variance(const Container& buffer)
 {
     using TSample = typename Container::value_type;
-    TSample variance = (TSample)0.0;
+    TSample variance = static_cast<TSample>(0.0);
 
     if (buffer.empty())
     {
@@ -98,7 +98,7 @@ typename Container::value_type variance(const Container& buffer)
     }
 
     const TSample count = static_cast<TSample>(buffer.size());
-    const TSample mean = std::accumulate(buffer.begin(), buffer.end(), (TSample)0.0) / count;
+    const TSample mean = std::accumulate(buffer.begin(), buffer.end(), static_cast<TSample>(0.0)) / count;
 
     for (const auto &s : buffer)
     {
@@ -118,9 +118,9 @@ std::same_as<typename Container::value_type, TSample>
 #endif
 typename Container::value_type kurtosis(const Container& buffer, const TSample &mean, const TSample &variance)
 {
-    TSample kurtosis = (TSample)0.0;
+    TSample kurtosis = static_cast<TSample>(0.0);
 
-    if (buffer.empty() || variance == (TSample)0.0)
+    if (buffer.empty() || variance == static_cast<TSample>(0.0))
     {
         return kurtosis;
     }
@@ -150,15 +150,87 @@ typename Container::value_type kurtosis(const Container& buffer)
     using TSample = typename Container::value_type;
     TSample variance = variance(buffer);
 
-    if (buffer.empty() || variance == (TSample)0.0)
+    if (buffer.empty() || variance == static_cast<TSample>(0.0))
     {
-        return kurtosis;
+        return static_cast<TSample>(0.0);
     }
 
     const TSample count = static_cast<TSample>(buffer.size());
-    const TSample mean = std::accumulate(buffer.begin(), buffer.end(), (TSample)0.0) / count;
+    const TSample mean = std::accumulate(buffer.begin(), buffer.end(), static_cast<TSample>(0.0)) / count;
 
     return kurtosis(buffer, mean, variance);
+}
+
+
+template <typename Container, typename TSample>
+#if __cplusplus >= 202002L
+requires std::floating_point<typename Container::value_type> &&
+std::floating_point<typename TSample> &&
+std::same_as<typename Container::value_type, TSample>
+#endif
+typename Container::value_type skewness(const Container& buffer, const TSample &mean, const TSample &variance)
+{
+    TSample skewness = static_cast<TSample>(0.0);
+
+    if (buffer.empty() || variance == static_cast<TSample>(0.0))
+    {
+        return skewness;
+    }
+
+    TSample invDenominator = (TSample)1.0 / std::pow(std::sqrt(variance), (TSample)3.0);
+
+    const TSample count = static_cast<TSample>(buffer.size());
+
+    for (const auto &s : buffer)
+    {
+        skewness += std::pow(s - mean, (TSample)3.0);
+    }
+
+    skewness /= count;
+    skewness *= invDenominator;
+
+    return kurtosis;
+}
+
+template <typename Container>
+#if __cplusplus >= 202002L
+requires std::floating_point<typename Container::value_type>
+#endif
+typename Container::value_type skewness(const Container& buffer)
+{
+    using TSample = typename Container::value_type;
+    TSample variance = variance(buffer);
+
+    if (buffer.empty() || variance == static_cast<TSample>(0.0))
+    {
+        return static_cast<TSample>(0.0);
+    }
+
+    const TSample count = static_cast<TSample>(buffer.size());
+    const TSample mean = std::accumulate(buffer.begin(), buffer.end(), static_cast<TSample>(0.0)) / count;
+
+    return skewness(buffer, mean, variance);
+}
+
+template <typename Container>
+#if __cplusplus >= 202002L
+requires std::floating_point<typename Container::value_type>
+#endif
+typename Container::value_type zerocrossing(const Container& buffer)
+{
+    TSample zerocrossingrate = static_cast<TSample>(0.0);
+
+    if (buffer.size() < 2)
+    {
+        return zerocrossingrate;
+    }
+
+    for (auto s = 1; s < buffer.size(); s++)
+    {
+        zerocrossingrate += std::abs(static_cast<TSample>(!std::signbit(buffer.at(s))) - static_cast<TSample>(!std::signbit(buffer.at(s - 1))));
+    }
+
+    zerocrossingrate /= static_cast<TSample>(buffer.size() - 1);
 }
 
 } // namespace Informer::Amplitude
