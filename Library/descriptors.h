@@ -241,6 +241,7 @@ typename Container::value_type zerocrossing(const Container& buffer)
 namespace Frequency
 {
 
+// SPECTRAL CENTROID
 template <typename Container, typename TSample>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type> &&
@@ -289,6 +290,82 @@ typename Container::value_type centroid(const Container& stft, const TSample& sa
     return centroid;
 }
 
+// SPECTRAL CREST FACTOR
+template <typename Container, typename TSample>
+#if __cplusplus >= 202002L
+requires std::floating_point<typename Container::value_type> &&
+std::floating_point<typename TSample> &&
+std::same_as<typename Container::value_type, TSample>
+#endif
+typename Container::value_type crestfactor(const Container& stft, const TSample& sample_rate = static_cast<TSample>(44100.0), const bool& only_real = true)
+{
+    TSample scf = static_cast<TSample>(0.0);
+
+    if (stft.empty())
+    {
+        return scf;
+    }
+
+    unsigned int fft_size = only_real ? stft.size() : stft.size() / 2u;
+
+    TSample magn_max = static_cast<TSample>(0.0);
+    TSample magn_sum = static_cast<TSample>(0.0);
+
+    for (unsigned int k = 0u; k < fft_size; k++)
+    {
+        if (std::abs(stft.at(k)) > magn_max)
+        {
+            magn_max = std::abs(stft.at(k));
+        }
+        magn_sum += std::abs(stft.at(k));
+    }
+
+    if (magn_sum > static_cast<TSample>(0.0))
+    {
+        scf = magn_max / magn_sum;
+    }
+
+    return scf;
+}
+
+// SPECTRAL DECREASE
+template <typename Container, typename TSample>
+#if __cplusplus >= 202002L
+requires std::floating_point<typename Container::value_type> &&
+std::floating_point<typename TSample> &&
+std::same_as<typename Container::value_type, TSample>
+#endif
+typename Container::value_type decrease(const Container& stft, const TSample& sample_rate = static_cast<TSample>(44100.0), const bool& only_real = true)
+{
+    TSample decrease = static_cast<TSample>(0.0);
+
+    if (stft.size() < 2)
+    {
+        return decrease;
+    }
+
+    unsigned int fft_size = only_real ? stft.size() : stft.size() / 2u;
+
+    TSample magn_diff_sum = static_cast<TSample>(0.0);
+    TSample magn_sum = static_cast<TSample>(0.0);
+
+    for (unsigned int k = 1u; k < fft_size; k++)
+    {
+        magn_diff_sum += (std::abs(stft.at(k)) - std::abs(stft.at(0))) / static_cast<TSample>(k);
+        magn_sum += std::abs(stft.at(k));
+    }
+
+    if (magn_sum > static_cast<TSample>(0.0))
+    {
+        return decrease;
+    }
+
+    decrease = magn_diff_sum / magn_sum;
+
+    return decrease;
+}
+
+// SPECTRAL SPREAD
 template <typename Container, typename TSample>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type> &&
@@ -343,6 +420,7 @@ typename Container::value_type spread(const Container& stft, const TSample& samp
     return spread;
 }
 
+// SPECTRAL PEAK
 template <typename Container, typename TSample>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type> &&
