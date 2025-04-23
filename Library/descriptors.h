@@ -365,6 +365,46 @@ typename Container::value_type decrease(const Container& stft, const TSample& sa
     return decrease;
 }
 
+// SPECTRAL ENTROPY
+template <typename Container, typename TSample>
+#if __cplusplus >= 202002L
+requires std::floating_point<typename Container::value_type> &&
+std::floating_point<typename TSample> &&
+std::same_as<typename Container::value_type, TSample>
+#endif
+typename Container::value_type entropy(const Container& stft, const TSample& sample_rate = static_cast<TSample>(44100.0), const bool& only_real = true)
+{
+    TSample h = static_cast<TSample>(0.0);
+
+    if (stft.empty())
+    {
+        return h;
+    }
+
+    unsigned int fft_size = only_real ? stft.size() : stft.size() / 2u;
+
+    TSample power_sum = static_cast<TSample>(0.0);
+
+    for (unsigned int k = 1u; k < fft_size; k++)
+    {
+        power_sum += stft.at(k) * stft.at(k);
+    }
+
+    if (power_sum > static_cast<TSample>(0.0))
+    {
+        for (unsigned int k = 1u; k < fft_size; k++)
+        {
+            TSample p = stft.at(k) * stft.at(k) / power_sum;
+            h += p * std::log(p);
+        }
+    }
+
+    h /= std::log(static_cast<TSample>(fft_size));
+    h *= static_cast<TSample>(-1.0);
+
+    return h;
+}
+
 // SPECTRAL SPREAD
 template <typename Container, typename TSample>
 #if __cplusplus >= 202002L
