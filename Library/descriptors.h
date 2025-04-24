@@ -27,6 +27,7 @@ SOFTWARE.
 #include <cmath>
 #include <cstddef>
 #include <numeric>
+#include <sys/stat.h>
 #include <vector>
 
 #if __cplusplus >= 202002L
@@ -297,7 +298,7 @@ requires std::floating_point<typename Container::value_type> &&
 std::floating_point<typename TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
-typename Container::value_type crestfactor(const Container& stft, const TSample& sample_rate = static_cast<TSample>(44100.0), const bool& only_real = true)
+typename Container::value_type crestfactor(const Container& stft, const bool& only_real = true)
 {
     TSample scf = static_cast<TSample>(0.0);
 
@@ -335,7 +336,7 @@ requires std::floating_point<typename Container::value_type> &&
 std::floating_point<typename TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
-typename Container::value_type decrease(const Container& stft, const TSample& sample_rate = static_cast<TSample>(44100.0), const bool& only_real = true)
+typename Container::value_type decrease(const Container& stft, const bool& only_real = true)
 {
     TSample decrease = static_cast<TSample>(0.0);
 
@@ -372,7 +373,7 @@ requires std::floating_point<typename Container::value_type> &&
 std::floating_point<typename TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
-typename Container::value_type entropy(const Container& stft, const TSample& sample_rate = static_cast<TSample>(44100.0), const bool& only_real = true)
+typename Container::value_type entropy(const Container& stft, const bool& only_real = true)
 {
     TSample h = static_cast<TSample>(0.0);
 
@@ -403,6 +404,210 @@ typename Container::value_type entropy(const Container& stft, const TSample& sam
     h *= static_cast<TSample>(-1.0);
 
     return h;
+}
+
+// SPECTRAL FLATNESS
+template <typename Container, typename TSample>
+#if __cplusplus >= 202002L
+requires std::floating_point<typename Container::value_type> &&
+std::floating_point<typename TSample> &&
+std::same_as<typename Container::value_type, TSample>
+#endif
+typename Container::value_type flatness(const Container& stft, const bool& only_real = true)
+{
+    TSample specflatness = static_cast<TSample>(0.0);
+
+    if (stft.size() < 2)
+    {
+        return specflatness;
+    }
+
+    unsigned int fft_size = only_real ? stft.size() : stft.size() / 2u;
+
+    TSample magn_sum = static_cast<TSample>(0.0);
+    TSample ln_magn_sum = static_cast<TSample>(0.0);
+    const TSample delta = static_cast<TSample>(1e-10);
+
+    for (unsigned int k = 0u; k < fft_size; k++)
+    {
+        magn_sum += std::abs(stft.at(k));
+        ln_magn_sum += std::log(std::abs(stft.at(k)) + delta);
+    }
+
+    if (magn_sum > static_cast<TSample>(0.0))
+    {
+        specflatness = std::exp(ln_magn_sum / static_cast<TSample>(fft_size)) / (magn_sum / static_cast<TSample>(fft_size));
+    }
+
+    return specflatness;
+}
+
+// SPECTRAL FLUX
+template <typename Container, typename TSample>
+#if __cplusplus >= 202002L
+requires std::floating_point<typename Container::value_type> &&
+std::floating_point<typename TSample> &&
+std::same_as<typename Container::value_type, TSample>
+#endif
+typename Container::value_type flux(const Container& stft, const Container& previous_stft, const bool& only_real = true)
+{
+    TSample specflux = static_cast<TSample>(0.0);
+
+    if (stft.size() != previous_stft.size() || stft.empty())
+    {
+        return specflux;
+    }
+
+    unsigned int fft_size = stft.size() / 2u;
+
+    for (unsigned int k = 0u; k < fft_size; k++)
+    {
+        specflux += std::pow(std::abs(stft.at(k)) - std::abs(previous_stft.at(k)), static_cast<TSample>(2.0));
+    }
+
+    specflux = std::sqrt(specflux);
+    specflux /= static_cast<TSample>(fft_size);
+
+    return specflux;
+}
+
+// SPECTRAL IRREGULARITY
+template <typename Container, typename TSample>
+#if __cplusplus >= 202002L
+requires std::floating_point<typename Container::value_type> &&
+std::floating_point<typename TSample> &&
+std::same_as<typename Container::value_type, TSample>
+#endif
+typename Container::value_type irregularity(const Container& stft)
+{
+    TSample irr = static_cast<TSample>(0.0);
+
+    if (stft.size() > 2)
+    {
+        return irr;
+    }
+
+    unsigned int fft_size = stft.size() / 2u;
+
+    TSample magn_sum = static_cast<TSample>(0.0);
+
+    for (unsigned int k = 0u; k < fft_size; k++)
+    {
+        magn_sum += std::abs(stft.at(k));
+
+        if (k > 1u) 
+        {
+            irr += std::abs(stft.at(k) - stft.at(k - 1u));
+        }
+    }
+
+    if (magn_sum > static_cast<TSample>(0.0))
+    {
+        irr /= magn_sum;
+    }
+    else
+    {
+        irr = static_cast<TSample>(0.0);
+    }
+
+    return irr;
+}
+
+// SPECTRAL PEAK
+template <typename Container, typename TSample>
+#if __cplusplus >= 202002L
+requires std::floating_point<typename Container::value_type> &&
+std::floating_point<typename TSample> &&
+std::same_as<typename Container::value_type, TSample>
+#endif
+typename Container::value_type peak(const Container& stft, const TSample& sample_rate = static_cast<TSample>(44100.0), const bool& only_real = true, const Container& precomputed_frequencies = {})
+{
+    TSample peak = static_cast<TSample>(0.0);
+
+    if (stft.empty())
+    {
+        return peak;
+    }
+
+    unsigned int fft_size = only_real ? stft.size() : stft.size() / 2u;
+
+    if (precomputed_frequencies.size() < fft_size)
+    {
+        TSample fft_bandwidth = static_cast<TSample>(sample_rate) / static_cast<TSample>(fft_size);
+        precomputed_frequencies.resize(fft_size);
+        precomputed_frequencies.fill(static_cast<TSample>(0.0));
+        for (auto b = 0u; b < fft_size / 2u; b++)
+        {
+            precomputed_frequencies.at(b) = static_cast<TSample>(b) * fft_bandwidth;
+        }
+    }
+
+    unsigned int magn_max_idx = 0;
+    TSample magn_max = static_cast<TSample>(0.0);
+
+    for (unsigned int k = 0u; k < fft_size; k++)
+    {
+        if (std::abs(stft.at(k)) > magn_max)
+        {
+            magn_max = std::abs(stft.at(k));
+            magn_max_idx = k;
+        }
+    }
+
+    return precomputed_frequencies.at(magn_max_idx);
+}
+
+// SPECTRAL ROLLOFF
+template <typename Container, typename TSample>
+#if __cplusplus >= 202002L
+requires std::floating_point<typename Container::value_type> &&
+std::floating_point<typename TSample> &&
+std::same_as<typename Container::value_type, TSample>
+#endif
+typename Container::value_type rolloff(const Container& stft, const TSample& sample_rate = static_cast<TSample>(44100.0), const TSample& rolloff_point = static_cast<TSample>(0.85), const Container& precomputed_frequencies = {})
+{
+    if (stft.empty())
+    {
+        return static_cast<TSample>(0.0);
+    }
+
+    unsigned int fft_size = stft.size() / 2u;
+
+    if (precomputed_frequencies.size() < fft_size)
+    {
+        TSample fft_bandwidth = static_cast<TSample>(sample_rate) / static_cast<TSample>(fft_size);
+        precomputed_frequencies.resize(fft_size);
+        precomputed_frequencies.fill(static_cast<TSample>(0.0));
+        for (auto b = 0u; b < fft_size / 2u; b++)
+        {
+            precomputed_frequencies.at(b) = static_cast<TSample>(b) * fft_bandwidth;
+        }
+    }
+
+    unsigned int magn_max_idx = 0;
+    TSample magn_sum = static_cast<TSample>(0.0);
+
+    for (unsigned int k = 0u; k < fft_size; k++)
+    {
+        magn_sum += std::abs(stft.at(k));
+    }
+
+    TSample rolloff_thresh = rolloff_point * magn_sum;
+    TSample cumul_magn = static_cast<TSample>(0.0);
+    unsigned int rolloff_idx = fft_size - 1u;
+
+    for (unsigned int k = 0u; k < fft_size; k++)
+    {
+        cumul_magn += std::abs(stft.at(k));
+
+        if (cumul_magn >= rolloff_thresh)
+        {
+            rolloff_idx = k;
+            break;
+        }
+    }
+
+    return precomputed_frequencies.at(rolloff_idx);
 }
 
 // SPECTRAL SPREAD
@@ -460,49 +665,6 @@ typename Container::value_type spread(const Container& stft, const TSample& samp
     return spread;
 }
 
-// SPECTRAL PEAK
-template <typename Container, typename TSample>
-#if __cplusplus >= 202002L
-requires std::floating_point<typename Container::value_type> &&
-std::floating_point<typename TSample> &&
-std::same_as<typename Container::value_type, TSample>
-#endif
-typename Container::value_type peak(const Container& stft, const TSample& sample_rate = static_cast<TSample>(44100.0), const bool& only_real = true, const Container& precomputed_frequencies = {})
-{
-    TSample peak = static_cast<TSample>(0.0);
-
-    if (stft.empty())
-    {
-        return peak;
-    }
-
-    unsigned int fft_size = only_real ? stft.size() : stft.size() / 2u;
-
-    if (precomputed_frequencies.size() < fft_size)
-    {
-        TSample fft_bandwidth = static_cast<TSample>(sample_rate) / static_cast<TSample>(fft_size);
-        precomputed_frequencies.resize(fft_size);
-        precomputed_frequencies.fill(static_cast<TSample>(0.0));
-        for (auto b = 0u; b < fft_size / 2u; b++)
-        {
-            precomputed_frequencies.at(b) = static_cast<TSample>(b) * fft_bandwidth;
-        }
-    }
-
-    unsigned int magn_max_idx = 0;
-    TSample magn_max = static_cast<TSample>(0.0);
-
-    for (unsigned int k = 0u; k < fft_size; k++)
-    {
-        if (std::abs(stft.at(k)) > magn_max)
-        {
-            magn_max = std::abs(stft.at(k));
-            magn_max_idx = k;
-        }
-    }
-
-    return precomputed_frequencies.at(magn_max_idx);
-}
 
 } // namespace Informer::Frequency
 
