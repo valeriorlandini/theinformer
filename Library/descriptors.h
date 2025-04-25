@@ -219,6 +219,7 @@ requires std::floating_point<typename Container::value_type>
 #endif
 typename Container::value_type zerocrossing(const Container& buffer)
 {
+    using TSample = typename Container::value_type;
     TSample zerocrossingrate = static_cast<TSample>(0.0);
 
     if (buffer.size() < 2)
@@ -249,7 +250,7 @@ requires std::floating_point<typename Container::value_type> &&
 std::floating_point<typename TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
-typename Container::value_type centroid(const Container& stft, const TSample& sample_rate = static_cast<TSample>(44100.0), const bool& only_real = true, const Container& precomputed_frequencies = {})
+typename Container::value_type centroid(const Container& stft, const TSample& sample_rate = static_cast<TSample>(44100.0), const Container& precomputed_frequencies = {})
 {
     TSample centroid = static_cast<TSample>(0.0);
 
@@ -258,7 +259,7 @@ typename Container::value_type centroid(const Container& stft, const TSample& sa
         return centroid;
     }
 
-    unsigned int fft_size = only_real ? stft.size() : stft.size() / 2u;
+    unsigned int fft_size = stft.size() / 2u;
 
     if (precomputed_frequencies.size() < fft_size)
     {
@@ -298,7 +299,7 @@ requires std::floating_point<typename Container::value_type> &&
 std::floating_point<typename TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
-typename Container::value_type crestfactor(const Container& stft, const bool& only_real = true)
+typename Container::value_type crestfactor(const Container& stft)
 {
     TSample scf = static_cast<TSample>(0.0);
 
@@ -307,7 +308,7 @@ typename Container::value_type crestfactor(const Container& stft, const bool& on
         return scf;
     }
 
-    unsigned int fft_size = only_real ? stft.size() : stft.size() / 2u;
+    unsigned int fft_size = stft.size() / 2u;
 
     TSample magn_max = static_cast<TSample>(0.0);
     TSample magn_sum = static_cast<TSample>(0.0);
@@ -336,7 +337,7 @@ requires std::floating_point<typename Container::value_type> &&
 std::floating_point<typename TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
-typename Container::value_type decrease(const Container& stft, const bool& only_real = true)
+typename Container::value_type decrease(const Container& stft)
 {
     TSample decrease = static_cast<TSample>(0.0);
 
@@ -345,7 +346,7 @@ typename Container::value_type decrease(const Container& stft, const bool& only_
         return decrease;
     }
 
-    unsigned int fft_size = only_real ? stft.size() : stft.size() / 2u;
+    unsigned int fft_size = stft.size() / 2u;
 
     TSample magn_diff_sum = static_cast<TSample>(0.0);
     TSample magn_sum = static_cast<TSample>(0.0);
@@ -373,7 +374,7 @@ requires std::floating_point<typename Container::value_type> &&
 std::floating_point<typename TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
-typename Container::value_type entropy(const Container& stft, const bool& only_real = true)
+typename Container::value_type entropy(const Container& stft)
 {
     TSample h = static_cast<TSample>(0.0);
 
@@ -382,7 +383,7 @@ typename Container::value_type entropy(const Container& stft, const bool& only_r
         return h;
     }
 
-    unsigned int fft_size = only_real ? stft.size() : stft.size() / 2u;
+    unsigned int fft_size = stft.size() / 2u;
 
     TSample power_sum = static_cast<TSample>(0.0);
 
@@ -413,7 +414,7 @@ requires std::floating_point<typename Container::value_type> &&
 std::floating_point<typename TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
-typename Container::value_type flatness(const Container& stft, const bool& only_real = true)
+typename Container::value_type flatness(const Container& stft)
 {
     TSample specflatness = static_cast<TSample>(0.0);
 
@@ -422,7 +423,7 @@ typename Container::value_type flatness(const Container& stft, const bool& only_
         return specflatness;
     }
 
-    unsigned int fft_size = only_real ? stft.size() : stft.size() / 2u;
+    unsigned int fft_size = stft.size() / 2u;
 
     TSample magn_sum = static_cast<TSample>(0.0);
     TSample ln_magn_sum = static_cast<TSample>(0.0);
@@ -449,7 +450,7 @@ requires std::floating_point<typename Container::value_type> &&
 std::floating_point<typename TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
-typename Container::value_type flux(const Container& stft, const Container& previous_stft, const bool& only_real = true)
+typename Container::value_type flux(const Container& stft, const Container& previous_stft)
 {
     TSample specflux = static_cast<TSample>(0.0);
 
@@ -520,7 +521,7 @@ requires std::floating_point<typename Container::value_type> &&
 std::floating_point<typename TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
-typename Container::value_type peak(const Container& stft, const TSample& sample_rate = static_cast<TSample>(44100.0), const bool& only_real = true, const Container& precomputed_frequencies = {})
+typename Container::value_type peak(const Container& stft, const TSample& sample_rate = static_cast<TSample>(44100.0), const Container& precomputed_frequencies = {})
 {
     TSample peak = static_cast<TSample>(0.0);
 
@@ -529,7 +530,7 @@ typename Container::value_type peak(const Container& stft, const TSample& sample
         return peak;
     }
 
-    unsigned int fft_size = only_real ? stft.size() : stft.size() / 2u;
+    unsigned int fft_size = stft.size() / 2u;
 
     if (precomputed_frequencies.size() < fft_size)
     {
@@ -610,6 +611,62 @@ typename Container::value_type rolloff(const Container& stft, const TSample& sam
     return precomputed_frequencies.at(rolloff_idx);
 }
 
+// SPECTRAL SLOPE
+template <typename Container, typename TSample>
+#if __cplusplus >= 202002L
+requires std::floating_point<typename Container::value_type> &&
+std::floating_point<typename TSample> &&
+std::same_as<typename Container::value_type, TSample>
+#endif
+typename Container::value_type slope(const Container& stft, const TSample& sample_rate = static_cast<TSample>(44100.0), const Container& precomputed_frequencies = {})
+{
+    TSample sslope = static_cast<TSample>(0.0);
+
+    if (stft.empty())
+    {
+        return sslope;
+    }
+
+    unsigned int fft_size = stft.size() / 2u;
+
+    if (precomputed_frequencies.size() < fft_size)
+    {
+        TSample fft_bandwidth = static_cast<TSample>(sample_rate) / static_cast<TSample>(fft_size);
+        precomputed_frequencies.resize(fft_size);
+        precomputed_frequencies.fill(static_cast<TSample>(0.0));
+        for (auto b = 0u; b < fft_size / 2u; b++)
+        {
+            precomputed_frequencies.at(b) = static_cast<TSample>(b) * fft_bandwidth;
+        }
+    }
+
+    TSample mean_frequency = std::accumulate(precomputed_frequencies.begin(), precomputed_frequencies.end(), static_cast<TSample>(0.0)) / static_cast<TSample>(fft_size);
+    TSample magn_sum_weighted = static_cast<TSample>(0.0);
+
+    for (unsigned int k = 0u; k < fft_size; k++)
+    {
+        magn_sum_weighted += std::abs(stft.at(k));
+    }
+
+    magn_sum_weighted /= static_cast<TSample>(fft_size);
+
+    TSample numerator = static_cast<TSample>(0.0);
+    TSample denominator = static_cast<TSample>(0.0);
+
+    for (unsigned int k = 0u; k < fft_size; k++)
+    {
+        numerator += (precomputed_frequencies.at(k) - mean_frequency) * (std::abs(stft.at(k)) - magn_sum_weighted);
+        denominator += std::pow(precomputed_frequencies.at(k) - mean_frequency, static_cast<TSample>(2.0));
+    }
+
+    if (denominator > static_cast<TSample>(0.0))
+    {
+        sslope = numerator / denominator;
+    }
+
+    return sslope;
+}
+
 // SPECTRAL SPREAD
 template <typename Container, typename TSample>
 #if __cplusplus >= 202002L
@@ -617,16 +674,16 @@ requires std::floating_point<typename Container::value_type> &&
 std::floating_point<typename TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
-typename Container::value_type spread(const Container& stft, const TSample& sample_rate = static_cast<TSample>(44100.0), const bool& only_real = true, const Container& precomputed_frequencies = {}, TSample centroid = static_cast<TSample>(-1.0))
+typename Container::value_type spread(const Container& stft, const TSample& sample_rate = static_cast<TSample>(44100.0), const Container& precomputed_frequencies = {}, TSample centroid = static_cast<TSample>(-1.0))
 {
-    TSample spread = static_cast<TSample>(0.0);
+    TSample sspread = static_cast<TSample>(0.0);
 
     if (stft.empty())
     {
-        return spread;
+        return sspread;
     }
 
-    unsigned int fft_size = only_real ? stft.size() : stft.size() / 2u;
+    unsigned int fft_size = stft.size() / 2u;
 
     if (precomputed_frequencies.size() < fft_size)
     {
@@ -655,14 +712,14 @@ typename Container::value_type spread(const Container& stft, const TSample& samp
 
     if (power_sum > static_cast<TSample>(0.0))
     {
-        spread = std::sqrt(numerator / power_sum);
+        sspread = std::sqrt(numerator / power_sum);
     }
     else
     {
-        spread = static_cast<TSample>(0.0);
+        sspread = static_cast<TSample>(0.0);
     }
 
-    return spread;
+    return sspread;
 }
 
 

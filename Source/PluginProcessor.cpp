@@ -390,7 +390,6 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             float chSpread = 0.0f;
             float cumulPower = 0.0f;
             float freqSum = 0.0f;
-            float freqSqSum = 0.0f;
             float maxMagnitude = 0.0f;
             float magnLnSum = 0.0f;
             float magnSum = 0.0f;
@@ -415,7 +414,6 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 }
                 float frequency = frequencies.at(k);
                 freqSum += frequency;
-                freqSqSum += frequency * frequency;
 
                 a += frequency * magnitude;
                 magnSum += magnitude;
