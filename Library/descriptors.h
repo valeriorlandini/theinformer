@@ -119,7 +119,7 @@ typename Container::value_type variance(const Container& buffer)
 template <typename Container, typename TSample>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type> &&
-std::floating_point<typename TSample> &&
+std::floating_point<TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
 typename Container::value_type kurtosis(const Container& buffer, const TSample &mean = static_cast<TSample>(-10000.0), const TSample &amp_variance = static_cast<TSample>(-10000.0))
@@ -161,7 +161,7 @@ typename Container::value_type kurtosis(const Container& buffer, const TSample &
 template <typename Container, typename TSample>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type> &&
-std::floating_point<typename TSample> &&
+std::floating_point<TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
 typename Container::value_type skewness(const Container& buffer, const TSample &mean = static_cast<TSample>(-10000.0), const TSample &amp_variance = static_cast<TSample>(-10000.0))
@@ -233,7 +233,7 @@ namespace Frequency
 template <typename Container, typename TSample>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type> &&
-std::floating_point<typename TSample> &&
+std::floating_point<TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
 typename Container::value_type centroid(const Container& stft, const TSample& sample_rate = static_cast<TSample>(44100.0), const Container& precomputed_frequencies = {})
@@ -282,7 +282,7 @@ typename Container::value_type centroid(const Container& stft, const TSample& sa
 template <typename Container, typename TSample>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type> &&
-std::floating_point<typename TSample> &&
+std::floating_point<TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
 typename Container::value_type crestfactor(const Container& stft)
@@ -320,7 +320,7 @@ typename Container::value_type crestfactor(const Container& stft)
 template <typename Container, typename TSample>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type> &&
-std::floating_point<typename TSample> &&
+std::floating_point<TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
 typename Container::value_type decrease(const Container& stft)
@@ -357,7 +357,7 @@ typename Container::value_type decrease(const Container& stft)
 template <typename Container, typename TSample>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type> &&
-std::floating_point<typename TSample> &&
+std::floating_point<TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
 typename Container::value_type entropy(const Container& stft)
@@ -397,7 +397,7 @@ typename Container::value_type entropy(const Container& stft)
 template <typename Container, typename TSample>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type> &&
-std::floating_point<typename TSample> &&
+std::floating_point<TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
 typename Container::value_type flatness(const Container& stft)
@@ -433,7 +433,7 @@ typename Container::value_type flatness(const Container& stft)
 template <typename Container, typename TSample>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type> &&
-std::floating_point<typename TSample> &&
+std::floating_point<TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
 typename Container::value_type flux(const Container& stft, const Container& previous_stft)
@@ -462,7 +462,7 @@ typename Container::value_type flux(const Container& stft, const Container& prev
 template <typename Container, typename TSample>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type> &&
-std::floating_point<typename TSample> &&
+std::floating_point<TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
 typename Container::value_type irregularity(const Container& stft)
@@ -504,7 +504,7 @@ typename Container::value_type irregularity(const Container& stft)
 template <typename Container, typename TSample>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type> &&
-std::floating_point<typename TSample> &&
+std::floating_point<TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
 typename Container::value_type kurtosis(const Container& stft, const TSample& sample_rate = static_cast<TSample>(44100.0), const Container& precomputed_frequencies = {}, const TSample& spectral_centroid = static_cast<TSample>(-1.0), const TSample& spectral_spread = static_cast<TSample>(-1.0))
@@ -562,7 +562,7 @@ typename Container::value_type kurtosis(const Container& stft, const TSample& sa
 template <typename Container, typename TSample>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type> &&
-std::floating_point<typename TSample> &&
+std::floating_point<TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
 typename Container::value_type peak(const Container& stft, const TSample& sample_rate = static_cast<TSample>(44100.0), const Container& precomputed_frequencies = {})
@@ -606,7 +606,7 @@ typename Container::value_type peak(const Container& stft, const TSample& sample
 template <typename Container, typename TSample>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type> &&
-std::floating_point<typename TSample> &&
+std::floating_point<TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
 typename Container::value_type rolloff(const Container& stft, const TSample& sample_rate = static_cast<TSample>(44100.0), const TSample& rolloff_point = static_cast<TSample>(0.85), const Container& precomputed_frequencies = {})
@@ -629,7 +629,6 @@ typename Container::value_type rolloff(const Container& stft, const TSample& sam
         }
     }
 
-    unsigned int magn_max_idx = 0;
     TSample magn_sum = static_cast<TSample>(0.0);
 
     for (unsigned int k = 0u; k < fft_size; k++)
@@ -659,7 +658,7 @@ typename Container::value_type rolloff(const Container& stft, const TSample& sam
 template <typename Container, typename TSample>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type> &&
-std::floating_point<typename TSample> &&
+std::floating_point<TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
 typename Container::value_type slope(const Container& stft, const TSample& sample_rate = static_cast<TSample>(44100.0), const Container& precomputed_frequencies = {})
@@ -715,7 +714,7 @@ typename Container::value_type slope(const Container& stft, const TSample& sampl
 template <typename Container, typename TSample>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type> &&
-std::floating_point<typename TSample> &&
+std::floating_point<TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
 typename Container::value_type spread(const Container& stft, const TSample& sample_rate = static_cast<TSample>(44100.0), const Container& precomputed_frequencies = {}, TSample centroid = static_cast<TSample>(-1.0))
@@ -742,7 +741,7 @@ typename Container::value_type spread(const Container& stft, const TSample& samp
 
     if (centroid < static_cast<TSample>(0.0))
     {
-        centroid = centroid(stft, sample_rate, only_real, precomputed_frequencies);
+        centroid = centroid(stft, sample_rate, precomputed_frequencies);
     }
 
     TSample numerator = static_cast<TSample>(0.0);
@@ -774,7 +773,7 @@ typename Container::value_type spread(const Container& stft, const TSample& samp
 
 template <typename TSample>
 #if __cplusplus >= 202002L
-requires std::floating_point<typename TSample>
+requires std::floating_point<TSample>
 #endif
 class Informer
 {
