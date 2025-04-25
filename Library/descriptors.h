@@ -37,10 +37,12 @@ SOFTWARE.
 namespace Informer
 {
 
-/* AMPLITUDE DOMAIN DESCRIPTORS */
+/* TIME DOMAIN DESCRIPTORS */
 
 namespace Amplitude
 {
+
+// PEAK
 template <typename Container>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type>
@@ -61,6 +63,7 @@ typename Container::value_type peak(const Container& buffer)
     return peak;
 }
 
+// ROOT MEAN SQUARE
 template <typename Container>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type>
@@ -68,22 +71,23 @@ requires std::floating_point<typename Container::value_type>
 typename Container::value_type rms(const Container& buffer)
 {
     using TSample = typename Container::value_type;
-    TSample rms = static_cast<TSample>(0.0);
+    TSample rms_amp = static_cast<TSample>(0.0);
 
     for (const auto &s : buffer)
     {
-        rms += s * s;
+        rms_amp += s * s;
     }
 
     if (buffer.size() > 0)
     {
-        rms /= buffer.size();
-        rms = std::sqrt(rms);
+        rms_amp /= buffer.size();
+        rms_amp = std::sqrt(rms_amp);
     }
 
-    return rms;
+    return rms_amp;
 }
 
+// VARIANCE
 template <typename Container>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type>
@@ -91,11 +95,11 @@ requires std::floating_point<typename Container::value_type>
 typename Container::value_type variance(const Container& buffer)
 {
     using TSample = typename Container::value_type;
-    TSample variance = static_cast<TSample>(0.0);
+    TSample amp_variance = static_cast<TSample>(0.0);
 
     if (buffer.empty())
     {
-        return variance;
+        return amp_variance;
     }
 
     const TSample count = static_cast<TSample>(buffer.size());
@@ -103,116 +107,98 @@ typename Container::value_type variance(const Container& buffer)
 
     for (const auto &s : buffer)
     {
-        variance += pow(s - mean, (TSample)2.0);
+        amp_variance += pow(s - mean, (TSample)2.0);
     }
 
-    variance /= count;
+    amp_variance /= count;
 
-    return variance;
+    return amp_variance;
 }
 
+// KURTOSIS
 template <typename Container, typename TSample>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type> &&
 std::floating_point<typename TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
-typename Container::value_type kurtosis(const Container& buffer, const TSample &mean, const TSample &variance)
+typename Container::value_type kurtosis(const Container& buffer, const TSample &mean = static_cast<TSample>(-10000.0), const TSample &amp_variance = static_cast<TSample>(-10000.0))
 {
-    TSample kurtosis = static_cast<TSample>(0.0);
+    TSample amp_kurtosis = static_cast<TSample>(0.0);
+    TSample var = amp_variance;
+    TSample amp_mean = mean;
 
-    if (buffer.empty() || variance == static_cast<TSample>(0.0))
+    if (var < static_cast<TSample>(-9999.0))
     {
-        return kurtosis;
+        var = variance(buffer);
     }
 
-    TSample invSqrChVariance = (TSample)1.0 / (variance * variance);
+    if (mean < static_cast<TSample>(-9999.0))
+    {
+        amp_mean = std::accumulate(buffer.begin(), buffer.end(), static_cast<TSample>(0.0)) / static_cast<TSample>(buffer.size());
+    }
+    
+    if (buffer.empty() || var == static_cast<TSample>(0.0))
+    {
+        return amp_kurtosis;
+    }
 
-    const TSample count = static_cast<TSample>(buffer.size());
+    TSample invSqrChVariance = (TSample)1.0 / (var * var);
 
     for (const auto &s : buffer)
     {
-        kurtosis += std::pow(s - mean, (TSample)4.0);
+        amp_kurtosis += std::pow(s - amp_mean, (TSample)4.0);
     }
 
-    kurtosis /= count;
-    kurtosis *= invSqrChVariance;
-    kurtosis -= (TSample)3.0;
+    amp_kurtosis /= static_cast<TSample>(buffer.size());
+    amp_kurtosis *= invSqrChVariance;
+    amp_kurtosis -= (TSample)3.0;
 
-    return kurtosis;
+    return amp_kurtosis;
 }
 
-template <typename Container>
-#if __cplusplus >= 202002L
-requires std::floating_point<typename Container::value_type>
-#endif
-typename Container::value_type kurtosis(const Container& buffer)
-{
-    using TSample = typename Container::value_type;
-    TSample variance = variance(buffer);
-
-    if (buffer.empty() || variance == static_cast<TSample>(0.0))
-    {
-        return static_cast<TSample>(0.0);
-    }
-
-    const TSample count = static_cast<TSample>(buffer.size());
-    const TSample mean = std::accumulate(buffer.begin(), buffer.end(), static_cast<TSample>(0.0)) / count;
-
-    return kurtosis(buffer, mean, variance);
-}
-
-
+// SKEWNESS
 template <typename Container, typename TSample>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type> &&
 std::floating_point<typename TSample> &&
 std::same_as<typename Container::value_type, TSample>
 #endif
-typename Container::value_type skewness(const Container& buffer, const TSample &mean, const TSample &variance)
+typename Container::value_type skewness(const Container& buffer, const TSample &mean = static_cast<TSample>(-10000.0), const TSample &amp_variance = static_cast<TSample>(-10000.0))
 {
     TSample skewness = static_cast<TSample>(0.0);
+    TSample var = amp_variance;
+    TSample amp_mean = mean;
 
-    if (buffer.empty() || variance == static_cast<TSample>(0.0))
+    if (var < static_cast<TSample>(-9999.0))
+    {
+        var = variance(buffer);
+    }
+
+    if (mean < static_cast<TSample>(-9999.0))
+    {
+        amp_mean = std::accumulate(buffer.begin(), buffer.end(), static_cast<TSample>(0.0)) / static_cast<TSample>(buffer.size());
+    }
+
+    if (buffer.empty() || var == static_cast<TSample>(0.0))
     {
         return skewness;
     }
 
-    TSample invDenominator = (TSample)1.0 / std::pow(std::sqrt(variance), (TSample)3.0);
-
-    const TSample count = static_cast<TSample>(buffer.size());
+    TSample invDenominator = (TSample)1.0 / std::pow(std::sqrt(var), (TSample)3.0);
 
     for (const auto &s : buffer)
     {
-        skewness += std::pow(s - mean, (TSample)3.0);
+        skewness += std::pow(s - amp_mean, (TSample)3.0);
     }
 
-    skewness /= count;
+    skewness /= static_cast<TSample>(buffer.size());
     skewness *= invDenominator;
 
-    return kurtosis;
+    return skewness;
 }
 
-template <typename Container>
-#if __cplusplus >= 202002L
-requires std::floating_point<typename Container::value_type>
-#endif
-typename Container::value_type skewness(const Container& buffer)
-{
-    using TSample = typename Container::value_type;
-    TSample variance = variance(buffer);
-
-    if (buffer.empty() || variance == static_cast<TSample>(0.0))
-    {
-        return static_cast<TSample>(0.0);
-    }
-
-    const TSample count = static_cast<TSample>(buffer.size());
-    const TSample mean = std::accumulate(buffer.begin(), buffer.end(), static_cast<TSample>(0.0)) / count;
-
-    return skewness(buffer, mean, variance);
-}
-
+// ZERO CROSSING RATE
 template <typename Container>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type>
@@ -512,6 +498,64 @@ typename Container::value_type irregularity(const Container& stft)
     }
 
     return irr;
+}
+
+// SPECTRAL KURTOSIS
+template <typename Container, typename TSample>
+#if __cplusplus >= 202002L
+requires std::floating_point<typename Container::value_type> &&
+std::floating_point<typename TSample> &&
+std::same_as<typename Container::value_type, TSample>
+#endif
+typename Container::value_type kurtosis(const Container& stft, const TSample& sample_rate = static_cast<TSample>(44100.0), const Container& precomputed_frequencies = {}, const TSample& spectral_centroid = static_cast<TSample>(-1.0), const TSample& spectral_spread = static_cast<TSample>(-1.0))
+{
+    TSample skurtosis = static_cast<TSample>(0.0);
+    TSample scentroid = spectral_centroid;
+    TSample sspread = spectral_spread;
+
+    if (stft.size() > 2)
+    {
+        return skurtosis;
+    }
+
+    unsigned int fft_size = stft.size() / 2u;
+
+    if (precomputed_frequencies.size() < fft_size)
+    {
+        TSample fft_bandwidth = static_cast<TSample>(sample_rate) / static_cast<TSample>(fft_size);
+        precomputed_frequencies.resize(fft_size);
+        precomputed_frequencies.fill(static_cast<TSample>(0.0));
+        for (auto b = 0u; b < fft_size / 2u; b++)
+        {
+            precomputed_frequencies.at(b) = static_cast<TSample>(b) * fft_bandwidth;
+        }
+    }
+
+    if (spectral_centroid < static_cast<TSample>(0.0))
+    {
+        scentroid = centroid(stft, sample_rate, precomputed_frequencies);
+    }
+
+    if (spectral_spread < static_cast<TSample>(0.0))
+    {
+        sspread = spread(stft, scentroid, sample_rate, precomputed_frequencies);
+    }
+
+    TSample magn_sum = static_cast<TSample>(0.0);
+    TSample numerator = static_cast<TSample>(0.0);
+
+    for (unsigned int k = 0u; k < fft_size; k++)
+    {
+        numerator += std::pow(precomputed_frequencies.at(k) - scentroid, static_cast<TSample>(4.0)) * std::abs(stft.at(k));
+        magn_sum += std::abs(stft.at(k));
+    }
+
+    if (magn_sum * sspread > static_cast<TSample>(0.0))
+    {
+        skurtosis = numerator / (magn_sum * std::pow(sspread, static_cast<TSample>(4.0)));
+    }
+
+    return skurtosis;
 }
 
 // SPECTRAL PEAK
