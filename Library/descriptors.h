@@ -240,7 +240,7 @@ typename Container::value_type centroid(const Container& stft, const TSample& sa
 {
     TSample centroid = static_cast<TSample>(0.0);
 
-    if (stft.empty())
+    if (stft.size() < 2)
     {
         return centroid;
     }
@@ -289,7 +289,7 @@ typename Container::value_type crestfactor(const Container& stft)
 {
     TSample scf = static_cast<TSample>(0.0);
 
-    if (stft.empty())
+    if (stft.size() < 2)
     {
         return scf;
     }
@@ -364,7 +364,7 @@ typename Container::value_type entropy(const Container& stft)
 {
     TSample h = static_cast<TSample>(0.0);
 
-    if (stft.empty())
+    if (stft.size() < 2)
     {
         return h;
     }
@@ -469,7 +469,7 @@ typename Container::value_type irregularity(const Container& stft)
 {
     TSample irr = static_cast<TSample>(0.0);
 
-    if (stft.size() > 2)
+    if (stft.size() < 2)
     {
         return irr;
     }
@@ -513,7 +513,7 @@ typename Container::value_type kurtosis(const Container& stft, const TSample& sa
     TSample scentroid = spectral_centroid;
     TSample sspread = spectral_spread;
 
-    if (stft.size() > 2)
+    if (stft.size() < 2)
     {
         return skurtosis;
     }
@@ -553,6 +553,7 @@ typename Container::value_type kurtosis(const Container& stft, const TSample& sa
     if (magn_sum * sspread > static_cast<TSample>(0.0))
     {
         skurtosis = numerator / (magn_sum * std::pow(sspread, static_cast<TSample>(4.0)));
+        skurtosis -= static_cast<TSample>(3.0);
     }
 
     return skurtosis;
@@ -569,7 +570,7 @@ typename Container::value_type peak(const Container& stft, const TSample& sample
 {
     TSample peak = static_cast<TSample>(0.0);
 
-    if (stft.empty())
+    if (stft.size() < 2)
     {
         return peak;
     }
@@ -611,7 +612,7 @@ std::same_as<typename Container::value_type, TSample>
 #endif
 typename Container::value_type rolloff(const Container& stft, const TSample& sample_rate = static_cast<TSample>(44100.0), const TSample& rolloff_point = static_cast<TSample>(0.85), const Container& precomputed_frequencies = {})
 {
-    if (stft.empty())
+    if (stft.size() < 2)
     {
         return static_cast<TSample>(0.0);
     }
@@ -654,6 +655,64 @@ typename Container::value_type rolloff(const Container& stft, const TSample& sam
     return precomputed_frequencies.at(rolloff_idx);
 }
 
+// SPECTRAL SKEWNESS
+template <typename Container, typename TSample>
+#if __cplusplus >= 202002L
+requires std::floating_point<typename Container::value_type> &&
+std::floating_point<TSample> &&
+std::same_as<typename Container::value_type, TSample>
+#endif
+typename Container::value_type skweness(const Container& stft, const TSample& sample_rate = static_cast<TSample>(44100.0), const Container& precomputed_frequencies = {}, const TSample& spectral_centroid = static_cast<TSample>(-1.0), const TSample& spectral_spread = static_cast<TSample>(-1.0))
+{
+    TSample sskewness = static_cast<TSample>(0.0);
+    TSample scentroid = spectral_centroid;
+    TSample sspread = spectral_spread;
+
+    if (stft.size() < 2)
+    {
+        return sskewness;
+    }
+
+    unsigned int fft_size = stft.size() / 2u;
+
+    if (precomputed_frequencies.size() < fft_size)
+    {
+        TSample fft_bandwidth = static_cast<TSample>(sample_rate) / static_cast<TSample>(fft_size);
+        precomputed_frequencies.resize(fft_size);
+        precomputed_frequencies.fill(static_cast<TSample>(0.0));
+        for (auto b = 0u; b < fft_size / 2u; b++)
+        {
+            precomputed_frequencies.at(b) = static_cast<TSample>(b) * fft_bandwidth;
+        }
+    }
+
+    if (spectral_centroid < static_cast<TSample>(0.0))
+    {
+        scentroid = centroid(stft, sample_rate, precomputed_frequencies);
+    }
+
+    if (spectral_spread < static_cast<TSample>(0.0))
+    {
+        sspread = spread(stft, scentroid, sample_rate, precomputed_frequencies);
+    }
+
+    TSample magn_sum = static_cast<TSample>(0.0);
+    TSample numerator = static_cast<TSample>(0.0);
+
+    for (unsigned int k = 0u; k < fft_size; k++)
+    {
+        numerator += std::pow(precomputed_frequencies.at(k) - scentroid, static_cast<TSample>(3.0)) * std::abs(stft.at(k));
+        magn_sum += std::abs(stft.at(k));
+    }
+
+    if (magn_sum * sspread > static_cast<TSample>(0.0))
+    {
+        sskewness = numerator / (magn_sum * std::pow(sspread, static_cast<TSample>(3.0)));
+    }
+
+    return sskewness;
+}
+
 // SPECTRAL SLOPE
 template <typename Container, typename TSample>
 #if __cplusplus >= 202002L
@@ -665,7 +724,7 @@ typename Container::value_type slope(const Container& stft, const TSample& sampl
 {
     TSample sslope = static_cast<TSample>(0.0);
 
-    if (stft.empty())
+    if (stft.size() < 2)
     {
         return sslope;
     }
@@ -721,7 +780,7 @@ typename Container::value_type spread(const Container& stft, const TSample& samp
 {
     TSample sspread = static_cast<TSample>(0.0);
 
-    if (stft.empty())
+    if (stft.size() < 2)
     {
         return sspread;
     }
@@ -777,7 +836,169 @@ requires std::floating_point<TSample>
 #endif
 class Informer
 {
+public:
+    Informer() = default;
+    ~Informer() = default;
 
+    bool set_sample_rate(const TSample& rate)
+    {
+        if (rate > static_cast<TSample>(0.0))
+        {
+            sample_rate = rate;
+            return true;
+        }
+        return false;
+    }
+
+    bool set_rolloff_point(const TSample& rolloff)
+    {
+        if (rolloff > static_cast<TSample>(0.0) && rolloff < static_cast<TSample>(1.0))
+        {
+            rolloff_point = rolloff;
+            return true;
+        }
+        return false;
+    }
+
+    bool set_stft(const std::vector<TSample>& stft)
+    {
+        if (stft.size() > 2)
+        {
+            this->previous_stft = this->stft;
+            this->stft = stft;
+            return true;
+        }
+        return false;
+    }
+
+    bool set_buffer(const std::vector<TSample>& buffer)
+    {
+        if (!buffer.empty())
+        {
+            this->buffer = buffer;
+            return true;
+        }
+        return false;
+    }
+
+    std::vector<TSample> get_stft() const
+    {
+        return stft;
+    }
+
+    std::vector<TSample> get_buffer() const
+    {
+        return buffer;
+    }
+
+    TSample get_sample_rate() const
+    {
+        return sample_rate;
+    }
+
+    TSample get_rolloff_point() const
+    {
+        return rolloff_point;
+    }
+
+    std::vector<TSample> get_precomputed_frequencies() const
+    {
+        return precomputed_frequencies;
+    }
+
+    void set_precomputed_frequencies(const std::vector<TSample>& frequencies)
+    {
+        precomputed_frequencies = frequencies;
+    }
+
+    void time_descriptors(const std::vector<TSample>& buffer)
+    {
+        this->buffer = buffer;
+    }
+
+    void calculate_frequency_descriptors(const std::vector<TSample>& stft, const std::vector<TSample>& previous_stft)
+    {
+        this->stft = stft;
+        this->previous_stft = previous_stft;
+    }
+
+    // Time domain descriptors
+    TSample amp_peak() { return Amplitude::peak(buffer); }
+    TSample amp_rms() { return Amplitude::rms(buffer); }
+    TSample amp_variance() { return Amplitude::variance(buffer); }
+    TSample amp_kurtosis(const std::vector<TSample>& buffer)
+    {
+        TSample mean = std::accumulate(buffer.begin(), buffer.end(), static_cast<TSample>(0.0)) / static_cast<TSample>(buffer.size());
+        TSample amp_variance = Amplitude::variance(buffer);
+
+        return Amplitude::kurtosis(buffer, mean, amp_variance);
+    }
+    TSample amp_skewness(const std::vector<TSample>& buffer)
+    {
+        TSample mean = std::accumulate(buffer.begin(), buffer.end(), static_cast<TSample>(0.0)) / static_cast<TSample>(buffer.size());
+        TSample amp_variance = Amplitude::variance(buffer);
+
+        return Amplitude::skewness(buffer, mean, amp_variance);
+    }
+    TSample amp_zerocrossing() { return Amplitude::zerocrossing(buffer); }
+
+    // Frequency domain descriptors
+    TSample spectral_centroid() { return Frequency::centroid(stft, sample_rate, precomputed_frequencies); }
+    TSample spectral_crestfactor() { return Frequency::crestfactor(stft); }
+    TSample spectral_decrease() { return Frequency::decrease(stft); }
+    TSample spectral_entropy() { return Frequency::entropy(stft); }
+    TSample spectral_flatness() { return Frequency::flatness(stft); }
+    TSample spectral_flux() { return Frequency::flux(stft, previous_stft); }
+    TSample spectral_irregularity() { return Frequency::irregularity(stft); }
+    TSample spectral_kurtosis()
+    {
+        if (this->centroid < static_cast<TSample>(0.0))
+        {
+            this->centroid = Frequency::centroid(stft, sample_rate, precomputed_frequencies);
+        }
+
+        if (this->spread < static_cast<TSample>(0.0))
+        {
+            this->spread = Frequency::spread(stft, sample_rate, precomputed_frequencies, centroid);
+        }
+
+        return Frequency::kurtosis(stft, sample_rate, precomputed_frequencies, centroid, spread);
+    }
+    TSample spectral_peak() { return Frequency::peak(stft, sample_rate, precomputed_frequencies); }
+    TSample spectral_rolloff() { return Frequency::rolloff(stft, sample_rate, rolloff_point, precomputed_frequencies); }
+    TSample spectral_skweness()
+    {
+        if (this->centroid < static_cast<TSample>(0.0))
+        {
+            this->centroid = Frequency::centroid(stft, sample_rate, precomputed_frequencies);
+        }
+
+        if (this->spread < static_cast<TSample>(0.0))
+        {
+            this->spread = Frequency::spread(stft, sample_rate, precomputed_frequencies, centroid);
+        }
+
+        return Frequency::skweness(stft, sample_rate, precomputed_frequencies, centroid, spread);
+    }
+    TSample spectral_slope() { return Frequency::slope(stft, sample_rate, precomputed_frequencies); }
+    TSample spectral_spread()
+    {
+        if (this->centroid < static_cast<TSample>(0.0))
+        {
+            this->centroid = Frequency::centroid(stft, sample_rate, precomputed_frequencies);
+        }
+        return Frequency::spread(stft, sample_rate, precomputed_frequencies, centroid);
+    }
+
+private:
+    std::vector<TSample> precomputed_frequencies;
+    std::vector<TSample> stft;
+    std::vector<TSample> previous_stft;
+    std::vector<TSample> buffer;
+    TSample sample_rate = static_cast<TSample>(44100.0);
+    TSample rolloff_point = static_cast<TSample>(0.85);
+    TSample centroid = static_cast<TSample>(-1.0);
+    TSample spread = static_cast<TSample>(-1.0);
 };
 
 } // namespace Informer 
