@@ -383,11 +383,11 @@ typename Container::value_type entropy(const Container& stft)
         for (unsigned int k = 1u; k < fft_size; k++)
         {
             TSample p = stft.at(k) * stft.at(k) / power_sum;
-            h += p * std::log(p);
+            h += p * std::log2(p);
         }
     }
 
-    h /= std::log(static_cast<TSample>(fft_size));
+    h /= std::log2(static_cast<TSample>(fft_size));
     h *= static_cast<TSample>(-1.0);
 
     return h;
@@ -804,17 +804,17 @@ typename Container::value_type spread(const Container& stft, const TSample& samp
     }
 
     TSample numerator = static_cast<TSample>(0.0);
-    TSample power_sum = static_cast<TSample>(0.0);
+    TSample magn_sum = static_cast<TSample>(0.0);
 
     for (unsigned int k = 0u; k < fft_size; k++)
     {
-        numerator += (precomputed_frequencies.at(k) - centroid) * (precomputed_frequencies.at(k) - centroid) * (stft.at(k) * stft.at(k));
-        power_sum += stft.at(k) * stft.at(k);
+        numerator += (precomputed_frequencies.at(k) - centroid) * (precomputed_frequencies.at(k) - centroid) * std::abs(stft.at(k));
+        magn_sum += std::abs(stft.at(k));
     }
 
     if (power_sum > static_cast<TSample>(0.0))
     {
-        sspread = std::sqrt(numerator / power_sum);
+        sspread = std::sqrt(numerator / magn_sum);
     }
     else
     {

@@ -437,12 +437,12 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                     if (power.at(k) > 0.0f)
                     {
                         float powerNorm = power.at(k) / powerSum;
-                        chEntropy += powerNorm * std::log(powerNorm);
+                        chEntropy += powerNorm * std::log2(powerNorm);
                     }
                 }
             }
             chEntropy *= -1.0f;
-            chEntropy /= std::log(static_cast<float>(fftHalf));
+            chEntropy /= std::log2(static_cast<float>(fftHalf));
             if (abs(magnSum) > 0.00001f)
             {
                 chCentroid = a / magnSum;
@@ -471,7 +471,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             for (unsigned int k = 0; k < fftHalf; k++)
             {
                 float frequency = frequencies.at(k);
-                a += power.at(k) * std::powf(frequency - chCentroid, 2.0);
+                a += magnitudes.at(ch).at(k) * std::powf(frequency - chCentroid, 2.0);
 
                 if (cumulPower < rolloffThresh)
                 {
@@ -491,7 +491,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             }
             if (abs(powerSum) > 0.00001f)
             {
-                chSpread = std::sqrtf(a / powerSum);
+                chSpread = std::sqrtf(a / magnSum);
             }
 
             float magnSumNoDC = magnSum - magnitudes.at(ch).at(0);

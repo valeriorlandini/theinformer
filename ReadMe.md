@@ -48,7 +48,7 @@ $$ D_n = \frac{\sum_{k=1}^{K/2-1}  \frac{|X(k,n)| - |X(0,n)|}{k}}{\sum_{k=1}^{K/
 
 * Entropy
 
-$$ H_n = - \frac{\sum_{k=0}^{K/2-1}  \frac{|X(k,n)|^2}{\sum_{k=0}^{K/2-1}|X(k,n)|^2} ln(\frac{|X(k,n)|^2}{\sum_{k=0}^{K/2-1}|X(k,n)|^2})}{ln (K/2)} $$
+$$ H_n = - \frac{\sum_{k=0}^{K/2-1}  \frac{|X(k,n)|^2}{\sum_{k=0}^{K/2-1}|X(k,n)|^2} log_2\left(\frac{|X(k,n)|^2}{\sum_{k=0}^{K/2-1}|X(k,n)|^2}\right)}{log_2 (K/2)} $$
 
 * Flatness
 
@@ -85,7 +85,7 @@ $$ SL_n = \frac{\sum_{k=0}^{K/2-1}(f(k) - \mu_f)(|X(k,n)| - \frac{\sum_{k=0}^{K/
 
 * Spread
 
-$$ SP_n = \sqrt{\frac{\sum_{k=0}^{K/2-1} (f(k) - SC_n)^2|X(k,n)|^2}{\sum_{k=0}^{K/2-1}|X(k,n)|^2}} $$
+$$ SP_n = \sqrt{\frac{\sum_{k=0}^{K/2-1} (f(k) - SC_n)^2|X(k,n)|}{\sum_{k=0}^{K/2-1}|X(k,n)|}} $$
 
 Please note: when the _normalize_ parameter is enabled, all descriptors are adjusted to ensure they fall within the [0.0, 1.0] range. While some descriptors naturally adhere to this range or have well-defined boundaries (e.g., those typically limited to [0.0, Nyquist frequency]), others —such as kurtosis, skewness, and slope— are adjusted based on empirical observations. As a result, the normalize option is best suited for artistic purposes where exact precision is not essential, focusing instead on preventing values from falling outside the expected range, rather than for detailed sound analysis.
 
