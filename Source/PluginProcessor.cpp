@@ -690,7 +690,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         for (unsigned int i = 0; i < 64; i++)
         {
             // Erase the first half of the samples if it is not the first cycle
-            if (samples.at(i).size() >= expectedSamples)
+            if (samples.at(i).size() >= static_cast<unsigned int>(expectedSamples))
             {
                 samples.at(i).erase(samples.at(i).begin(), samples.at(i).begin() + expectedSamples / 2);
             }
