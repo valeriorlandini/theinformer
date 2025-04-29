@@ -27,7 +27,7 @@ SOFTWARE.
 #include <cmath>
 #include <cstddef>
 #include <numeric>
-#include <sys/stat.h>
+#include <unordered_map>
 #include <vector>
 
 #if __cplusplus >= 202002L
@@ -948,8 +948,20 @@ public:
     TSample spectral_decrease() { return Frequency::decrease(stft); }
     TSample spectral_entropy() { return Frequency::entropy(stft); }
     TSample spectral_flatness() { return Frequency::flatness(stft); }
-    TSample spectral_flux() { return Frequency::flux(stft, previous_stft); }
-    TSample spectral_irregularity() { return Frequency::irregularity(stft); }
+    TSample spectral_flux()
+    {
+        frequency_descriptors["flux"] = Frequency::flux(stft, previous_stft);
+
+        return frequency_descriptors["flux"];
+    }
+    
+    TSample spectral_irregularity()
+    {
+        frequency_descriptors["irregularity"] = Frequency::irregularity(stft);
+
+        return frequency_descriptors["irregularity"];
+    }
+
     TSample spectral_kurtosis()
     {
         if (this->centroid < static_cast<TSample>(0.0))
@@ -962,7 +974,9 @@ public:
             this->spread = Frequency::spread(stft, sample_rate, precomputed_frequencies, centroid);
         }
 
-        return Frequency::kurtosis(stft, sample_rate, precomputed_frequencies, centroid, spread);
+        frequency_descriptors["kurtosis"] = Frequency::kurtosis(stft, sample_rate, precomputed_frequencies, centroid, spread);
+
+        return frequency_descriptors["kurtosis"];
     }
     TSample spectral_peak() { return Frequency::peak(stft, sample_rate, precomputed_frequencies); }
     TSample spectral_rolloff() { return Frequency::rolloff(stft, sample_rate, rolloff_point, precomputed_frequencies); }
@@ -999,6 +1013,8 @@ private:
     TSample rolloff_point = static_cast<TSample>(0.85);
     TSample centroid = static_cast<TSample>(-1.0);
     TSample spread = static_cast<TSample>(-1.0);
+    std::unordered_map<std::string, TSample> time_descriptors;
+    std::unordered_map<std::string, TSample> frequency_descriptors;
 };
 
 } // namespace Informer 

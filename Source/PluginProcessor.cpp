@@ -725,15 +725,15 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             sender.connect(host, port);
 
             juce::String mix = "mix/";
-            juce::String amp = "amp/";
+            juce::String time = "time/";
             juce::String freq = "freq/";
 
-            sender.send(juce::OSCAddressPattern(root + mix + amp + "kurtosis"), ampKurtosis);
-            sender.send(juce::OSCAddressPattern(root + mix + amp + "peak"), ampPeak);
-            sender.send(juce::OSCAddressPattern(root + mix + amp + "rms"), rms);
-            sender.send(juce::OSCAddressPattern(root + mix + amp + "skewness"), ampSkewness);
-            sender.send(juce::OSCAddressPattern(root + mix + amp + "variance"), variance);
-            sender.send(juce::OSCAddressPattern(root + mix + amp + "zerocrossing"), zerocrossing);
+            sender.send(juce::OSCAddressPattern(root + mix + time + "kurtosis"), ampKurtosis);
+            sender.send(juce::OSCAddressPattern(root + mix + time + "peak"), ampPeak);
+            sender.send(juce::OSCAddressPattern(root + mix + time + "rms"), rms);
+            sender.send(juce::OSCAddressPattern(root + mix + time + "skewness"), ampSkewness);
+            sender.send(juce::OSCAddressPattern(root + mix + time + "variance"), variance);
+            sender.send(juce::OSCAddressPattern(root + mix + time + "zerocrossing"), zerocrossing);
             sender.send(juce::OSCAddressPattern(root + mix + freq + "centroid"), centroid);
             sender.send(juce::OSCAddressPattern(root + mix + freq + "decrease"), decrease);
             sender.send(juce::OSCAddressPattern(root + mix + freq + "entropy"), entropy);
@@ -757,12 +757,12 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 }
                 ch_str += std::to_string(ch + 1) + "/";
 
-                sender.send(juce::OSCAddressPattern(root + ch_str + amp + "kurtosis"), ampKurtoses.at(ch));
-                sender.send(juce::OSCAddressPattern(root + ch_str + amp + "peak"), ampPeaks.at(ch));
-                sender.send(juce::OSCAddressPattern(root + ch_str + amp + "rms"), chRms.at(ch));
-                sender.send(juce::OSCAddressPattern(root + ch_str + amp + "skewness"), ampSkewnesses.at(ch));
-                sender.send(juce::OSCAddressPattern(root + ch_str + amp + "variance"), variances.at(ch));
-                sender.send(juce::OSCAddressPattern(root + ch_str + amp + "zerocrossing"), zerocrossings.at(ch));
+                sender.send(juce::OSCAddressPattern(root + ch_str + time + "kurtosis"), ampKurtoses.at(ch));
+                sender.send(juce::OSCAddressPattern(root + ch_str + time + "peak"), ampPeaks.at(ch));
+                sender.send(juce::OSCAddressPattern(root + ch_str + time + "rms"), chRms.at(ch));
+                sender.send(juce::OSCAddressPattern(root + ch_str + time + "skewness"), ampSkewnesses.at(ch));
+                sender.send(juce::OSCAddressPattern(root + ch_str + time + "variance"), variances.at(ch));
+                sender.send(juce::OSCAddressPattern(root + ch_str + time + "zerocrossing"), zerocrossings.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + freq + "centroid"), centroids.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + freq + "decrease"), decreases.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + freq + "entropy"), entropies.at(ch));
