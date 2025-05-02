@@ -4,6 +4,9 @@ The Informer is compatible with Windows, Linux, and macOS.
 
 ![image](https://github.com/user-attachments/assets/65eaa577-4e5b-4e60-a69f-e085281d5c74)
 
+Complementing The Informer, there is also *The Case Officer*, a Max for Live device that receives data from The Informer so that they can be used as modulation sources within Live.
+Additionally, there is a C++ header-only library available for integrating the descriptor calculation algorithms into your own software.
+
 Currently, these descriptors have been implemented:
 
 ### Amplitude descriptors
