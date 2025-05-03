@@ -612,13 +612,13 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 c *= invNyquist;
             }
 
-            decrease += 0.15f;
-            decrease *= 2.0f;
+            decrease += 0.05f;
+            decrease *= 10.0f;
             decrease = std::clamp(decrease, 0.0f, 1.0f);
             for (float& d : decreases)
             {
-                d += 0.15f;
-                d *= 2.0f;
+                d += 0.05f;
+                d *= 10.0f;
                 d = std::clamp(d, 0.0f, 1.0f);
             }
 
