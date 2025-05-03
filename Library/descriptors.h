@@ -240,6 +240,7 @@ typename Container::value_type zerocrossing(const Container& buffer)
 namespace Frequency
 {
 
+// UTILITY FUNCTION: precompute the frequencies for the given STFT size and sample rate
 template <typename ISize, typename TSample>
 std::vector<TSample> precompute_frequencies(ISize stft_size = static_cast<ISize>(4096), TSample sample_rate = static_cast<TSample>(44100.0))
 {
@@ -257,6 +258,17 @@ std::vector<TSample> precompute_frequencies(ISize stft_size = static_cast<ISize>
     }
 
     return precomputed_frequencies;
+}
+
+// UTILITY FUNCTION: for stft with only values up to Nyquist frequency, resize the vector appending zeros
+template <typename TSample>
+std::vector<TSample> resize_stft(const std::vector<TSample>& stft)
+{
+    auto zeroed_stft = stft;
+
+    zeroed_stft.resize(stft.size() * 2u, static_cast<TSample>(0.0));
+
+    return zeroed_stft;
 }
 
 // SPECTRAL CENTROID
@@ -452,14 +464,14 @@ typename Container::value_type entropy(const Container& stft)
 
     TSample power_sum = static_cast<TSample>(0.0);
 
-    for (unsigned int k = 1u; k < fft_size; k++)
+    for (unsigned int k = 0u; k < fft_size; k++)
     {
         power_sum += stft.at(k) * stft.at(k);
     }
 
     if (power_sum > static_cast<TSample>(0.0))
     {
-        for (unsigned int k = 1u; k < fft_size; k++)
+        for (unsigned int k = 0u; k < fft_size; k++)
         {
             TSample p = stft.at(k) * stft.at(k) / power_sum;
             h += p * std::log2(p);
