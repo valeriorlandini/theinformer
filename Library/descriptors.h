@@ -436,10 +436,8 @@ typename Container::value_type decrease(const Container& stft)
 
     if (magn_sum > static_cast<TSample>(0.0))
     {
-        return decrease;
+        decrease = magn_diff_sum / magn_sum;
     }
-
-    decrease = magn_diff_sum / magn_sum;
 
     return decrease;
 }
