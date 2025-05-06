@@ -20,8 +20,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ******************************************************************************/
 
-#ifndef DESCRIPTORS_H_
-#define DESCRIPTORS_H_
+#ifndef INFORMER_H_
+#define INFORMER_H_
 
 #include <algorithm>
 #include <cmath>
@@ -506,12 +506,18 @@ typename Container::value_type flatness(const Container& stft)
 
     TSample magn_sum = static_cast<TSample>(0.0);
     TSample ln_magn_sum = static_cast<TSample>(0.0);
-    const TSample delta = static_cast<TSample>(1e-10);
 
     for (unsigned int k = 0u; k < fft_size; k++)
     {
         magn_sum += std::abs(stft.at(k));
-        ln_magn_sum += std::log(std::abs(stft.at(k)) + delta);
+        if (std::abs(stft.at(k)) > static_cast<TSample>(0.0))
+        {
+            ln_magn_sum += std::log(std::abs(stft.at(k)));
+        }
+        else
+        {
+            ln_magn_sum += std::log(static_cast<TSample>(0.00001));
+        }
     }
 
     if (magn_sum > static_cast<TSample>(0.0))
@@ -796,7 +802,6 @@ typename Container::value_type spectral_spread = static_cast<typename Container:
 }
 
 // SPECTRAL SLOPE
-/*
 template <typename Container>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type>
@@ -847,8 +852,8 @@ std::vector<typename Container::value_type>& precomputed_frequencies = {})
 
     return sslope;
 }
-*/
 
+/*
 // SPECTRAL SLOPE
 template <typename Container>
 #if __cplusplus >= 202002L
@@ -900,7 +905,7 @@ std::vector<typename Container::value_type>& precomputed_frequencies = {})
 
     return sslope;
 }
-
+*/
 } // namespace Informer::Frequency
 
 
@@ -1315,4 +1320,4 @@ private:
 
 } // namespace Informer
 
-#endif // DESCRIPTORS_H_
+#endif // INFORMER_H_
