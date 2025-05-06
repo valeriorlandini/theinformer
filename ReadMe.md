@@ -110,3 +110,61 @@ Navigate to the build folder with `cd build`
 Next run `cmake --build . --config Release`
 
 The compiled binaries can be found inside `TheInformer_artefacts/Release` (or simply `TheInformer_artefacts` in Linux) folder.
+
+## _Informer_ C++ library
+
+In `Library` folder, there is `informer.h`, a MIT-licensed C++ header-only library to use the plugin algorithms in any application. The library can be used in two ways: by directly calling the provided functions or by creating an instance of the implemented class and then computing and retrieving the descriptors from there.
+
+The library is simply imported with the inclusion of its header:
+```cpp
+#include "informer.h"
+```
+
+For the first option, there are two namespaces inside the `Informer` namespace: `Amplitude` and `Frequency`. Once you have an iterable container with floating point values (of any type) representing a buffer, you can compute the amplitude descriptors according to the following example:
+
+```cpp
+std::vector<double> myBuffer = /* your buffer */
+
+auto rms = Informer::Amplitude::rms(myBuffer);
+```
+
+For descriptors like kurtosis and skewness, which uses the mean and the variance, these values can be passed as optional arguments or, if not provided, they are computed by the function.
+For frequency descriptors, the functions expect an iterable container with floating point values representing the magnitudes of the Fourier transform, with all the bins up to sample rate, for example:
+
+```cpp
+std::vector<double> fftMag = /* your FFT magnitudes (real values only) */
+
+auto irregularity = Informer::Frequency::irregularity(fftMag);
+```
+
+For descriptors needing the sample rate, this can be specified (otherwise it is set to 44100 Hz). When a descriptor uses other descriptors (such as kurtosis and skewness), these can be passed as parameters, otherwise they are computed.
+Finally, for descriptors expressed in Hertz, like centroid and spread, the frequencies of the FFT bins can be passed as a vector to speed up the function (that would compute them otherwise). A utility function `precompute_frequencies` is available for this scope:
+
+```cpp
+double sampleRate = 44100.0;
+unsigned int fftSize = 8192;
+
+auto precomputed_frequencies = Informer::Frequency::precompute_frequencies(fftSize, sampleRate);
+```
+
+For class implementation, it can be instantiated by passing a buffer and a series of FFT magnitudes:
+
+```cpp
+// Sample rate defaults to 44100.0, rolloff point defaults to 0.85,
+// previous FFT magnitudes to 0.0 (with same current FFT size)
+// Last parameter tells to compute the descriptors immediately
+// If buffer or magnitudes are not passed, they default to empty vectors
+// and their corresponding descriptors are not computed
+Informer::Informer<float> informer(buffer, fftMag, sampleRate, rolloffPoint, previousFft, true);
+
+// Retrieve descriptors
+auto peak = informer.get_time_descriptor("peak");
+auto centroid = informer.get_frequency_descriptor("centroid"));
+
+// Store new audio values
+informer.set_buffer(newBuffer);
+informer.set_stft(newMagnitudes); 
+
+// Compute new descriptors
+informer.compute_descriptors();
+```
