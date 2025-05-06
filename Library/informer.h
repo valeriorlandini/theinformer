@@ -853,59 +853,6 @@ std::vector<typename Container::value_type>& precomputed_frequencies = {})
     return sslope;
 }
 
-/*
-// SPECTRAL SLOPE
-template <typename Container>
-#if __cplusplus >= 202002L
-requires std::floating_point<typename Container::value_type>
-#endif
-typename Container::value_type slope(const Container& stft,
-typename Container::value_type sample_rate = static_cast<typename Container::value_type>(44100.0),
-std::vector<typename Container::value_type>& precomputed_frequencies = {})
-{
-    using TSample = typename Container::value_type;
-
-    TSample sslope = static_cast<TSample>(0.0);
-
-    if (stft.size() < 2)
-    {
-        return sslope;
-    }
-
-    unsigned int fft_size = stft.size() / 2u;
-
-    if (precomputed_frequencies.size() < fft_size)
-    {
-        precomputed_frequencies = precompute_frequencies(stft.size(), sample_rate);
-    }
-
-    TSample summed_frequencies = static_cast<TSample>(0.0);
-    TSample magn_sum = static_cast<TSample>(0.0);
-    TSample magn_freq_mul = static_cast<TSample>(0.0);
-    TSample freq_squared_sum = static_cast<TSample>(0.0);
-    for (unsigned int k = 0u; k < fft_size; k++)
-    {
-        freq_squared_sum += std::pow(precomputed_frequencies.at(k), static_cast<TSample>(2.0));
-        magn_freq_mul += precomputed_frequencies.at(k) * std::abs(stft.at(k));
-        magn_sum += std::abs(stft.at(k));
-        summed_frequencies += precomputed_frequencies.at(k);
-    }
-
-    TSample numerator = static_cast<TSample>(0.0);
-    TSample denominator = static_cast<TSample>(0.0);
-
-    numerator = static_cast<TSample>(fft_size) * magn_freq_mul - (summed_frequencies * magn_sum);
-    denominator = static_cast<TSample>(fft_size) * freq_squared_sum - std::pow(summed_frequencies, static_cast<TSample>(2.0));
-    denominator *= magn_sum;
-
-    if (denominator > static_cast<TSample>(0.0))
-    {
-        sslope = numerator / denominator;
-    }
-
-    return sslope;
-}
-*/
 } // namespace Informer::Frequency
 
 
