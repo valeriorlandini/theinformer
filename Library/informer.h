@@ -223,7 +223,7 @@ typename Container::value_type zerocrossing(const Container& buffer)
 
     for (auto s = 1; s < buffer.size(); s++)
     {
-        zerocrossingrate += std::abs(static_cast<TSample>(!std::signbit(buffer.at(s))) - static_cast<TSample>(!std::signbit(buffer.at(s - 1))));
+        zerocrossingrate += std::abs(static_cast<TSample>(!std::signbit(buffer[s])) - static_cast<TSample>(!std::signbit(buffer[s - 1])));
     }
 
     zerocrossingrate /= static_cast<TSample>(buffer.size() - 1);
@@ -252,7 +252,7 @@ std::vector<TSample> precompute_frequencies(ISize stft_size = static_cast<ISize>
         precomputed_frequencies.resize(size / 2u, static_cast<TSample>(0.0));
         for (auto b = 0u; b < size / 2u; b++)
         {
-            precomputed_frequencies.at(b) = static_cast<TSample>(b) * fft_bandwidth;
+            precomputed_frequencies[b] = static_cast<TSample>(b) * fft_bandwidth;
         }
     }
 
@@ -299,8 +299,8 @@ std::vector<typename Container::value_type>& precomputed_frequencies = {})
 
     for (unsigned int k = 0u; k < fft_size; k++)
     {
-        centroid += precomputed_frequencies.at(k) * std::abs(stft.at(k));
-        magn_sum += std::abs(stft.at(k));
+        centroid += precomputed_frequencies[k] * std::abs(stft[k]);
+        magn_sum += std::abs(stft[k]);
     }
 
     if (magn_sum > static_cast<TSample>(0.0))
@@ -352,8 +352,8 @@ typename Container::value_type spectral_centroid = static_cast<typename Containe
 
     for (unsigned int k = 0u; k < fft_size; k++)
     {
-        numerator += (precomputed_frequencies.at(k) - spectral_centroid) * (precomputed_frequencies.at(k) - spectral_centroid) * std::abs(stft.at(k));
-        magn_sum += std::abs(stft.at(k));
+        numerator += (precomputed_frequencies[k] - spectral_centroid) * (precomputed_frequencies[k] - spectral_centroid) * std::abs(stft[k]);
+        magn_sum += std::abs(stft[k]);
     }
 
     if (magn_sum > static_cast<TSample>(0.0))
@@ -391,11 +391,11 @@ typename Container::value_type crestfactor(const Container& stft)
 
     for (unsigned int k = 0u; k < fft_size; k++)
     {
-        if (std::abs(stft.at(k)) > magn_max)
+        if (std::abs(stft[k]) > magn_max)
         {
-            magn_max = std::abs(stft.at(k));
+            magn_max = std::abs(stft[k]);
         }
-        magn_sum += std::abs(stft.at(k));
+        magn_sum += std::abs(stft[k]);
     }
 
     if (magn_sum > static_cast<TSample>(0.0))
@@ -429,8 +429,8 @@ typename Container::value_type decrease(const Container& stft)
 
     for (unsigned int k = 1u; k < fft_size; k++)
     {
-        magn_diff_sum += (std::abs(stft.at(k)) - std::abs(stft.at(0))) / static_cast<TSample>(k);
-        magn_sum += std::abs(stft.at(k));
+        magn_diff_sum += (std::abs(stft[k]) - std::abs(stft[0])) / static_cast<TSample>(k);
+        magn_sum += std::abs(stft[k]);
     }
 
     if (magn_sum > static_cast<TSample>(0.0))
@@ -463,14 +463,14 @@ typename Container::value_type entropy(const Container& stft)
 
     for (unsigned int k = 0u; k < fft_size; k++)
     {
-        power_sum += stft.at(k) * stft.at(k);
+        power_sum += stft[k] * stft[k];
     }
 
     if (power_sum > static_cast<TSample>(0.0))
     {
         for (unsigned int k = 0u; k < fft_size; k++)
         {
-            TSample p = stft.at(k) * stft.at(k) / power_sum;
+            TSample p = stft[k] * stft[k] / power_sum;
             if (p > static_cast<TSample>(0.0))
             {
                 h += p * std::log2(p);
@@ -507,10 +507,10 @@ typename Container::value_type flatness(const Container& stft)
 
     for (unsigned int k = 0u; k < fft_size; k++)
     {
-        magn_sum += std::abs(stft.at(k));
-        if (std::abs(stft.at(k)) > static_cast<TSample>(0.0))
+        magn_sum += std::abs(stft[k]);
+        if (std::abs(stft[k]) > static_cast<TSample>(0.0))
         {
-            ln_magn_sum += std::log(std::abs(stft.at(k)));
+            ln_magn_sum += std::log(std::abs(stft[k]));
         }
         else
         {
@@ -546,7 +546,7 @@ typename Container::value_type flux(const Container& stft, const Container& prev
 
     for (unsigned int k = 0u; k < fft_size; k++)
     {
-        specflux += std::pow(std::abs(stft.at(k)) - std::abs(previous_stft.at(k)), static_cast<TSample>(2.0));
+        specflux += std::pow(std::abs(stft[k]) - std::abs(previous_stft[k]), static_cast<TSample>(2.0));
     }
 
     specflux = std::sqrt(specflux);
@@ -577,11 +577,11 @@ typename Container::value_type irregularity(const Container& stft)
 
     for (unsigned int k = 0u; k < fft_size; k++)
     {
-        magn_sum += std::abs(stft.at(k));
+        magn_sum += std::abs(stft[k]);
 
         if (k > 0u)
         {
-            irr += std::abs(stft.at(k) - stft.at(k - 1u));
+            irr += std::abs(stft[k] - stft[k - 1u]);
         }
     }
 
@@ -641,8 +641,8 @@ typename Container::value_type spectral_spread = static_cast<typename Container:
 
     for (unsigned int k = 0u; k < fft_size; k++)
     {
-        numerator += std::pow(precomputed_frequencies.at(k) - scentroid, static_cast<TSample>(4.0)) * std::abs(stft.at(k));
-        magn_sum += std::abs(stft.at(k));
+        numerator += std::pow(precomputed_frequencies[k] - scentroid, static_cast<TSample>(4.0)) * std::abs(stft[k]);
+        magn_sum += std::abs(stft[k]);
     }
 
     if (magn_sum * sspread > static_cast<TSample>(0.0))
@@ -684,14 +684,14 @@ std::vector<typename Container::value_type>& precomputed_frequencies = {})
 
     for (unsigned int k = 0u; k < fft_size; k++)
     {
-        if (std::abs(stft.at(k)) > magn_max)
+        if (std::abs(stft[k]) > magn_max)
         {
-            magn_max = std::abs(stft.at(k));
+            magn_max = std::abs(stft[k]);
             magn_max_idx = k;
         }
     }
 
-    return precomputed_frequencies.at(magn_max_idx);
+    return precomputed_frequencies[magn_max_idx];
 }
 
 // SPECTRAL ROLLOFF
@@ -722,7 +722,7 @@ std::vector<typename Container::value_type>& precomputed_frequencies = {})
 
     for (unsigned int k = 0u; k < fft_size; k++)
     {
-        magn_sum += std::abs(stft.at(k));
+        magn_sum += std::abs(stft[k]);
     }
 
     TSample rolloff_thresh = rolloff_point * magn_sum;
@@ -731,7 +731,7 @@ std::vector<typename Container::value_type>& precomputed_frequencies = {})
 
     for (unsigned int k = 0u; k < fft_size; k++)
     {
-        cumul_magn += std::abs(stft.at(k));
+        cumul_magn += std::abs(stft[k]);
 
         if (cumul_magn >= rolloff_thresh)
         {
@@ -740,7 +740,7 @@ std::vector<typename Container::value_type>& precomputed_frequencies = {})
         }
     }
 
-    return precomputed_frequencies.at(rolloff_idx);
+    return precomputed_frequencies[rolloff_idx];
 }
 
 // SPECTRAL SKEWNESS
@@ -787,8 +787,8 @@ typename Container::value_type spectral_spread = static_cast<typename Container:
 
     for (unsigned int k = 0u; k < fft_size; k++)
     {
-        numerator += std::pow(precomputed_frequencies.at(k) - scentroid, static_cast<TSample>(3.0)) * std::abs(stft.at(k));
-        magn_sum += std::abs(stft.at(k));
+        numerator += std::pow(precomputed_frequencies[k] - scentroid, static_cast<TSample>(3.0)) * std::abs(stft[k]);
+        magn_sum += std::abs(stft[k]);
     }
 
     if (magn_sum * sspread > static_cast<TSample>(0.0))
@@ -829,7 +829,7 @@ std::vector<typename Container::value_type>& precomputed_frequencies = {})
 
     for (unsigned int k = 0u; k < fft_size; k++)
     {
-        magn_sum_weighted += std::abs(stft.at(k));
+        magn_sum_weighted += std::abs(stft[k]);
     }
 
     magn_sum_weighted /= static_cast<TSample>(fft_size);
@@ -839,8 +839,8 @@ std::vector<typename Container::value_type>& precomputed_frequencies = {})
 
     for (unsigned int k = 0u; k < fft_size; k++)
     {
-        numerator += (precomputed_frequencies.at(k) - mean_frequency) * (std::abs(stft.at(k)) - magn_sum_weighted);
-        denominator += std::pow(precomputed_frequencies.at(k) - mean_frequency, static_cast<TSample>(2.0));
+        numerator += (precomputed_frequencies[k] - mean_frequency) * (std::abs(stft[k]) - magn_sum_weighted);
+        denominator += std::pow(precomputed_frequencies[k] - mean_frequency, static_cast<TSample>(2.0));
     }
 
     if (denominator > static_cast<TSample>(0.0))
@@ -1032,7 +1032,7 @@ public:
     {
         if (time_descriptors_.find(descriptor) != time_descriptors_.end())
         {
-            return time_descriptors_.at(descriptor);
+            return time_descriptors_[descriptor];
         }
 
         return static_cast<TSample>(0.0);
@@ -1042,7 +1042,7 @@ public:
     {
         if (frequency_descriptors_.find(descriptor) != frequency_descriptors_.end())
         {
-            return frequency_descriptors_.at(descriptor);
+            return frequency_descriptors_[descriptor];
         }
 
         return static_cast<TSample>(0.0);
@@ -1258,7 +1258,7 @@ private:
         precomputed_frequencies_.resize(stft_.size(), static_cast<TSample>(0.0));
         for (auto b = 0u; b < stft_.size() / 2u; b++)
         {
-            precomputed_frequencies_.at(b) = static_cast<TSample>(b) * fft_bandwidth;
+            precomputed_frequencies_[b] = static_cast<TSample>(b) * fft_bandwidth;
         }
     }
 };
