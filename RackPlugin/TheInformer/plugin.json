@@ -1,0 +1,23 @@
+{
+  "slug": "TheInformer",
+  "name": "TheInformer",
+  "version": "1.0.0",
+  "license": "GPL-3.0-or-later",
+  "brand": "TheInformer",
+  "author": "Valerio Orlandini",
+  "authorEmail": "",
+  "authorUrl": "http://www.valeriorlandini.com",
+  "pluginUrl": "",
+  "manualUrl": "",
+  "sourceUrl": "",
+  "donateUrl": "",
+  "changelogUrl": "",
+  "modules": [
+    {
+      "slug": "TheInformer",
+      "name": "TheInformer",
+      "description": "",
+      "tags": []
+    }
+  ]
+}
