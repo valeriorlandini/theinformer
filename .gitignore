@@ -23,7 +23,6 @@ xcschememanagement.plist
 *.DS_Store
 *.entitlements
 *.cpb
-Makefile
 
 workspace.xml
 xcuserdata
