@@ -221,7 +221,7 @@ typename Container::value_type zerocrossing(const Container& buffer)
         return zerocrossingrate;
     }
 
-    for (auto s = 1; s < buffer.size(); s++)
+    for (auto s = 1u; s < buffer.size(); s++)
     {
         zerocrossingrate += std::abs(static_cast<TSample>(!std::signbit(buffer[s])) - static_cast<TSample>(!std::signbit(buffer[s - 1])));
     }
@@ -1032,7 +1032,7 @@ public:
     {
         if (time_descriptors_.find(descriptor) != time_descriptors_.end())
         {
-            return time_descriptors_[descriptor];
+            return time_descriptors_.at(descriptor);
         }
 
         return static_cast<TSample>(0.0);
@@ -1042,7 +1042,7 @@ public:
     {
         if (frequency_descriptors_.find(descriptor) != frequency_descriptors_.end())
         {
-            return frequency_descriptors_[descriptor];
+            return frequency_descriptors_.at(descriptor);
         }
 
         return static_cast<TSample>(0.0);

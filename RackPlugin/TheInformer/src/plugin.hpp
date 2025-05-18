@@ -1,5 +1,7 @@
 #pragma once
 #include <rack.hpp>
+#include <vector>
+#include "informer.h"
 
 
 using namespace rack;
@@ -8,4 +10,4 @@ using namespace rack;
 extern Plugin* pluginInstance;
 
 // Declare each Model, defined in each module source file
-extern Model* modelTheInformer
+extern Model* modelTheInformer;
