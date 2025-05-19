@@ -102,17 +102,16 @@ struct TheInformer : Module
 
         ampKurtosis = clamp(ampKurtosis + 2.f, 0.f, 4.f) * 0.25f;
         ampSkewness = clamp(ampSkewness + 2.f, 0.f, 4.f) * 0.25f;
-		/*
         centroid *= invNyquist;
-        decrease = clamp(decrease + 0.05f, 0.f, 1.f) * 10.f;
-        flux = clamp(flux / (float)4096 * invNyquist, 0.f, 1.f);
+        decrease = clamp((decrease + 0.05f) * 10.f, 0.f, 1.f);
+        flux = clamp(flux / 2048.f, 0.f, 1.f);
         kurtosis = clamp(kurtosis + 2.f, 0.f, 4.f) * 0.25f;
+        irregularity = clamp(irregularity * 0.5f, 0.f, 1.f);
         peak *= invNyquist;
         rolloff *= invNyquist;
         skewness = clamp(skewness + 2.f, 0.f, 4.f) * 0.25f;
-        slope = clamp(slope + 1.f, 0.f, 1.f) * 0.5f;
+        slope = clamp((slope + 1.f) * 0.5f, 0.f, 1.f);
         spread *= invNyquist * 0.5f;
-		*/
     }
 
     void process(const ProcessArgs& args) override
