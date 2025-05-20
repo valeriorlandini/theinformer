@@ -1,0 +1,3 @@
+[submodule "RackPlugin/TheInformer/src/oscpp"]
+    path = RackPlugin/TheInformer/src/oscpp
+    url = https://github.com/kaoskorobase/oscpp.git
