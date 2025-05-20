@@ -1,5 +1,6 @@
 #pragma once
 #include <rack.hpp>
+#include <dsp/fft.hpp>
 #include <vector>
 #include "informer.h"
 

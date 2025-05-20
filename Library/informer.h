@@ -922,7 +922,7 @@ public:
         {
             if (!stft_.empty())
             {
-                previous_stft_ = stft_;
+                set_previous_stft(stft_);
             }
             else
             {
