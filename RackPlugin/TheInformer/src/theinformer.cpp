@@ -44,27 +44,27 @@ struct TheInformer : Module
     TheInformer() : fftProcessor(BUFFER_SIZE)
     {
         config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
-        configParam(NORMALIZE_PARAM, 0.f, 1.f, 0.f, "");
-        configInput(IN_INPUT, "");
+        configParam(NORMALIZE_PARAM, 0.f, 1.f, 0.f, "Normalize OSC Values");
+        configInput(IN_INPUT, "Audio In");
         configOutput(AMPLITUDEKURTOSIS_OUTPUT, "Amp Kurtosis");
         configOutput(AMPLITUDEPEAK_OUTPUT, "Amp Peak");
         configOutput(AMPLITUDERMS_OUTPUT, "Amp RMS");
         configOutput(AMPLITUDESKEWNESS_OUTPUT, "Amp Skewness");
         configOutput(AMPLITUDEVARIANCE_OUTPUT, "Amp Variance");
         configOutput(AMPLITUDEZEROCROSSING_OUTPUT, "Zero Crossing Rate");
-        configOutput(CENTROID_OUTPUT, "");
-        configOutput(CRESTFACTOR_OUTPUT, "");
-        configOutput(DECREASE_OUTPUT, "");
-        configOutput(ENTROPY_OUTPUT, "");
-        configOutput(FLATNESS_OUTPUT, "");
-        configOutput(FLUX_OUTPUT, "");
-        configOutput(IRREGULARITY_OUTPUT, "");
-        configOutput(KURTOSIS_OUTPUT, "");
-        configOutput(PEAK_OUTPUT, "");
-        configOutput(ROLLOFF_OUTPUT, "");
-        configOutput(SKEWNESS_OUTPUT, "");
-        configOutput(SLOPE_OUTPUT, "");
-        configOutput(SPREAD_OUTPUT, "");
+        configOutput(CENTROID_OUTPUT, "Centroid");
+        configOutput(CRESTFACTOR_OUTPUT, "Crest Factor");
+        configOutput(DECREASE_OUTPUT, "Decrease");
+        configOutput(ENTROPY_OUTPUT, "Entropy");
+        configOutput(FLATNESS_OUTPUT, "Flatness");
+        configOutput(FLUX_OUTPUT, "Flux");
+        configOutput(IRREGULARITY_OUTPUT, "Irregularity");
+        configOutput(KURTOSIS_OUTPUT, "Kurtosis");
+        configOutput(PEAK_OUTPUT, "Peak");
+        configOutput(ROLLOFF_OUTPUT, "Rolloff");
+        configOutput(SKEWNESS_OUTPUT, "Skewness");
+        configOutput(SLOPE_OUTPUT, "Slope");
+        configOutput(SPREAD_OUTPUT, "Spread");
     }
 
     Informer::Informer<float> informer;
@@ -119,10 +119,16 @@ struct TheInformer : Module
         std::vector<float> magBuffer;
         magBuffer.assign(BUFFER_SIZE * 2, 0.f);
 
-        for (auto s = 0; s < BUFFER_SIZE * 2; s += 2)
+        magBuffer[0] = fabs(fftBuffer[0]) / (float)(BUFFER_SIZE * 2);
+
+        for (auto s = 2; s < BUFFER_SIZE * 2; s += 2)
         {
-            magBuffer[s / 2] = fftBuffer[s];
+            float real = fftBuffer[s];
+            float imag = fftBuffer[s + 1];
+            magBuffer[s / 2] = sqrt(real * real + imag * imag) / (float)(BUFFER_SIZE * 2);
         }
+
+        magBuffer[BUFFER_SIZE] = fabs(fftBuffer[1]) / (float)(BUFFER_SIZE * 2);
 
         return magBuffer;
     }
