@@ -3,9 +3,8 @@
 #include <dsp/fft.hpp>
 #include <vector>
 #include "informer.h"
-#include "oscpp/include/oscpp/client.hpp"
-
-            #include <iostream>
+#include <oscpp/client.hpp>
+#include <iostream>
 
 using namespace rack;
 

@@ -69,7 +69,7 @@ struct TheInformer : Module
 
     Informer::Informer<float> informer;
     static constexpr int BUFFER_SIZE = 4096;
-	dsp::RealFFT fftProcessor;
+    dsp::RealFFT fftProcessor;
     alignas(16) float buffer[BUFFER_SIZE] = {};
     unsigned int count = 0;
     float ampKurtosis;
@@ -94,11 +94,11 @@ struct TheInformer : Module
 
     inline void normalize(float sampleRate)
     {
-		if (sampleRate <= 0.f)
-		{
-			return;
-		}
-		float invNyquist = 1.f / (sampleRate * 0.5f);
+        if (sampleRate <= 0.f)
+        {
+            return;
+        }
+        float invNyquist = 1.f / (sampleRate * 0.5f);
 
         ampKurtosis = clamp(ampKurtosis + 2.f, 0.f, 4.f) * 0.25f;
         ampSkewness = clamp(ampSkewness + 2.f, 0.f, 4.f) * 0.25f;
@@ -117,18 +117,19 @@ struct TheInformer : Module
     inline std::vector<float> createMagBuffer(float *fftBuffer)
     {
         std::vector<float> magBuffer;
-        magBuffer.assign(BUFFER_SIZE * 2, 0.f);
+        const auto N = BUFFER_SIZE * 2;
+        magBuffer.assign(N, 0.f);
 
-        magBuffer[0] = fabs(fftBuffer[0]) / (float)(BUFFER_SIZE * 2);
+        magBuffer[0] = fabs(fftBuffer[0]) / (float)(N);
 
-        for (auto s = 2; s < BUFFER_SIZE * 2; s += 2)
+        for (auto s = 2; s < N; s += 2)
         {
             float real = fftBuffer[s];
             float imag = fftBuffer[s + 1];
-            magBuffer[s / 2] = sqrt(real * real + imag * imag) / (float)(BUFFER_SIZE * 2);
+            magBuffer[s / 2] = sqrt(real * real + imag * imag) / (float)(N);
         }
 
-        magBuffer[BUFFER_SIZE] = fabs(fftBuffer[1]) / (float)(BUFFER_SIZE * 2);
+        magBuffer[BUFFER_SIZE] = fabs(fftBuffer[1]) / (float)(N);
 
         return magBuffer;
     }
@@ -137,89 +138,94 @@ struct TheInformer : Module
     {
         float input = clamp(inputs[IN_INPUT].getVoltage() * 0.2f, -1.f, 1.f);
 
-		if (args.sampleRate != informer.get_sample_rate())
-		{
-			informer.set_sample_rate(args.sampleRate);
-			count = 0;
-		}
-
-        if (count < BUFFER_SIZE)
+        if (args.sampleRate != informer.get_sample_rate())
         {
-            buffer[count++] = input;
-        }
-        else
-        {
-            alignas(16) float freqBuffer[BUFFER_SIZE * 2];
-			fftProcessor.rfft(buffer, freqBuffer);
-            std::vector<float> audioBuffer;
-            for (auto s = 0; s < BUFFER_SIZE; s++)
-            {
-                audioBuffer.push_back(buffer[s]);
-            }
-            informer.set_buffer(audioBuffer);
-            informer.set_stft(createMagBuffer(freqBuffer));
-            informer.compute_descriptors(true, true);
-
-            ampKurtosis = informer.get_time_descriptor("kurtosis");
-            ampPeak = informer.get_time_descriptor("peak");
-            ampRms = informer.get_time_descriptor("rms");
-            ampSkewness = informer.get_time_descriptor("skewness");
-            ampVariance = informer.get_time_descriptor("variance");
-            ampZeroCrossing = informer.get_time_descriptor("zerocrossing");
-			
-            centroid = informer.get_frequency_descriptor("centroid");
-            crestFactor = informer.get_frequency_descriptor("crestfactor");
-            decrease = informer.get_frequency_descriptor("decrease");
-            entropy = informer.get_frequency_descriptor("entropy");
-            flatness = informer.get_frequency_descriptor("flatness");
-            flux = informer.get_frequency_descriptor("flux");
-            irregularity = informer.get_frequency_descriptor("irregularity");
-            kurtosis = informer.get_frequency_descriptor("kurtosis");
-            peak = informer.get_frequency_descriptor("peak");
-            rolloff = informer.get_frequency_descriptor("rolloff");
-            skewness = informer.get_frequency_descriptor("skewness");
-            slope = informer.get_frequency_descriptor("slope");
-            spread = informer.get_frequency_descriptor("spread");
-
+            informer.set_sample_rate(args.sampleRate);
             count = 0;
-            buffer[count++] = input;
         }
 
-        if (params[NORMALIZE_PARAM].getValue() >= 0.5f)
+        if (inputs[IN_INPUT].isConnected())
         {
-            normalize(args.sampleRate);
+            if (count < BUFFER_SIZE)
+            {
+                buffer[count++] = input;
+            }
+            else
+            {
+                alignas(16) float freqBuffer[BUFFER_SIZE * 2];
+                fftProcessor.rfft(buffer, freqBuffer);
+                std::vector<float> audioBuffer;
+                for (auto s = 0; s < BUFFER_SIZE; s++)
+                {
+                    audioBuffer.push_back(buffer[s]);
+                }
+                informer.set_buffer(audioBuffer);
+                informer.set_stft(createMagBuffer(freqBuffer));
+                auto freqs = informer.get_stft();
+                std::cout << freqs[10] << "\t" << freqs[1000] << "\n";
+                informer.compute_descriptors(true, true);
+
+                ampKurtosis = informer.get_time_descriptor("kurtosis");
+                ampPeak = informer.get_time_descriptor("peak");
+                ampRms = informer.get_time_descriptor("rms");
+                ampSkewness = informer.get_time_descriptor("skewness");
+                ampVariance = informer.get_time_descriptor("variance");
+                ampZeroCrossing = informer.get_time_descriptor("zerocrossing");
+
+                centroid = informer.get_frequency_descriptor("centroid");
+                crestFactor = informer.get_frequency_descriptor("crestfactor");
+                decrease = informer.get_frequency_descriptor("decrease");
+                entropy = informer.get_frequency_descriptor("entropy");
+                flatness = informer.get_frequency_descriptor("flatness");
+                flux = informer.get_frequency_descriptor("flux");
+                irregularity = informer.get_frequency_descriptor("irregularity");
+                kurtosis = informer.get_frequency_descriptor("kurtosis");
+                peak = informer.get_frequency_descriptor("peak");
+                rolloff = informer.get_frequency_descriptor("rolloff");
+                skewness = informer.get_frequency_descriptor("skewness");
+                slope = informer.get_frequency_descriptor("slope");
+                spread = informer.get_frequency_descriptor("spread");
+
+                count = 0;
+                buffer[count++] = input;
+            }
+
+            if (params[NORMALIZE_PARAM].getValue() >= 0.5f)
+            {
+                //normalize(args.sampleRate);
+            }
+
+            /*** SEND OSC MESSAGES ***/
+
+            // If normalize is not set (so the OSC messages were sent not normalized)
+            // we need to normalize the values before sending them to the module outputs
+            if (params[NORMALIZE_PARAM].getValue() < 0.5f)
+            {
+                //normalize(args.sampleRate);
+            }
+
+            // Send the values to the module outputs
+            outputs[AMPLITUDEKURTOSIS_OUTPUT].setVoltage(ampKurtosis * 5.f);
+            outputs[AMPLITUDEPEAK_OUTPUT].setVoltage(ampPeak * 5.f);
+            outputs[AMPLITUDERMS_OUTPUT].setVoltage(ampRms * 5.f);
+            outputs[AMPLITUDESKEWNESS_OUTPUT].setVoltage(ampSkewness * 5.f);
+            outputs[AMPLITUDEVARIANCE_OUTPUT].setVoltage(ampVariance * 5.f);
+            outputs[AMPLITUDEZEROCROSSING_OUTPUT].setVoltage(ampZeroCrossing * 5.f);
+
+            outputs[CENTROID_OUTPUT].setVoltage(centroid * 5.f);
+            outputs[CRESTFACTOR_OUTPUT].setVoltage(crestFactor * 5.f);
+            outputs[DECREASE_OUTPUT].setVoltage(decrease * 5.f);
+            outputs[ENTROPY_OUTPUT].setVoltage(entropy * 5.f);
+            outputs[FLATNESS_OUTPUT].setVoltage(flatness * 5.f);
+            outputs[FLUX_OUTPUT].setVoltage(flux * 5.f);
+            outputs[IRREGULARITY_OUTPUT].setVoltage(irregularity * 5.f);
+            outputs[KURTOSIS_OUTPUT].setVoltage(kurtosis * 5.f);
+            outputs[PEAK_OUTPUT].setVoltage(peak * 5.f);
+            outputs[ROLLOFF_OUTPUT].setVoltage(rolloff * 5.f);
+            outputs[SKEWNESS_OUTPUT].setVoltage(skewness * 5.f);
+            outputs[SLOPE_OUTPUT].setVoltage(slope * 5.f);
+            outputs[SPREAD_OUTPUT].setVoltage(spread * 5.f);
         }
-
-        /*** SEND OSC MESSAGES ***/
-
-        // If normalize is not set (so the OSC messages were sent not normalized)
-        // we need to normalize the values before sending them to the module outputs
-        if (params[NORMALIZE_PARAM].getValue() < 0.5f)
-        {
-            normalize(args.sampleRate);
-        }
-
-		// Send the values to the module outputs
-        outputs[AMPLITUDEKURTOSIS_OUTPUT].setVoltage(ampKurtosis * 5.f);
-        outputs[AMPLITUDEPEAK_OUTPUT].setVoltage(ampPeak * 5.f);
-        outputs[AMPLITUDERMS_OUTPUT].setVoltage(ampRms * 5.f);
-		outputs[AMPLITUDESKEWNESS_OUTPUT].setVoltage(ampSkewness * 5.f);
-        outputs[AMPLITUDEVARIANCE_OUTPUT].setVoltage(ampVariance * 5.f);
-        outputs[AMPLITUDEZEROCROSSING_OUTPUT].setVoltage(ampZeroCrossing * 5.f);
-		
-        outputs[CENTROID_OUTPUT].setVoltage(centroid * 5.f);
-        outputs[CRESTFACTOR_OUTPUT].setVoltage(crestFactor * 5.f);
-        outputs[DECREASE_OUTPUT].setVoltage(decrease * 5.f);
-        outputs[ENTROPY_OUTPUT].setVoltage(entropy * 5.f);
-        outputs[FLATNESS_OUTPUT].setVoltage(flatness * 5.f);
-        outputs[FLUX_OUTPUT].setVoltage(flux * 5.f);
-        outputs[IRREGULARITY_OUTPUT].setVoltage(irregularity * 5.f);
-        outputs[KURTOSIS_OUTPUT].setVoltage(kurtosis * 5.f);
-        outputs[PEAK_OUTPUT].setVoltage(peak * 5.f);
-        outputs[ROLLOFF_OUTPUT].setVoltage(rolloff * 5.f);
-        outputs[SKEWNESS_OUTPUT].setVoltage(skewness * 5.f);
-        outputs[SLOPE_OUTPUT].setVoltage(slope * 5.f);
-        outputs[SPREAD_OUTPUT].setVoltage(spread * 5.f);
     }
 };
 
