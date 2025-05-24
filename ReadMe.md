@@ -98,7 +98,7 @@ Compiled binaries for Linux, Windows and macOS can be found in the [Releases sec
 
 ## How to build
 
-Grab the source with `git clone https://github.com/valeriorlandini/theinformer.git`
+Grab the source with `git clone https://github.com/valeriorlandini/theinformer.git --recursive`
 
 `cd theinformer` and then create the necessary build files with:
 * `cmake -S . -B build -G "Visual Studio 17 2022"` on Windows (adjust the Visual Studio version if you have an older one.)
@@ -129,12 +129,19 @@ auto rms = Informer::Amplitude::rms(myBuffer);
 ```
 
 For descriptors like kurtosis and skewness, which uses the mean and the variance, these values can be passed as optional arguments or, if not provided, they are computed by the function.
-For frequency descriptors, the functions expect an iterable container with floating point values representing the magnitudes of the Fourier transform, with all the bins up to sample rate, for example:
+For frequency descriptors, the functions expect an iterable container with floating point values representing the magnitudes of each bin obtained from the Fourier transform, for example:
 
 ```cpp
-std::vector<double> fftMag = /* your FFT magnitudes (real values only) */
+std::vector<double> fftMag = /* your FFT magnitudes */
 
 auto irregularity = Informer::Frequency::irregularity(fftMag);
+```
+
+There is a built-in function to calculate the normalized magnitudes if you have the result of a real valued FFT in the canonical form of `(real[0], real[SR/2], real[1], imag[1], real[2], imag[2], ...)`:
+
+```cpp
+// With realFftResult being a container with the result of a real valued FFT
+std::vector<double> fftMag = Informer::Frequency::magnitudes(realFftResult);
 ```
 
 For descriptors needing the sample rate, this can be specified (otherwise it is set to 44100 Hz). When a descriptor uses other descriptors (such as kurtosis and skewness), these can be passed as parameters, otherwise they are computed.
