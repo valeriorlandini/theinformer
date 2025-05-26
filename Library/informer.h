@@ -315,7 +315,7 @@ std::vector<typename Container::value_type>& precomputed_frequencies = {}, unsig
     }
 
     unsigned int fft_size = magnitudes.size();
-    unsigned int bins = stft_size > 0 ? stft_size : (fft_size - 1) * 2;
+    unsigned int bins = stft_size > 0u ? stft_size : (fft_size - 1u) * 2u;
 
     if (precomputed_frequencies.size() < bins)
     {
@@ -328,14 +328,14 @@ std::vector<typename Container::value_type>& precomputed_frequencies = {}, unsig
     {
         centroid += precomputed_frequencies[k] * std::abs(magnitudes[k]);
         magn_sum += std::abs(magnitudes[k]);
-        std::cout << "Magnitude sum: " << magn_sum << std::endl;
+        //std::cout << "Magnitude sum: " << magn_sum << std::endl;
     }
 
     if (magn_sum > static_cast<TSample>(0.0))
     {
-        std::cout << magn_sum << "\n";
+        //std::cout << magn_sum << "\n";
         centroid /= magn_sum;
-        std::cout << "Centroid: " << centroid << std::endl;
+        //std::cout << "Centroid: " << centroid << std::endl;
     }
     else
     {
@@ -367,7 +367,7 @@ unsigned int stft_size = 0u)
     }
 
     unsigned int fft_size = magnitudes.size();
-    unsigned int bins = stft_size > 0 ? stft_size : (fft_size - 1) * 2;
+    unsigned int bins = stft_size > 0u ? stft_size : (fft_size - 1u) * 2u;
 
     if (precomputed_frequencies.size() < bins)
     {
@@ -653,7 +653,7 @@ unsigned int stft_size = 0u)
     }
 
     unsigned int fft_size = magnitudes.size();
-    unsigned int bins = stft_size > 0 ? stft_size : (fft_size - 1) * 2;
+    unsigned int bins = stft_size > 0u ? stft_size : (fft_size - 1u) * 2u;
 
     if (precomputed_frequencies.size() < bins)
     {
@@ -708,7 +708,7 @@ unsigned int stft_size = 0u)
     }
 
     unsigned int fft_size = magnitudes.size();
-    unsigned int bins = stft_size > 0 ? stft_size : (fft_size - 1) * 2;
+    unsigned int bins = stft_size > 0u ? stft_size : (fft_size - 1u) * 2u;
 
     if (precomputed_frequencies.size() < bins)
     {
@@ -749,7 +749,7 @@ unsigned int stft_size = 0u)
     }
 
     unsigned int fft_size = magnitudes.size();
-    unsigned int bins = stft_size > 0 ? stft_size : (fft_size - 1) * 2;
+    unsigned int bins = stft_size > 0u ? stft_size : (fft_size - 1u) * 2u;
 
     if (precomputed_frequencies.size() < bins)
     {
@@ -805,7 +805,7 @@ unsigned int stft_size = 0u)
     }
 
     unsigned int fft_size = magnitudes.size();
-    unsigned int bins = stft_size > 0 ? stft_size : (fft_size - 1) * 2;
+    unsigned int bins = stft_size > 0u ? stft_size : (fft_size - 1u) * 2u;
 
     if (precomputed_frequencies.size() < bins)
     {
@@ -859,7 +859,7 @@ unsigned int stft_size = 0u)
     }
 
     unsigned int fft_size = magnitudes.size();
-    unsigned int bins = stft_size > 0 ? stft_size : (fft_size - 1) * 2;
+    unsigned int bins = stft_size > 0u ? stft_size : (fft_size - 1u) * 2u;
 
     if (precomputed_frequencies.size() < bins)
     {

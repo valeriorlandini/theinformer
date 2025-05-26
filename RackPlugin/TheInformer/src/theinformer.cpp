@@ -65,6 +65,9 @@ struct TheInformer : Module
         configOutput(SKEWNESS_OUTPUT, "Skewness");
         configOutput(SLOPE_OUTPUT, "Slope");
         configOutput(SPREAD_OUTPUT, "Spread");
+
+        informer.set_sample_rate(44100.f);
+        informer.set_stft_size(BUFFER_SIZE);
     }
 
     Informer::Informer<float> informer;
@@ -117,19 +120,18 @@ struct TheInformer : Module
     inline std::vector<float> createMagBuffer(float *fftBuffer)
     {
         std::vector<float> magBuffer;
-        const auto N = BUFFER_SIZE * 2;
-        magBuffer.assign(N, 0.f);
+        magBuffer.assign(BUFFER_SIZE / 2 + 1, 0.f);
 
-        magBuffer[0] = fabs(fftBuffer[0]) / (float)(N);
+        magBuffer[0] = fabs(fftBuffer[0]) / (float)(BUFFER_SIZE);
 
-        for (auto s = 2; s < N; s += 2)
+        for (auto s = 2; s < BUFFER_SIZE; s += 2)
         {
             float real = fftBuffer[s];
             float imag = fftBuffer[s + 1];
-            magBuffer[s / 2] = sqrt(real * real + imag * imag) / (float)(N);
+            magBuffer[s / 2] = sqrt(real * real + imag * imag) / (float)(BUFFER_SIZE);
         }
 
-        magBuffer[BUFFER_SIZE] = fabs(fftBuffer[1]) / (float)(N);
+        magBuffer[BUFFER_SIZE / 2] = fabs(fftBuffer[1]) / (float)(BUFFER_SIZE);
 
         return magBuffer;
     }
@@ -160,9 +162,11 @@ struct TheInformer : Module
                     audioBuffer.push_back(buffer[s]);
                 }
                 informer.set_buffer(audioBuffer);
-                informer.set_stft(createMagBuffer(freqBuffer));
-                auto freqs = informer.get_stft();
-                std::cout << freqs[10] << "\t" << freqs[1000] << "\n";
+                informer.set_magnitudes(createMagBuffer(freqBuffer));
+                auto freqs = informer.get_magnitudes();
+                auto prec = informer.get_precomputed_frequencies();
+                /*for (auto i = 0; i < freqs.size(); i++)
+                {std::cout << "Magnitude " << i << ": " << freqs[i] << " at " << prec[i] << std::endl;}*/
                 informer.compute_descriptors(true, true);
 
                 ampKurtosis = informer.get_time_descriptor("kurtosis");
@@ -192,7 +196,7 @@ struct TheInformer : Module
 
             if (params[NORMALIZE_PARAM].getValue() >= 0.5f)
             {
-                //normalize(args.sampleRate);
+                normalize(args.sampleRate);
             }
 
             /*** SEND OSC MESSAGES ***/
