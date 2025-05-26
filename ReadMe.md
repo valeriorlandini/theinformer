@@ -158,19 +158,25 @@ For class implementation, it can be instantiated by passing a buffer and a serie
 
 ```cpp
 // Sample rate defaults to 44100.0, rolloff point defaults to 0.85,
-// previous FFT magnitudes to 0.0 (with same current FFT size)
+// previous FFT magnitudes to 0.0 (with same current FFT magnitudes size)
 // Last parameter tells to compute the descriptors immediately
 // If buffer or magnitudes are not passed, they default to empty vectors
 // and their corresponding descriptors are not computed
-Informer::Informer<float> informer(buffer, fftMag, sampleRate, rolloffPoint, previousFft, true);
+// fftSize parameter can be used to specify the FFT size when magnitudes
+// are not passed. If fftSize is not passed or set to 0, FFT size is
+// (magnitudes size - 1) * 2
+Informer::Informer<float> informer(buffer, fftMag, sampleRate, rolloffPoint, previousFftMags, fftSize, true);
 
-// Retrieve descriptors
+// Retrieve descriptors (once they have been computed)
 auto peak = informer.get_time_descriptor("peak");
 auto centroid = informer.get_frequency_descriptor("centroid"));
 
 // Store new audio values
 informer.set_buffer(newBuffer);
-informer.set_stft(newMagnitudes); 
+informer.set_magnitudes(newMagnitudes);
+// If you have the result of a real valued FFT, use this function
+// and magnitudes are automatically computed
+informer.set_stft(newStft);
 
 // Compute new descriptors
 informer.compute_descriptors();
