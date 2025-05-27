@@ -364,14 +364,11 @@ typename Container::value_type centroid(const Container& magnitudes,
     {
         centroid += precomputed_frequencies[k] * std::abs(magnitudes[k]);
         magn_sum += std::abs(magnitudes[k]);
-        //std::cout << "Magnitude sum: " << magn_sum << std::endl;
     }
 
     if (magn_sum > static_cast<TSample>(0.0))
     {
-        //std::cout << magn_sum << "\n";
         centroid /= magn_sum;
-        //std::cout << "Centroid: " << centroid << std::endl;
     }
     else
     {

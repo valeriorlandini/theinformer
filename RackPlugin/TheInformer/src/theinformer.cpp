@@ -75,27 +75,26 @@ struct TheInformer : Module
     static constexpr int BUFFER_SIZE = 4096;
     dsp::RealFFT fftProcessor;
     std::vector<float> buffer;
-    //alignas(16) float buffer[BUFFER_SIZE] = {};
     unsigned int count = 0;
-    float ampKurtosis;
-    float ampPeak;
-    float ampRms;
-    float ampSkewness;
-    float ampVariance;
-    float ampZeroCrossing;
-    float centroid;
-    float crestFactor;
-    float decrease;
-    float entropy;
-    float flatness;
-    float flux;
-    float irregularity;
-    float kurtosis;
-    float peak;
-    float rolloff;
-    float skewness;
-    float slope;
-    float spread;
+    float ampKurtosis = 0.0f;
+    float ampPeak = 0.0f;
+    float ampRms = 0.0f;
+    float ampSkewness = 0.0f;
+    float ampVariance = 0.0f;
+    float ampZeroCrossing = 0.0f;
+    float centroid = 0.0f;
+    float crestFactor = 0.0f;
+    float decrease = 0.0f;
+    float entropy = 0.0f;
+    float flatness = 0.0f;
+    float flux = 0.0f;
+    float irregularity = 0.0f;
+    float kurtosis = 0.0f;
+    float peak = 0.0f;
+    float rolloff = 0.0f;
+    float skewness = 0.0f;
+    float slope = 0.0f;
+    float spread = 0.0f;
 
     inline void normalize(float sampleRate)
     {
@@ -169,8 +168,6 @@ struct TheInformer : Module
                 informer.set_magnitudes(createMagBuffer(freqBuffer));
                 auto freqs = informer.get_magnitudes();
                 auto prec = informer.get_precomputed_frequencies();
-                /*for (auto i = 0; i < freqs.size(); i++)
-                {std::cout << "Magnitude " << i << ": " << freqs[i] << " at " << prec[i] << std::endl;}*/
                 informer.compute_descriptors(true, true);
 
                 ampKurtosis = informer.get_time_descriptor("kurtosis");
@@ -196,43 +193,70 @@ struct TheInformer : Module
 
                 count = 0;
                 buffer[count++] = input;
+
+
+                if (params[NORMALIZE_PARAM].getValue() >= 0.5f)
+                {
+                    normalize(args.sampleRate);
+                }
+
+                /*** SEND OSC MESSAGES ***/
+
+                // If normalize is not set (so the OSC messages were sent not normalized)
+                // we need to normalize the values before sending them to the module outputs
+                if (params[NORMALIZE_PARAM].getValue() < 0.5f)
+                {
+                    //normalize(args.sampleRate);
+                }
+
+                // Send the values to the module outputs
+                outputs[AMPLITUDEKURTOSIS_OUTPUT].setVoltage(ampKurtosis * 5.f);
+                outputs[AMPLITUDEPEAK_OUTPUT].setVoltage(ampPeak * 5.f);
+                outputs[AMPLITUDERMS_OUTPUT].setVoltage(ampRms * 5.f);
+                outputs[AMPLITUDESKEWNESS_OUTPUT].setVoltage(ampSkewness * 5.f);
+                outputs[AMPLITUDEVARIANCE_OUTPUT].setVoltage(ampVariance * 5.f);
+                outputs[AMPLITUDEZEROCROSSING_OUTPUT].setVoltage(ampZeroCrossing * 5.f);
+                outputs[CENTROID_OUTPUT].setVoltage(centroid * 5.f);
+                outputs[CRESTFACTOR_OUTPUT].setVoltage(crestFactor * 5.f);
+                outputs[DECREASE_OUTPUT].setVoltage(decrease * 5.f);
+                outputs[ENTROPY_OUTPUT].setVoltage(entropy * 5.f);
+                outputs[FLATNESS_OUTPUT].setVoltage(flatness * 5.f);
+                outputs[FLUX_OUTPUT].setVoltage(flux * 5.f);
+                outputs[IRREGULARITY_OUTPUT].setVoltage(irregularity * 5.f);
+                outputs[KURTOSIS_OUTPUT].setVoltage(kurtosis * 5.f);
+                outputs[PEAK_OUTPUT].setVoltage(peak * 5.f);
+                outputs[ROLLOFF_OUTPUT].setVoltage(rolloff * 5.f);
+                outputs[SKEWNESS_OUTPUT].setVoltage(skewness * 5.f);
+                outputs[SLOPE_OUTPUT].setVoltage(slope * 5.f);
+                outputs[SPREAD_OUTPUT].setVoltage(spread * 5.f);
             }
+        }
+        else
+        {
+            // If the input is not connected, reset the count and buffer
+            count = 0;
+            std::fill(buffer.begin(), buffer.end(), 0.f);
 
-            if (params[NORMALIZE_PARAM].getValue() >= 0.5f)
-            {
-                normalize(args.sampleRate);
-            }
-
-            /*** SEND OSC MESSAGES ***/
-
-            // If normalize is not set (so the OSC messages were sent not normalized)
-            // we need to normalize the values before sending them to the module outputs
-            if (params[NORMALIZE_PARAM].getValue() < 0.5f)
-            {
-                //normalize(args.sampleRate);
-            }
-
-            // Send the values to the module outputs
-            outputs[AMPLITUDEKURTOSIS_OUTPUT].setVoltage(ampKurtosis * 5.f);
-            outputs[AMPLITUDEPEAK_OUTPUT].setVoltage(ampPeak * 5.f);
-            outputs[AMPLITUDERMS_OUTPUT].setVoltage(ampRms * 5.f);
-            outputs[AMPLITUDESKEWNESS_OUTPUT].setVoltage(ampSkewness * 5.f);
-            outputs[AMPLITUDEVARIANCE_OUTPUT].setVoltage(ampVariance * 5.f);
-            outputs[AMPLITUDEZEROCROSSING_OUTPUT].setVoltage(ampZeroCrossing * 5.f);
-
-            outputs[CENTROID_OUTPUT].setVoltage(centroid * 5.f);
-            outputs[CRESTFACTOR_OUTPUT].setVoltage(crestFactor * 5.f);
-            outputs[DECREASE_OUTPUT].setVoltage(decrease * 5.f);
-            outputs[ENTROPY_OUTPUT].setVoltage(entropy * 5.f);
-            outputs[FLATNESS_OUTPUT].setVoltage(flatness * 5.f);
-            outputs[FLUX_OUTPUT].setVoltage(flux * 5.f);
-            outputs[IRREGULARITY_OUTPUT].setVoltage(irregularity * 5.f);
-            outputs[KURTOSIS_OUTPUT].setVoltage(kurtosis * 5.f);
-            outputs[PEAK_OUTPUT].setVoltage(peak * 5.f);
-            outputs[ROLLOFF_OUTPUT].setVoltage(rolloff * 5.f);
-            outputs[SKEWNESS_OUTPUT].setVoltage(skewness * 5.f);
-            outputs[SLOPE_OUTPUT].setVoltage(slope * 5.f);
-            outputs[SPREAD_OUTPUT].setVoltage(spread * 5.f);
+            // Reset all outputs to 0
+            outputs[AMPLITUDEKURTOSIS_OUTPUT].setVoltage(0.f);
+            outputs[AMPLITUDEPEAK_OUTPUT].setVoltage(0.f);
+            outputs[AMPLITUDERMS_OUTPUT].setVoltage(0.f);
+            outputs[AMPLITUDESKEWNESS_OUTPUT].setVoltage(0.f);
+            outputs[AMPLITUDEVARIANCE_OUTPUT].setVoltage(0.f);
+            outputs[AMPLITUDEZEROCROSSING_OUTPUT].setVoltage(0.f);
+            outputs[CENTROID_OUTPUT].setVoltage(0.f);
+            outputs[CRESTFACTOR_OUTPUT].setVoltage(0.f);
+            outputs[DECREASE_OUTPUT].setVoltage(0.f);
+            outputs[ENTROPY_OUTPUT].setVoltage(0.f);
+            outputs[FLATNESS_OUTPUT].setVoltage(0.f);
+            outputs[FLUX_OUTPUT].setVoltage(0.f);
+            outputs[IRREGULARITY_OUTPUT].setVoltage(0.f);
+            outputs[KURTOSIS_OUTPUT].setVoltage(0.f);
+            outputs[PEAK_OUTPUT].setVoltage(0.f);
+            outputs[ROLLOFF_OUTPUT].setVoltage(0.f);
+            outputs[SKEWNESS_OUTPUT].setVoltage(0.f);
+            outputs[SLOPE_OUTPUT].setVoltage(0.f);
+            outputs[SPREAD_OUTPUT].setVoltage(0.f);
         }
     }
 };
