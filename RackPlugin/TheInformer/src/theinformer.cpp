@@ -68,12 +68,14 @@ struct TheInformer : Module
 
         informer.set_sample_rate(44100.f);
         informer.set_stft_size(BUFFER_SIZE);
+        buffer.assign(BUFFER_SIZE, 0.f);
     }
 
     Informer::Informer<float> informer;
     static constexpr int BUFFER_SIZE = 4096;
     dsp::RealFFT fftProcessor;
-    alignas(16) float buffer[BUFFER_SIZE] = {};
+    std::vector<float> buffer;
+    //alignas(16) float buffer[BUFFER_SIZE] = {};
     unsigned int count = 0;
     float ampKurtosis;
     float ampPeak;
@@ -154,8 +156,10 @@ struct TheInformer : Module
             }
             else
             {
+                std::vector<float> windowedBuffer = Informer::Frequency::window(buffer);
+                alignas(16) float *windowedBufferPtr = windowedBuffer.data();
                 alignas(16) float freqBuffer[BUFFER_SIZE * 2];
-                fftProcessor.rfft(buffer, freqBuffer);
+                fftProcessor.rfft(windowedBufferPtr, freqBuffer);
                 std::vector<float> audioBuffer;
                 for (auto s = 0; s < BUFFER_SIZE; s++)
                 {

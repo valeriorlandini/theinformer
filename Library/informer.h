@@ -126,8 +126,8 @@ template <typename Container>
 requires std::floating_point<typename Container::value_type>
 #endif
 typename Container::value_type kurtosis(const Container& buffer,
-typename Container::value_type mean = static_cast<typename Container::value_type>(-10000.0),
-typename Container::value_type amp_variance = static_cast<typename Container::value_type>(-10000.0))
+                                        typename Container::value_type mean = static_cast<typename Container::value_type>(-10000.0),
+                                        typename Container::value_type amp_variance = static_cast<typename Container::value_type>(-10000.0))
 {
     using TSample = typename Container::value_type;
 
@@ -170,8 +170,8 @@ template <typename Container>
 requires std::floating_point<typename Container::value_type>
 #endif
 typename Container::value_type skewness(const Container& buffer,
-typename Container::value_type mean = static_cast<typename Container::value_type>(-10000.0),
-typename Container::value_type amp_variance = static_cast<typename Container::value_type>(-10000.0))
+                                        typename Container::value_type mean = static_cast<typename Container::value_type>(-10000.0),
+                                        typename Container::value_type amp_variance = static_cast<typename Container::value_type>(-10000.0))
 {
     using TSample = typename Container::value_type;
 
@@ -296,17 +296,53 @@ std::vector<typename Container::value_type> magnitudes(const Container& stft)
     return magnitudes_vector;
 }
 
+// UTILITY FUNCTION: apply a (Hann or Blackman-Harris) window function to the input signal
+template <typename Container>
+#if __cplusplus >= 202002L
+requires std::floating_point<typename Container::value_type>
+#endif
+std::vector<typename Container::value_type> window(const Container& buffer, const bool hann_window = true)
+{
+    using TSample = typename Container::value_type;
+
+    constexpr TSample m_pi = static_cast<TSample>(3.14159265358979323846);
+    std::vector<TSample> windowed_buffer(buffer.size());
+    for (size_t i = 0; i < buffer.size(); ++i)
+    {
+        TSample x = static_cast<TSample>(i) / static_cast<TSample>(buffer.size() - 1);
+        TSample window = static_cast<TSample>(1.0);
+
+        if (hann_window)
+        {
+            window = static_cast<TSample>(0.5) * (static_cast<TSample>(1.0) - cos(static_cast<TSample>(2.0) * static_cast<TSample>(m_pi) * x));
+        }
+        else
+        {
+            window = static_cast<TSample>(0.35875) -
+                     static_cast<TSample>(0.48829) * cos(static_cast<TSample>(2.0) *
+                     static_cast<TSample>(m_pi) * x) + static_cast<TSample>(0.14128) *
+                     cos(static_cast<TSample>(4.0) * static_cast<TSample>(m_pi) * x) -
+                     static_cast<TSample>(0.01168) * cos(static_cast<TSample>(6.0) *
+                     static_cast<TSample>(m_pi) * x);
+        }
+
+        windowed_buffer[i] = window * buffer[i];
+    }
+
+    return windowed_buffer;
+}
+
 // SPECTRAL CENTROID
 template <typename Container>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type>
 #endif
 typename Container::value_type centroid(const Container& magnitudes,
-typename Container::value_type sample_rate = static_cast<typename Container::value_type>(44100.0),
-std::vector<typename Container::value_type>& precomputed_frequencies = {}, unsigned int stft_size = 0u)
+                                        typename Container::value_type sample_rate = static_cast<typename Container::value_type>(44100.0),
+                                        std::vector<typename Container::value_type>& precomputed_frequencies = {}, unsigned int stft_size = 0u)
 {
     using TSample = typename Container::value_type;
-    
+
     TSample centroid = static_cast<TSample>(0.0);
 
     if (magnitudes.empty())
@@ -352,10 +388,10 @@ template <typename Container>
 requires std::floating_point<typename Container::value_type>
 #endif
 typename Container::value_type spread(const Container& magnitudes,
-typename Container::value_type sample_rate = static_cast<typename Container::value_type>(44100.0),
-std::vector<typename Container::value_type>& precomputed_frequencies = {},
-typename Container::value_type spectral_centroid = static_cast<typename Container::value_type>(-1.0),
-unsigned int stft_size = 0u)
+                                      typename Container::value_type sample_rate = static_cast<typename Container::value_type>(44100.0),
+                                      std::vector<typename Container::value_type>& precomputed_frequencies = {},
+                                      typename Container::value_type spectral_centroid = static_cast<typename Container::value_type>(-1.0),
+                                      unsigned int stft_size = 0u)
 {
     using TSample = typename Container::value_type;
 
@@ -635,11 +671,11 @@ template <typename Container>
 requires std::floating_point<typename Container::value_type>
 #endif
 typename Container::value_type kurtosis(const Container& magnitudes,
-typename Container::value_type sample_rate = static_cast<typename Container::value_type>(44100.0),
-std::vector<typename Container::value_type>& precomputed_frequencies = {},
-typename Container::value_type spectral_centroid = static_cast<typename Container::value_type>(-1.0),
-typename Container::value_type spectral_spread = static_cast<typename Container::value_type>(-1.0),
-unsigned int stft_size = 0u)
+                                        typename Container::value_type sample_rate = static_cast<typename Container::value_type>(44100.0),
+                                        std::vector<typename Container::value_type>& precomputed_frequencies = {},
+                                        typename Container::value_type spectral_centroid = static_cast<typename Container::value_type>(-1.0),
+                                        typename Container::value_type spectral_spread = static_cast<typename Container::value_type>(-1.0),
+                                        unsigned int stft_size = 0u)
 {
     using TSample = typename Container::value_type;
 
@@ -694,9 +730,9 @@ template <typename Container>
 requires std::floating_point<typename Container::value_type>
 #endif
 typename Container::value_type peak(const Container& magnitudes,
-typename Container::value_type sample_rate = static_cast<typename Container::value_type>(44100.0),
-std::vector<typename Container::value_type>& precomputed_frequencies = {},
-unsigned int stft_size = 0u)
+                                    typename Container::value_type sample_rate = static_cast<typename Container::value_type>(44100.0),
+                                    std::vector<typename Container::value_type>& precomputed_frequencies = {},
+                                    unsigned int stft_size = 0u)
 {
     using TSample = typename Container::value_type;
 
@@ -736,10 +772,10 @@ template <typename Container>
 requires std::floating_point<typename Container::value_type>
 #endif
 typename Container::value_type rolloff(const Container& magnitudes,
-typename Container::value_type sample_rate = static_cast<typename Container::value_type>(44100.0),
-typename Container::value_type rolloff_point = static_cast<typename Container::value_type>(0.85),
-std::vector<typename Container::value_type>& precomputed_frequencies = {},
-unsigned int stft_size = 0u)
+                                       typename Container::value_type sample_rate = static_cast<typename Container::value_type>(44100.0),
+                                       typename Container::value_type rolloff_point = static_cast<typename Container::value_type>(0.85),
+                                       std::vector<typename Container::value_type>& precomputed_frequencies = {},
+                                       unsigned int stft_size = 0u)
 {
     using TSample = typename Container::value_type;
 
@@ -787,11 +823,11 @@ template <typename Container>
 requires std::floating_point<typename Container::value_type>
 #endif
 typename Container::value_type skweness(const Container& magnitudes,
-typename Container::value_type sample_rate = static_cast<typename Container::value_type>(44100.0),
-std::vector<typename Container::value_type>& precomputed_frequencies = {},
-typename Container::value_type spectral_centroid = static_cast<typename Container::value_type>(-1.0),
-typename Container::value_type spectral_spread = static_cast<typename Container::value_type>(-1.0),
-unsigned int stft_size = 0u)
+                                        typename Container::value_type sample_rate = static_cast<typename Container::value_type>(44100.0),
+                                        std::vector<typename Container::value_type>& precomputed_frequencies = {},
+                                        typename Container::value_type spectral_centroid = static_cast<typename Container::value_type>(-1.0),
+                                        typename Container::value_type spectral_spread = static_cast<typename Container::value_type>(-1.0),
+                                        unsigned int stft_size = 0u)
 {
     using TSample = typename Container::value_type;
 
@@ -845,9 +881,9 @@ template <typename Container>
 requires std::floating_point<typename Container::value_type>
 #endif
 typename Container::value_type slope(const Container& magnitudes,
-typename Container::value_type sample_rate = static_cast<typename Container::value_type>(44100.0),
-std::vector<typename Container::value_type>& precomputed_frequencies = {},
-unsigned int stft_size = 0u)
+                                     typename Container::value_type sample_rate = static_cast<typename Container::value_type>(44100.0),
+                                     std::vector<typename Container::value_type>& precomputed_frequencies = {},
+                                     unsigned int stft_size = 0u)
 {
     using TSample = typename Container::value_type;
 
@@ -1120,6 +1156,11 @@ public:
     std::vector<TSample> get_buffer() const
     {
         return buffer_;
+    }
+
+    unsigned int get_stft_size() const
+    {
+        return stft_size_;
     }
 
     TSample get_sample_rate() const
