@@ -37,7 +37,8 @@ struct TheInformer : Module
         OUTPUTS_LEN
     };
     enum LightId
-    {
+    {   
+        NORMALIZE_LIGHT,
         LIGHTS_LEN
     };
 
@@ -295,9 +296,82 @@ struct TheInformer : Module
             outputs[SLOPE_OUTPUT].setVoltage(0.f);
             outputs[SPREAD_OUTPUT].setVoltage(0.f);
         }
+
+        lights[NORMALIZE_LIGHT].setBrightness(params[NORMALIZE_PARAM].getValue());
     }
 };
 
+/*
+struct HostTextField : LedDisplayTextField
+{
+	TheInformer* module;
+
+	void step() override
+    {
+		LedDisplayTextField::step();
+		if (module && module->dirty)
+        {
+			setText(module->text);
+			module->dirty = false;
+		}
+	}
+
+	void onChange(const ChangeEvent& e) override
+    {
+		if (module)
+        {
+			module->text = getText();
+        }
+	}
+};
+
+struct HostDisplay : LedDisplay
+{
+	void setModule(TheInformer* module)
+    {
+		HostTextField* textField = createWidget<HostTextField>(Vec(0, 0));
+		textField->box.size = box.size;
+		textField->multiline = false;
+		textField->module = module;
+		addChild(textField);
+	}
+};
+
+struct RootTextField : LedDisplayTextField
+{
+	TheInformer* module;
+
+	void step() override
+    {
+		LedDisplayTextField::step();
+		if (module && module->dirty)
+        {
+			setText(module->text);
+			module->dirty = false;
+		}
+	}
+
+	void onChange(const ChangeEvent& e) override
+    {
+		if (module)
+        {
+			module->text = getText();
+        }
+	}
+};
+
+struct RootDisplay : LedDisplay
+{
+	void setModule(TheInformer* module)
+    {
+		RootTextField* textField = createWidget<HostTextField>(Vec(0, 0));
+		textField->box.size = box.size;
+		textField->multiline = false;
+		textField->module = module;
+		addChild(textField);
+	}
+};
+*/
 
 struct TheInformerWidget : ModuleWidget
 {
@@ -311,7 +385,8 @@ struct TheInformerWidget : ModuleWidget
         addChild(createWidget<ScrewSilver>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
         addChild(createWidget<ScrewSilver>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
-        addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(30.6, 67.872)), module, TheInformer::NORMALIZE_PARAM));
+        //addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(30.6, 67.872)), module, TheInformer::NORMALIZE_PARAM));
+        addParam(createLightParamCentered<VCVLightLatch<MediumSimpleLight<WhiteLight>>>(mm2px(Vec(30.6, 67.872)), module, TheInformer::NORMALIZE_PARAM, TheInformer::NORMALIZE_LIGHT));
 
         addInput(createInputCentered<PJ301MPort>(mm2px(Vec(38.1, 29.0)), module, TheInformer::IN_INPUT));
 
