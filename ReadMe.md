@@ -4,7 +4,7 @@ The Informer is compatible with Windows, Linux, and macOS.
 
 ![image](https://github.com/user-attachments/assets/65eaa577-4e5b-4e60-a69f-e085281d5c74)
 
-Complementing The Informer, there is also *The Case Officer*, a Max for Live device that receives data from The Informer so that they can be used as modulation sources within Live.
+Complementing *The Informer*, there is also *The Case Officer*, a Max for Live device that receives data from *The Informer* so that they can be used as modulation sources within Live.
 Additionally, there is a C++ header-only library available for integrating the descriptor calculation algorithms into your own software.
 
 Currently, these descriptors have been implemented:
@@ -96,7 +96,7 @@ Please note: when the _normalize_ parameter is enabled, all descriptors are adju
 
 Compiled binaries for Linux, Windows and macOS can be found in the [Releases section](https://github.com/valeriorlandini/theinformer/releases).
 
-## How to build
+## How to build the plugin/standalone
 
 Grab the source with `git clone https://github.com/valeriorlandini/theinformer.git --recursive`
 
@@ -110,6 +110,10 @@ Navigate to the build folder with `cd build`
 Next run `cmake --build . --config Release`
 
 The compiled binaries can be found inside `TheInformer_artefacts/Release` (or simply `TheInformer_artefacts` in Linux) folder.
+
+## _The Case Officer_ Max for Live device
+
+*The Case Officer* is a Max for Live device that receives data from *The Informer* so that they can be used as modulation sources within Live. It runs on Live 12 (Windows/macOS), and can be found in the `Max4Live` folder of this repository.
 
 ## _Informer_ C++ library
 
