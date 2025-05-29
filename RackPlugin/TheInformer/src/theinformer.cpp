@@ -69,9 +69,19 @@ struct TheInformer : Module
         informer.set_sample_rate(44100.f);
         informer.set_stft_size(BUFFER_SIZE);
         buffer.assign(BUFFER_SIZE, 0.f);
+
+        socket.connectTo(ip.c_str(), port);
+        if (!socket.isOk())
+        {
+            std::cerr << "Error connecting to port " << port << ": " << socket.errorMessage() << std::endl;
+        }
     }
 
     Informer::Informer<float> informer;
+    oscpkt::UdpSocket socket;
+    std::string ip = "127.0.0.1";
+    int port = 8000;
+    std::string oscRoot = "/theinformer";
     static constexpr int BUFFER_SIZE = 4096;
     dsp::RealFFT fftProcessor;
     std::vector<float> buffer;
@@ -194,19 +204,46 @@ struct TheInformer : Module
                 count = 0;
                 buffer[count++] = input;
 
-
                 if (params[NORMALIZE_PARAM].getValue() >= 0.5f)
                 {
                     normalize(args.sampleRate);
                 }
 
-                /*** SEND OSC MESSAGES ***/
+                // Send OSC messages with the computed values
+                if (socket.isOk())
+                {
+                    oscpkt::PacketWriter pw;
+                    pw.startBundle().startBundle();
+
+                    pw.addMessage(oscpkt::Message(oscRoot + "/time/amp_kurtosis").pushFloat(ampKurtosis));
+                    pw.addMessage(oscpkt::Message(oscRoot + "/time/amp_peak").pushFloat(ampPeak));
+                    pw.addMessage(oscpkt::Message(oscRoot + "/time/amp_rms").pushFloat(ampRms));
+                    pw.addMessage(oscpkt::Message(oscRoot + "/time/amp_skewness").pushFloat(ampSkewness));
+                    pw.addMessage(oscpkt::Message(oscRoot + "/time/amp_variance").pushFloat(ampVariance));
+                    pw.addMessage(oscpkt::Message(oscRoot + "/time/amp_zero_crossing").pushFloat(ampZeroCrossing));
+                    pw.addMessage(oscpkt::Message(oscRoot + "/freq/centroid").pushFloat(centroid));
+                    pw.addMessage(oscpkt::Message(oscRoot + "/freq/crestfactor").pushFloat(crestFactor));
+                    pw.addMessage(oscpkt::Message(oscRoot + "/freq/decrease").pushFloat(decrease));
+                    pw.addMessage(oscpkt::Message(oscRoot + "/freq/entropy").pushFloat(entropy));
+                    pw.addMessage(oscpkt::Message(oscRoot + "/freq/flatness").pushFloat(flatness));
+                    pw.addMessage(oscpkt::Message(oscRoot + "/freq/flux").pushFloat(flux));
+                    pw.addMessage(oscpkt::Message(oscRoot + "/freq/irregularity").pushFloat(irregularity));
+                    pw.addMessage(oscpkt::Message(oscRoot + "/freq/kurtosis").pushFloat(kurtosis));
+                    pw.addMessage(oscpkt::Message(oscRoot + "/freq/peak").pushFloat(peak));
+                    pw.addMessage(oscpkt::Message(oscRoot + "/freq/rolloff").pushFloat(rolloff));
+                    pw.addMessage(oscpkt::Message(oscRoot + "/freq/skewness").pushFloat(skewness));
+                    pw.addMessage(oscpkt::Message(oscRoot + "/freq/slope").pushFloat(slope));
+                    pw.addMessage(oscpkt::Message(oscRoot + "/freq/spread").pushFloat(spread));
+
+                    pw.endBundle().endBundle();
+                    socket.sendPacket(pw.packetData(), pw.packetSize());
+                }
 
                 // If normalize is not set (so the OSC messages were sent not normalized)
                 // we need to normalize the values before sending them to the module outputs
                 if (params[NORMALIZE_PARAM].getValue() < 0.5f)
                 {
-                    //normalize(args.sampleRate);
+                    normalize(args.sampleRate);
                 }
 
                 // Send the values to the module outputs

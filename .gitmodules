@@ -1,3 +1,0 @@
-[submodule "RackPlugin/TheInformer/src/tinyosc"]
-	path = RackPlugin/TheInformer/src/tinyosc
-	url = https://github.com/ddiakopoulos/tinyosc.git

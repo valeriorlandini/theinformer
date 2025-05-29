@@ -2,7 +2,7 @@
 RACK_DIR ?= ../..
 
 # FLAGS will be passed to both the C and C++ compiler
-FLAGS += -I../../Library -Isrc/oscpp/include
+FLAGS += -I../../Library
 CFLAGS +=
 CXXFLAGS +=
 

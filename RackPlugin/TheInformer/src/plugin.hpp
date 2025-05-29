@@ -1,10 +1,12 @@
 #pragma once
 #include <rack.hpp>
 #include <dsp/fft.hpp>
-#include <vector>
-#include "informer.h"
-#include <oscpp/client.hpp>
 #include <iostream>
+#include <vector>
+#include <informer.h>
+
+#include "oscpkt.hh"
+#include "udp.hh"
 
 using namespace rack;
 
