@@ -83,7 +83,7 @@ struct TheInformer : Module
     std::string ip = "127.0.0.1";
     int port = 8000;
     std::string oscRoot = "/theinformer";
-    static constexpr int BUFFER_SIZE = 4096;
+    static constexpr int BUFFER_SIZE = 8192;
     dsp::RealFFT fftProcessor;
     std::vector<float> buffer;
     unsigned int count = 0;
@@ -202,7 +202,9 @@ struct TheInformer : Module
                 slope = informer.get_frequency_descriptor("slope");
                 spread = informer.get_frequency_descriptor("spread");
 
-                count = 0;
+                count = BUFFER_SIZE / 2;
+                std::move(buffer.begin() + BUFFER_SIZE / 2, buffer.end(), buffer.begin());
+                std::fill(buffer.begin() + BUFFER_SIZE / 2, buffer.end(), 0.f);
                 buffer[count++] = input;
 
                 if (params[NORMALIZE_PARAM].getValue() >= 0.5f)
