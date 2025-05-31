@@ -106,6 +106,45 @@ struct TheInformer : Module
     float skewness = 0.0f;
     float slope = 0.0f;
     float spread = 0.0f;
+    bool dirty = false;
+
+	void onReset() override {
+		ip = "localhost";
+        oscRoot = "/theinformer";
+        port = 8000;
+		dirty = true;
+	}
+
+	void fromJson(json_t* rootJ) override 
+    {
+		Module::fromJson(rootJ);
+		json_t* ipJ = json_object_get(rootJ, "ip");
+		if (ipJ)
+            ip = json_string_value(ipJ);
+        json_t* oscRootJ = json_object_get(rootJ, "oscRoot");
+        if (oscRootJ)
+            oscRoot = json_string_value(oscRootJ);
+		dirty = true;
+	}
+
+	json_t* dataToJson() override 
+    {
+		json_t* rootJ = json_object();
+        json_object_set_new(rootJ, "ip", json_stringn(ip.c_str(), ip.size()));
+        json_object_set_new(rootJ, "oscRoot", json_stringn(oscRoot.c_str(), oscRoot.size()));
+		return rootJ;
+	}
+
+	void dataFromJson(json_t* rootJ) override
+    {
+        json_t* ipJ = json_object_get(rootJ, "ip");
+        if (ipJ)
+            ip = json_string_value(ipJ);
+        json_t* oscRootJ = json_object_get(rootJ, "oscRoot");
+        if (oscRootJ)
+            oscRoot = json_string_value(oscRootJ);
+		dirty = true;
+	}
 
     inline void normalize(float sampleRate)
     {
@@ -303,8 +342,8 @@ struct TheInformer : Module
     }
 };
 
-/*
-struct HostTextField : LedDisplayTextField
+
+struct IpTextField : LedDisplayTextField
 {
 	TheInformer* module;
 
@@ -313,7 +352,7 @@ struct HostTextField : LedDisplayTextField
 		LedDisplayTextField::step();
 		if (module && module->dirty)
         {
-			setText(module->text);
+			setText(module->ip);
 			module->dirty = false;
 		}
 	}
@@ -322,16 +361,21 @@ struct HostTextField : LedDisplayTextField
     {
 		if (module)
         {
-			module->text = getText();
+			auto newIp = getText();
+            if (!newIp.empty())
+            {
+                module->ip = newIp;
+                module->dirty = true;
+            }
         }
 	}
 };
 
-struct HostDisplay : LedDisplay
+struct IpDisplay : LedDisplay
 {
 	void setModule(TheInformer* module)
     {
-		HostTextField* textField = createWidget<HostTextField>(Vec(0, 0));
+		IpTextField* textField = createWidget<IpTextField>(Vec(0, 0));
 		textField->box.size = box.size;
 		textField->multiline = false;
 		textField->module = module;
@@ -348,7 +392,7 @@ struct RootTextField : LedDisplayTextField
 		LedDisplayTextField::step();
 		if (module && module->dirty)
         {
-			setText(module->text);
+			setText(module->oscRoot);
 			module->dirty = false;
 		}
 	}
@@ -357,7 +401,12 @@ struct RootTextField : LedDisplayTextField
     {
 		if (module)
         {
-			module->text = getText();
+            auto newRoot = getText();
+            if (!newRoot.empty())
+            {
+                module->oscRoot = newRoot;
+                module->dirty = true;
+            }
         }
 	}
 };
@@ -366,14 +415,13 @@ struct RootDisplay : LedDisplay
 {
 	void setModule(TheInformer* module)
     {
-		RootTextField* textField = createWidget<HostTextField>(Vec(0, 0));
+		RootTextField* textField = createWidget<RootTextField>(Vec(0, 0));
 		textField->box.size = box.size;
 		textField->multiline = false;
 		textField->module = module;
 		addChild(textField);
 	}
 };
-*/
 
 struct TheInformerWidget : ModuleWidget
 {
@@ -387,7 +435,6 @@ struct TheInformerWidget : ModuleWidget
         addChild(createWidget<ScrewSilver>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
         addChild(createWidget<ScrewSilver>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
-        //addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(30.6, 67.872)), module, TheInformer::NORMALIZE_PARAM));
         addParam(createLightParamCentered<VCVLightLatch<MediumSimpleLight<WhiteLight>>>(mm2px(Vec(30.6, 67.872)), module, TheInformer::NORMALIZE_PARAM, TheInformer::NORMALIZE_LIGHT));
 
         addInput(createInputCentered<PJ301MPort>(mm2px(Vec(38.1, 29.0)), module, TheInformer::IN_INPUT));
@@ -411,6 +458,15 @@ struct TheInformerWidget : ModuleWidget
         addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(23.1, 119.677)), module, TheInformer::SKEWNESS_OUTPUT));
         addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(38.1, 119.677)), module, TheInformer::SLOPE_OUTPUT));
         addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(53.1, 119.677)), module, TheInformer::SPREAD_OUTPUT));
+
+        RootDisplay* rootDisplay = createWidget<RootDisplay>(mm2px(Vec(25.6, 38.869)));
+		rootDisplay->box.size = mm2px(Vec(40, 10));
+		rootDisplay->setModule(module);
+		addChild(rootDisplay);
+        IpDisplay* ipDisplay = createWidget<IpDisplay>(mm2px(Vec(25.6, 53.369)));
+		ipDisplay->box.size = mm2px(Vec(40, 10));
+		ipDisplay->setModule(module);
+		addChild(ipDisplay);
     }
 };
 
