@@ -4,11 +4,13 @@ RACK_DIR ?= ../..
 # FLAGS will be passed to both the C and C++ compiler
 FLAGS += -I../../Library
 CFLAGS +=
-CXXFLAGS +=
+CXXFLAGS += 
 
 # Careful about linking to shared libraries, since you can't assume much about the user's environment and library search path.
 # Static libraries are fine, but they should be added to this plugin's build system.
-LDFLAGS +=
+ifeq ($(OS),Windows_NT)
+LDFLAGS += -lws2_32
+endif
 
 # Add .cpp files to the build
 SOURCES += $(wildcard src/*.cpp)
@@ -21,3 +23,5 @@ DISTRIBUTABLES += $(wildcard presets)
 
 # Include the Rack plugin Makefile framework
 include $(RACK_DIR)/plugin.mk
+# Use C++14 standard for unique_ptr and other features
+CXXFLAGS += -std=c++14

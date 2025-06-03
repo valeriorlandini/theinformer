@@ -1,5 +1,7 @@
 #include "plugin.hpp"
 
+#include "oscpkt.hh"
+#include "udp.hh"
 
 struct TheInformer : Module
 {
@@ -44,6 +46,7 @@ struct TheInformer : Module
 
     TheInformer() : fftProcessor(BUFFER_SIZE)
     {
+        std::cout << "TheInformer module initialized." << std::endl;
         config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
         configParam(NORMALIZE_PARAM, 0.f, 1.f, 0.f, "Normalize OSC Values");
         configInput(IN_INPUT, "Audio In");
@@ -67,25 +70,38 @@ struct TheInformer : Module
         configOutput(SLOPE_OUTPUT, "Slope");
         configOutput(SPREAD_OUTPUT, "Spread");
 
-        informer.set_sample_rate(44100.f);
-        informer.set_stft_size(BUFFER_SIZE);
-        buffer.assign(BUFFER_SIZE, 0.f);
+        informer = std::make_unique<Informer::Informer<float>>();
+        buffer = std::make_unique<std::vector<float>>(BUFFER_SIZE, 0.f);
 
-        socket.connectTo(ip.c_str(), port);
-        if (!socket.isOk())
+        informer->set_sample_rate(44100.f);
+        informer->set_stft_size(BUFFER_SIZE);
+        buffer->assign(BUFFER_SIZE, 0.f);
+
+        // Initialize the OSC socket 
+        socket = new oscpkt::UdpSocket();
+        socket->connectTo(ip.c_str(), port);
+        if (!socket->isOk())
         {
-            std::cerr << "Error connecting to port " << port << ": " << socket.errorMessage() << std::endl;
+            std::cerr << "Error connecting to port " << port << ": " << socket->errorMessage() << std::endl;
         }
     }
 
-    Informer::Informer<float> informer;
-    oscpkt::UdpSocket socket;
+    ~TheInformer()
+    {
+        socket->close();
+        delete socket;
+    }
+
+    
+    std::unique_ptr<Informer::Informer<float>> informer;
+    std::unique_ptr<std::vector<float>> buffer;
+    oscpkt::UdpSocket *socket = nullptr;
     std::string ip = "127.0.0.1";
     int port = 8000;
     std::string oscRoot = "/theinformer";
     static constexpr int BUFFER_SIZE = 8192;
     dsp::RealFFT fftProcessor;
-    std::vector<float> buffer;
+
     unsigned int count = 0;
     float ampKurtosis = 0.0f;
     float ampPeak = 0.0f;
@@ -108,7 +124,8 @@ struct TheInformer : Module
     float spread = 0.0f;
     bool dirty = false;
 
-	void onReset() override {
+	void onReset() override
+    {
 		ip = "localhost";
         oscRoot = "/theinformer";
         port = 8000;
@@ -191,9 +208,9 @@ struct TheInformer : Module
     {
         float input = clamp(inputs[IN_INPUT].getVoltage() * 0.2f, -1.f, 1.f);
 
-        if (args.sampleRate != informer.get_sample_rate())
+        if (args.sampleRate != informer->get_sample_rate())
         {
-            informer.set_sample_rate(args.sampleRate);
+            informer->set_sample_rate(args.sampleRate);
             count = 0;
         }
 
@@ -201,50 +218,50 @@ struct TheInformer : Module
         {
             if (count < BUFFER_SIZE)
             {
-                buffer[count++] = input;
+                buffer->at(count++) = input;
             }
             else
             {
-                std::vector<float> windowedBuffer = Informer::Frequency::window(buffer);
+                std::vector<float> windowedBuffer = Informer::Frequency::window(*buffer);
                 alignas(16) float *windowedBufferPtr = windowedBuffer.data();
                 alignas(16) float freqBuffer[BUFFER_SIZE * 2];
                 fftProcessor.rfft(windowedBufferPtr, freqBuffer);
                 std::vector<float> audioBuffer;
                 for (auto s = 0; s < BUFFER_SIZE; s++)
                 {
-                    audioBuffer.push_back(buffer[s]);
+                    audioBuffer.push_back(buffer->at(s));
                 }
-                informer.set_buffer(audioBuffer);
-                informer.set_magnitudes(createMagBuffer(freqBuffer));
-                auto freqs = informer.get_magnitudes();
-                auto prec = informer.get_precomputed_frequencies();
-                informer.compute_descriptors(true, true);
+                informer->set_buffer(audioBuffer);
+                informer->set_magnitudes(createMagBuffer(freqBuffer));
+                auto freqs = informer->get_magnitudes();
+                auto prec = informer->get_precomputed_frequencies();
+                informer->compute_descriptors(true, true);
 
-                ampKurtosis = informer.get_time_descriptor("kurtosis");
-                ampPeak = informer.get_time_descriptor("peak");
-                ampRms = informer.get_time_descriptor("rms");
-                ampSkewness = informer.get_time_descriptor("skewness");
-                ampVariance = informer.get_time_descriptor("variance");
-                ampZeroCrossing = informer.get_time_descriptor("zerocrossing");
+                ampKurtosis = informer->get_time_descriptor("kurtosis");
+                ampPeak = informer->get_time_descriptor("peak");
+                ampRms = informer->get_time_descriptor("rms");
+                ampSkewness = informer->get_time_descriptor("skewness");
+                ampVariance = informer->get_time_descriptor("variance");
+                ampZeroCrossing = informer->get_time_descriptor("zerocrossing");
 
-                centroid = informer.get_frequency_descriptor("centroid");
-                crestFactor = informer.get_frequency_descriptor("crestfactor");
-                decrease = informer.get_frequency_descriptor("decrease");
-                entropy = informer.get_frequency_descriptor("entropy");
-                flatness = informer.get_frequency_descriptor("flatness");
-                flux = informer.get_frequency_descriptor("flux");
-                irregularity = informer.get_frequency_descriptor("irregularity");
-                kurtosis = informer.get_frequency_descriptor("kurtosis");
-                peak = informer.get_frequency_descriptor("peak");
-                rolloff = informer.get_frequency_descriptor("rolloff");
-                skewness = informer.get_frequency_descriptor("skewness");
-                slope = informer.get_frequency_descriptor("slope");
-                spread = informer.get_frequency_descriptor("spread");
+                centroid = informer->get_frequency_descriptor("centroid");
+                crestFactor = informer->get_frequency_descriptor("crestfactor");
+                decrease = informer->get_frequency_descriptor("decrease");
+                entropy = informer->get_frequency_descriptor("entropy");
+                flatness = informer->get_frequency_descriptor("flatness");
+                flux = informer->get_frequency_descriptor("flux");
+                irregularity = informer->get_frequency_descriptor("irregularity");
+                kurtosis = informer->get_frequency_descriptor("kurtosis");
+                peak = informer->get_frequency_descriptor("peak");
+                rolloff = informer->get_frequency_descriptor("rolloff");
+                skewness = informer->get_frequency_descriptor("skewness");
+                slope = informer->get_frequency_descriptor("slope");
+                spread = informer->get_frequency_descriptor("spread");
 
                 count = BUFFER_SIZE / 2;
-                std::move(buffer.begin() + BUFFER_SIZE / 2, buffer.end(), buffer.begin());
-                std::fill(buffer.begin() + BUFFER_SIZE / 2, buffer.end(), 0.f);
-                buffer[count++] = input;
+                std::move(buffer->begin() + BUFFER_SIZE / 2, buffer->end(), buffer->begin());
+                std::fill(buffer->begin() + BUFFER_SIZE / 2, buffer->end(), 0.f);
+                buffer->at(count++) = input;
 
                 if (params[NORMALIZE_PARAM].getValue() >= 0.5f)
                 {
@@ -252,7 +269,7 @@ struct TheInformer : Module
                 }
 
                 // Send OSC messages with the computed values
-                if (socket.isOk())
+                if (socket->isOk())
                 {
                     oscpkt::PacketWriter pw;
                     pw.startBundle().startBundle();
@@ -278,7 +295,7 @@ struct TheInformer : Module
                     pw.addMessage(oscpkt::Message(oscRoot + "/freq/spread").pushFloat(spread));
 
                     pw.endBundle().endBundle();
-                    socket.sendPacket(pw.packetData(), pw.packetSize());
+                    socket->sendPacket(pw.packetData(), pw.packetSize());
                 }
 
                 // If normalize is not set (so the OSC messages were sent not normalized)
@@ -314,7 +331,7 @@ struct TheInformer : Module
         {
             // If the input is not connected, reset the count and buffer
             count = 0;
-            std::fill(buffer.begin(), buffer.end(), 0.f);
+            std::fill(buffer->begin(), buffer->end(), 0.f);
 
             // Reset all outputs to 0
             outputs[AMPLITUDEKURTOSIS_OUTPUT].setVoltage(0.f);
@@ -341,7 +358,6 @@ struct TheInformer : Module
         lights[NORMALIZE_LIGHT].setBrightness(params[NORMALIZE_PARAM].getValue());
     }
 };
-
 
 struct IpTextField : LedDisplayTextField
 {

@@ -27,33 +27,41 @@
 #define OSCPKT_UDP_HH
 
 #include <sys/types.h>
-#if defined(_MSC_VER) || defined(WIN32)
+#if defined(_MSC_VER) || defined(WIN32) || defined(_WIN32)
 /*
   if windows.h has been already included, be prepared for tons of
   compile errors. winsock2 must be included BEFORE windows.h . -- OR
   define WIN32_LEAN_AND_MEAN before the first #include <windows.h> to
   prevent it from including tons of crap (winsock.h etc)
 */
-# include <winsock2.h> 
-# include <windows.h>
-# include <ws2tcpip.h>
-# if defined(_MSC_VER)
-#  pragma comment(lib, "ws2_32.lib")
-# endif
+#include <winsock2.h> 
+#include <windows.h>
+#include <ws2tcpip.h>
+inline std::string wideToUtf8(const wchar_t* wstr)
+{
+    if (!wstr) return "(null)";
+    int size_needed = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, nullptr, 0, nullptr, nullptr);
+    std::string str(size_needed, 0);
+    WideCharToMultiByte(CP_UTF8, 0, wstr, -1, &str[0], size_needed, nullptr, nullptr);
+    return str;
+}
+#if defined(_MSC_VER)
+#pragma comment(lib, "ws2_32.lib")
+#endif
 #elif defined(__APPLE__) /* Is recognized by Clang */
-# include <sys/socket.h>
-# include <netinet/in.h>
-# include <fcntl.h>
-# include <arpa/inet.h>
-# include <netdb.h>
-# include <unistd.h>
-# include <sys/time.h>
-#else
-# include <sys/socket.h>
-# include <netinet/in.h>
-# include <netdb.h>
-# include <unistd.h>
-# include <sys/time.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <fcntl.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <unistd.h>
+#include <sys/time.h>
+#elif defined(__linux__)
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <unistd.h>
+#include <sys/time.h>
 #endif
 #include <cstring>
 #include <cstdio>
@@ -62,6 +70,8 @@
 #include <cassert>
 #include <string>
 #include <vector>
+
+
 
 namespace oscpkt {
 
@@ -138,7 +148,7 @@ struct UdpSocket {
 
 
   UdpSocket() : handle(-1) { 
-#ifdef WIN32
+#if defined(WIN32) || defined(_WIN32) || defined(_MSC_VER)
     WSADATA wsa_data;
     if (WSAStartup(MAKEWORD(2,2), &wsa_data) != 0) {
       setErr("winsock failed to initialise");
@@ -148,14 +158,14 @@ struct UdpSocket {
 
   ~UdpSocket() { 
     close(); 
-#ifdef WIN32
+#if defined(WIN32) || defined(_WIN32) || defined(_MSC_VER)
     WSACleanup();
 #endif
   }
 
   void close() {
     if (handle != -1) { 
-#ifdef WIN32
+#if defined(WIN32) || defined(_WIN32) || defined(_MSC_VER)
       ::closesocket(handle);
 #else
       ::close(handle); 
@@ -252,7 +262,7 @@ struct UdpSocket {
                               &remote_addr.addr(), &len);
     if (nread < 0) {       
       // maybe here we should differentiate EAGAIN/EINTR/EWOULDBLOCK from real errors
-#ifdef WIN32
+#if defined(WIN32) || defined(_WIN32) || defined(_MSC_VER)
       if (WSAGetLastError() != WSAEINTR && WSAGetLastError() != WSAEWOULDBLOCK && 
           WSAGetLastError() != WSAECONNRESET && WSAGetLastError() != WSAECONNREFUSED) {
         char s[512]; 
@@ -304,7 +314,7 @@ struct UdpSocket {
         res = send(handle, (const char*)ptr, (int)sz, 0);
         //        res = write(handle, ptr, sz);
       }
-#ifdef WIN32
+#if defined(WIN32) || defined(_WIN32) || defined(_MSC_VER)
       if (res == -1 && WSAGetLastError() == WSAEINTR) continue;
       else sent = res;
 #else
@@ -347,7 +357,11 @@ private:
     
     err = getaddrinfo(binding ? 0 : hostname.c_str(), port.empty() ? 0 : port.c_str(), &hints, &result);
     if (err != 0) {
+#if defined(WIN32) || defined(_WIN32) || defined(_MSC_VER)
+      setErr(wideToUtf8(gai_strerror(err)));
+#else
       setErr(gai_strerror(err));
+#endif
       return false;
     }
 
