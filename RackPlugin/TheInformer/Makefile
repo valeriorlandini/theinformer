@@ -23,5 +23,3 @@ DISTRIBUTABLES += $(wildcard presets)
 
 # Include the Rack plugin Makefile framework
 include $(RACK_DIR)/plugin.mk
-# Use C++14 standard for unique_ptr and other features
-CXXFLAGS += -std=c++14

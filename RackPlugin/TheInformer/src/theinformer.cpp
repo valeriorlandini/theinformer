@@ -70,8 +70,8 @@ struct TheInformer : Module
         configOutput(SLOPE_OUTPUT, "Slope");
         configOutput(SPREAD_OUTPUT, "Spread");
 
-        informer = std::make_unique<Informer::Informer<float>>();
-        buffer = std::make_unique<std::vector<float>>(BUFFER_SIZE, 0.f);
+        informer = new Informer::Informer<float>();
+        buffer = new std::vector<float>(BUFFER_SIZE, 0.f);
 
         informer->set_sample_rate(44100.f);
         informer->set_stft_size(BUFFER_SIZE);
@@ -90,11 +90,12 @@ struct TheInformer : Module
     {
         socket->close();
         delete socket;
+        delete informer;
+        delete buffer;
     }
 
-    
-    std::unique_ptr<Informer::Informer<float>> informer;
-    std::unique_ptr<std::vector<float>> buffer;
+    Informer::Informer<float> *informer = nullptr;
+    std::vector<float> *buffer = nullptr;
     oscpkt::UdpSocket *socket = nullptr;
     std::string ip = "127.0.0.1";
     int port = 8000;
@@ -137,10 +138,14 @@ struct TheInformer : Module
 		Module::fromJson(rootJ);
 		json_t* ipJ = json_object_get(rootJ, "ip");
 		if (ipJ)
+        {
             ip = json_string_value(ipJ);
+        }
         json_t* oscRootJ = json_object_get(rootJ, "oscRoot");
         if (oscRootJ)
+        {
             oscRoot = json_string_value(oscRootJ);
+        }
 		dirty = true;
 	}
 
@@ -156,10 +161,14 @@ struct TheInformer : Module
     {
         json_t* ipJ = json_object_get(rootJ, "ip");
         if (ipJ)
+        {
             ip = json_string_value(ipJ);
+        }
         json_t* oscRootJ = json_object_get(rootJ, "oscRoot");
         if (oscRootJ)
+        {
             oscRoot = json_string_value(oscRootJ);
+        }
 		dirty = true;
 	}
 
@@ -306,25 +315,25 @@ struct TheInformer : Module
                 }
 
                 // Send the values to the module outputs
-                outputs[AMPLITUDEKURTOSIS_OUTPUT].setVoltage(ampKurtosis * 5.f);
-                outputs[AMPLITUDEPEAK_OUTPUT].setVoltage(ampPeak * 5.f);
-                outputs[AMPLITUDERMS_OUTPUT].setVoltage(ampRms * 5.f);
-                outputs[AMPLITUDESKEWNESS_OUTPUT].setVoltage(ampSkewness * 5.f);
-                outputs[AMPLITUDEVARIANCE_OUTPUT].setVoltage(ampVariance * 5.f);
-                outputs[AMPLITUDEZEROCROSSING_OUTPUT].setVoltage(ampZeroCrossing * 5.f);
-                outputs[CENTROID_OUTPUT].setVoltage(centroid * 5.f);
-                outputs[CRESTFACTOR_OUTPUT].setVoltage(crestFactor * 5.f);
-                outputs[DECREASE_OUTPUT].setVoltage(decrease * 5.f);
-                outputs[ENTROPY_OUTPUT].setVoltage(entropy * 5.f);
-                outputs[FLATNESS_OUTPUT].setVoltage(flatness * 5.f);
-                outputs[FLUX_OUTPUT].setVoltage(flux * 5.f);
-                outputs[IRREGULARITY_OUTPUT].setVoltage(irregularity * 5.f);
-                outputs[KURTOSIS_OUTPUT].setVoltage(kurtosis * 5.f);
-                outputs[PEAK_OUTPUT].setVoltage(peak * 5.f);
-                outputs[ROLLOFF_OUTPUT].setVoltage(rolloff * 5.f);
-                outputs[SKEWNESS_OUTPUT].setVoltage(skewness * 5.f);
-                outputs[SLOPE_OUTPUT].setVoltage(slope * 5.f);
-                outputs[SPREAD_OUTPUT].setVoltage(spread * 5.f);
+                outputs[AMPLITUDEKURTOSIS_OUTPUT].setVoltage(ampKurtosis * 10.f);
+                outputs[AMPLITUDEPEAK_OUTPUT].setVoltage(ampPeak * 10.f);
+                outputs[AMPLITUDERMS_OUTPUT].setVoltage(ampRms * 10.f);
+                outputs[AMPLITUDESKEWNESS_OUTPUT].setVoltage(ampSkewness * 10.f);
+                outputs[AMPLITUDEVARIANCE_OUTPUT].setVoltage(ampVariance * 10.f);
+                outputs[AMPLITUDEZEROCROSSING_OUTPUT].setVoltage(ampZeroCrossing * 10.f);
+                outputs[CENTROID_OUTPUT].setVoltage(centroid * 10.f);
+                outputs[CRESTFACTOR_OUTPUT].setVoltage(crestFactor * 10.f);
+                outputs[DECREASE_OUTPUT].setVoltage(decrease * 10.f);
+                outputs[ENTROPY_OUTPUT].setVoltage(entropy * 10.f);
+                outputs[FLATNESS_OUTPUT].setVoltage(flatness * 10.f);
+                outputs[FLUX_OUTPUT].setVoltage(flux * 10.f);
+                outputs[IRREGULARITY_OUTPUT].setVoltage(irregularity * 10.f);
+                outputs[KURTOSIS_OUTPUT].setVoltage(kurtosis * 10.f);
+                outputs[PEAK_OUTPUT].setVoltage(peak * 10.f);
+                outputs[ROLLOFF_OUTPUT].setVoltage(rolloff * 10.f);
+                outputs[SKEWNESS_OUTPUT].setVoltage(skewness * 10.f);
+                outputs[SLOPE_OUTPUT].setVoltage(slope * 10.f);
+                outputs[SPREAD_OUTPUT].setVoltage(spread * 10.f);
             }
         }
         else
@@ -479,6 +488,7 @@ struct TheInformerWidget : ModuleWidget
 		rootDisplay->box.size = mm2px(Vec(40, 10));
 		rootDisplay->setModule(module);
 		addChild(rootDisplay);
+        
         IpDisplay* ipDisplay = createWidget<IpDisplay>(mm2px(Vec(25.6, 53.369)));
 		ipDisplay->box.size = mm2px(Vec(40, 10));
 		ipDisplay->setModule(module);
