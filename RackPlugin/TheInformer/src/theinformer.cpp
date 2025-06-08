@@ -127,7 +127,7 @@ struct TheInformer : Module
 
 	void onReset() override
     {
-		ip = "localhost";
+		ip = "127.0.0.1";
         oscRoot = "/theinformer";
         port = 8000;
 		dirty = true;
@@ -211,6 +211,22 @@ struct TheInformer : Module
         magBuffer[BUFFER_SIZE / 2] = fabs(fftBuffer[1]) / (float)(BUFFER_SIZE);
 
         return magBuffer;
+    }
+
+    inline void connectTo()
+    {
+        if (socket->isOk())
+        {
+            socket->connectTo(ip.c_str(), port);
+            if (!socket->isOk())
+            {
+                std::cerr << "Error connecting to port " << port << ": " << socket->errorMessage() << std::endl;
+            }
+        }
+        else
+        {
+            std::cerr << "Socket is not ok, cannot connect." << std::endl;
+        }
     }
 
     void process(const ProcessArgs& args) override
@@ -408,6 +424,47 @@ struct IpDisplay : LedDisplay
 	}
 };
 
+struct PortTextField : LedDisplayTextField
+{
+	TheInformer* module;
+
+	void step() override
+    {
+		LedDisplayTextField::step();
+		if (module && module->dirty)
+        {
+			setText(std::to_string(module->port));
+			module->dirty = false;
+		}
+	}
+
+	void onChange(const ChangeEvent& e) override
+    {
+		if (module)
+        {
+            auto newPort = getText();
+            if (!newPort.empty() && std::all_of(newPort.begin(), newPort.end(), ::isdigit))
+            {
+                module->port = std::max(0, std::min(std::stoi(newPort), 65535));
+                module->connectTo();
+                module->dirty = true;
+            }
+        }
+	}
+};
+
+struct PortDisplay : LedDisplay
+{
+	void setModule(TheInformer* module)
+    {
+		PortTextField* textField = createWidget<PortTextField>(Vec(0, 0));
+		textField->box.size = box.size;
+		textField->multiline = false;
+		textField->module = module;
+		addChild(textField);
+	}
+};
+
 struct RootTextField : LedDisplayTextField
 {
 	TheInformer* module;
@@ -429,7 +486,12 @@ struct RootTextField : LedDisplayTextField
             auto newRoot = getText();
             if (!newRoot.empty())
             {
+                if (newRoot[0] != '/')
+                {
+                    newRoot = "/" + newRoot; // Ensure the root starts with a slash
+                }
                 module->oscRoot = newRoot;
+                module->connectTo();
                 module->dirty = true;
             }
         }
@@ -462,7 +524,7 @@ struct TheInformerWidget : ModuleWidget
 
         addParam(createLightParamCentered<VCVLightLatch<MediumSimpleLight<WhiteLight>>>(mm2px(Vec(30.6, 67.872)), module, TheInformer::NORMALIZE_PARAM, TheInformer::NORMALIZE_LIGHT));
 
-        addInput(createInputCentered<PJ301MPort>(mm2px(Vec(38.1, 29.0)), module, TheInformer::IN_INPUT));
+        addInput(createInputCentered<PJ301MPort>(mm2px(Vec(45.5, 19.65)), module, TheInformer::IN_INPUT));
 
         addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(8.1, 91.102)), module, TheInformer::AMPLITUDEKURTOSIS_OUTPUT));
         addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(23.1, 91.102)), module, TheInformer::AMPLITUDEPEAK_OUTPUT));
@@ -484,15 +546,21 @@ struct TheInformerWidget : ModuleWidget
         addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(38.1, 119.677)), module, TheInformer::SLOPE_OUTPUT));
         addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(53.1, 119.677)), module, TheInformer::SPREAD_OUTPUT));
 
-        RootDisplay* rootDisplay = createWidget<RootDisplay>(mm2px(Vec(25.6, 38.869)));
+        IpDisplay* ipDisplay = createWidget<IpDisplay>(mm2px(Vec(26, 26.938)));
+		ipDisplay->box.size = mm2px(Vec(40, 10));
+		ipDisplay->setModule(module);
+		addChild(ipDisplay);
+
+        PortDisplay* portDisplay = createWidget<PortDisplay>(mm2px(Vec(26, 38.916)));
+		portDisplay->box.size = mm2px(Vec(40, 10));
+		portDisplay->setModule(module);
+		addChild(portDisplay);
+
+        RootDisplay* rootDisplay = createWidget<RootDisplay>(mm2px(Vec(26, 50.895)));
 		rootDisplay->box.size = mm2px(Vec(40, 10));
 		rootDisplay->setModule(module);
 		addChild(rootDisplay);
         
-        IpDisplay* ipDisplay = createWidget<IpDisplay>(mm2px(Vec(25.6, 53.369)));
-		ipDisplay->box.size = mm2px(Vec(40, 10));
-		ipDisplay->setModule(module);
-		addChild(ipDisplay);
     }
 };
 
