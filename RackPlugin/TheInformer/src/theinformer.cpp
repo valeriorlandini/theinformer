@@ -123,7 +123,7 @@ struct TheInformer : Module
     float skewness = 0.0f;
     float slope = 0.0f;
     float spread = 0.0f;
-    bool dirty = false;
+    bool dirty = true;
 
 	void onReset() override
     {
@@ -133,27 +133,12 @@ struct TheInformer : Module
 		dirty = true;
 	}
 
-	void fromJson(json_t* rootJ) override 
-    {
-		Module::fromJson(rootJ);
-		json_t* ipJ = json_object_get(rootJ, "ip");
-		if (ipJ)
-        {
-            ip = json_string_value(ipJ);
-        }
-        json_t* oscRootJ = json_object_get(rootJ, "oscRoot");
-        if (oscRootJ)
-        {
-            oscRoot = json_string_value(oscRootJ);
-        }
-		dirty = true;
-	}
-
 	json_t* dataToJson() override 
     {
 		json_t* rootJ = json_object();
         json_object_set_new(rootJ, "ip", json_stringn(ip.c_str(), ip.size()));
         json_object_set_new(rootJ, "oscRoot", json_stringn(oscRoot.c_str(), oscRoot.size()));
+        json_object_set_new(rootJ, "port", json_integer(port));
 		return rootJ;
 	}
 
@@ -162,12 +147,28 @@ struct TheInformer : Module
         json_t* ipJ = json_object_get(rootJ, "ip");
         if (ipJ)
         {
-            ip = json_string_value(ipJ);
+            if (std::string(json_string_value(ipJ)) != "")
+            {
+                ip = json_string_value(ipJ);
+                connectTo();
+            }
+        }
+        json_t* portJ = json_object_get(rootJ, "port");
+        if (portJ)
+        {
+            if (json_integer_value(portJ) >= 0 && json_integer_value(portJ) <= 65535)
+            {
+                port = json_integer_value(portJ);
+                connectTo();
+            }
         }
         json_t* oscRootJ = json_object_get(rootJ, "oscRoot");
         if (oscRootJ)
         {
-            oscRoot = json_string_value(oscRootJ);
+            if (std::string(json_string_value(oscRootJ)) != "")
+            {
+                oscRoot = json_string_value(oscRootJ);
+            }
         }
 		dirty = true;
 	}
@@ -406,6 +407,7 @@ struct IpTextField : LedDisplayTextField
             if (!newIp.empty())
             {
                 module->ip = newIp;
+                module->connectTo();
                 module->dirty = true;
             }
         }
@@ -491,7 +493,6 @@ struct RootTextField : LedDisplayTextField
                     newRoot = "/" + newRoot; // Ensure the root starts with a slash
                 }
                 module->oscRoot = newRoot;
-                module->connectTo();
                 module->dirty = true;
             }
         }
@@ -560,7 +561,6 @@ struct TheInformerWidget : ModuleWidget
 		rootDisplay->box.size = mm2px(Vec(40, 10));
 		rootDisplay->setModule(module);
 		addChild(rootDisplay);
-        
     }
 };
 
