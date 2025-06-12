@@ -123,14 +123,19 @@ struct TheInformer : Module
     float skewness = 0.0f;
     float slope = 0.0f;
     float spread = 0.0f;
-    bool dirty = true;
+    bool dirtyIp = true;
+    bool dirtyPort = true;
+    bool dirtyRoot = true;
 
 	void onReset() override
     {
 		ip = "127.0.0.1";
         oscRoot = "/theinformer";
         port = 8000;
-		dirty = true;
+		dirtyIp = true;
+        dirtyPort = true;
+        dirtyRoot = true;
+        connectTo();
 	}
 
 	json_t* dataToJson() override 
@@ -150,6 +155,7 @@ struct TheInformer : Module
             if (std::string(json_string_value(ipJ)) != "")
             {
                 ip = json_string_value(ipJ);
+                dirtyIp = true;
                 connectTo();
             }
         }
@@ -159,6 +165,7 @@ struct TheInformer : Module
             if (json_integer_value(portJ) >= 0 && json_integer_value(portJ) <= 65535)
             {
                 port = json_integer_value(portJ);
+                dirtyPort = true;
                 connectTo();
             }
         }
@@ -168,9 +175,13 @@ struct TheInformer : Module
             if (std::string(json_string_value(oscRootJ)) != "")
             {
                 oscRoot = json_string_value(oscRootJ);
+                if (oscRoot[0] != '/')
+                {
+                    oscRoot = "/" + oscRoot; // Ensure the root starts with a slash
+                }
+                dirtyRoot = true;
             }
         }
-		dirty = true;
 	}
 
     inline void normalize(float sampleRate)
@@ -392,10 +403,10 @@ struct IpTextField : LedDisplayTextField
 	void step() override
     {
 		LedDisplayTextField::step();
-		if (module && module->dirty)
+		if (module && module->dirtyIp)
         {
 			setText(module->ip);
-			module->dirty = false;
+			module->dirtyIp = false;
 		}
 	}
 
@@ -408,7 +419,7 @@ struct IpTextField : LedDisplayTextField
             {
                 module->ip = newIp;
                 module->connectTo();
-                module->dirty = true;
+                module->dirtyIp = true;
             }
         }
 	}
@@ -433,10 +444,10 @@ struct PortTextField : LedDisplayTextField
 	void step() override
     {
 		LedDisplayTextField::step();
-		if (module && module->dirty)
+		if (module && module->dirtyPort)
         {
 			setText(std::to_string(module->port));
-			module->dirty = false;
+			module->dirtyPort = false;
 		}
 	}
 
@@ -449,7 +460,7 @@ struct PortTextField : LedDisplayTextField
             {
                 module->port = std::max(0, std::min(std::stoi(newPort), 65535));
                 module->connectTo();
-                module->dirty = true;
+                module->dirtyPort = true;
             }
         }
 	}
@@ -474,10 +485,10 @@ struct RootTextField : LedDisplayTextField
 	void step() override
     {
 		LedDisplayTextField::step();
-		if (module && module->dirty)
+		if (module && module->dirtyRoot)
         {
 			setText(module->oscRoot);
-			module->dirty = false;
+			module->dirtyRoot = false;
 		}
 	}
 
@@ -493,7 +504,7 @@ struct RootTextField : LedDisplayTextField
                     newRoot = "/" + newRoot; // Ensure the root starts with a slash
                 }
                 module->oscRoot = newRoot;
-                module->dirty = true;
+                module->dirtyRoot = true;
             }
         }
 	}
