@@ -1,3 +1,15 @@
+# Table of contents
+
+- [The Informer](#the-informer)
+  - [Amplitude descriptors](#amplitude-descriptors)
+  - [Spectral descriptors](#spectral-descriptors)
+- [Pre-built binaries](#pre-built-binaries)
+- [How to build the plugin/standalone](#how-to-build-the-pluginstandalone)
+- [The Case Officer Max for Live device](#the-case-officer-max-for-live-device)
+- [Informer C++ library](#informer-c-library)
+- [pyinformer: Informer Python bindings](#pyinformer-informer-python-bindings)
+
+
 # The Informer
 A VST3/LV2/AU plugin and standalone software that analyzes incoming audio and computes a range of audio descriptors, which are sent as OSC (Open Sound Control) messages. These can be used in other software, such as for sound visualization or real-time audio analysis.
 The Informer is compatible with Windows, Linux, and macOS.
@@ -185,3 +197,36 @@ informer.set_stft(newStft);
 // Compute new descriptors
 informer.compute_descriptors();
 ```
+
+## _pyinformer_: _Informer_ Python bindings
+
+In `PyInformer` folder, there is the necessary stuff to create Python bindings to the C++ library, so that you can use all the functions of the library in Python.
+
+To build the bindings, inside `PyInformer` folder:
+
+* `cmake -S . -B build -G "Visual Studio 17 2022"` on Windows (adjust the Visual Studio version if you have an older one.)
+* `cmake -S . -B build -G "Unix Makefiles"` on Linux
+* `cmake -S . -B build -G Xcode` on Mac
+
+Navigate to the build folder with `cd build`
+
+Next run `cmake --build . --config Release`
+
+You will find a dynamic library file that begins with `pyinformer.cpython`: place inside your Python library folder or inside your Python project folder and you can begin to use the libraty right away with:
+
+```python
+import pyinformer
+```
+
+There  are two submodules, `pyinformer.amplitude` and `pyinformer.frequency`. Once you have a list of floats or a NumPy 1D array representing a buffer with its samples or the magnitudes of a real FFT, you can do for example:
+
+```python
+import numpy as np
+
+# Generate a random buffer and scale it to [-1, 1] range
+example_buffer = np.random.rand(4096) * 2.0 - 1.0
+
+zero_crossing_rate = pyinformer.amplitude.zerocrossing(example_buffer)
+```
+
+Arguments to be passed to the various functions are the same and respect the same order of the corresponding C++ ones.
