@@ -819,7 +819,7 @@ template <typename Container>
 #if __cplusplus >= 202002L
 requires std::floating_point<typename Container::value_type>
 #endif
-typename Container::value_type skweness(const Container& magnitudes,
+typename Container::value_type skewness(const Container& magnitudes,
                                         typename Container::value_type sample_rate = static_cast<typename Container::value_type>(44100.0),
                                         std::vector<typename Container::value_type>& precomputed_frequencies = {},
                                         typename Container::value_type spectral_centroid = static_cast<typename Container::value_type>(-1.0),
@@ -1133,7 +1133,7 @@ public:
             spectral_kurtosis();
             spectral_peak();
             spectral_rolloff();
-            spectral_skweness();
+            spectral_skewness();
             spectral_slope();
         }
 
@@ -1345,7 +1345,7 @@ public:
         return frequency_descriptors_["rolloff"];
     }
 
-    TSample spectral_skweness()
+    TSample spectral_skewness()
     {
         if (frequency_descriptors_.find("centroid") != frequency_descriptors_.end())
         {
@@ -1358,7 +1358,7 @@ public:
                               frequency_descriptors_["centroid"]);
         }
 
-        return Frequency::skweness(magnitudes_, sample_rate_, precomputed_frequencies_,
+        return Frequency::skewness(magnitudes_, sample_rate_, precomputed_frequencies_,
                                    frequency_descriptors_["centroid"], frequency_descriptors_["spread"]);
     }
 
