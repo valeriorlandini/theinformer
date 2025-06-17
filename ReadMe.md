@@ -202,6 +202,13 @@ informer.compute_descriptors();
 
 In `PyInformer` folder, there is the necessary stuff to create Python bindings to the C++ library, so that you can use all the functions of the library in Python.
 
+To build and install the bindings, inside `PyInformer` folder:
+
+`sudo python setup.py install`
+
+<details>
+<summary>(Expand this section to build only without automatic installation)</summary>
+
 To build the bindings, inside `PyInformer` folder:
 
 * `cmake -S . -B build -G "Visual Studio 17 2022"` on Windows (adjust the Visual Studio version if you have an older one.)
@@ -212,7 +219,11 @@ Navigate to the build folder with `cd build`
 
 Next run `cmake --build . --config Release`
 
-You will find a dynamic library file that begins with `pyinformer.cpython`: place inside your Python library folder or inside your Python project folder and you can begin to use the libraty right away with:
+You will find a dynamic library file that begins with `pyinformer.cpython`: place inside your Python library folder or inside your Python project folder.
+
+</details>
+
+You can begin to use the library right away with:
 
 ```python
 import pyinformer
