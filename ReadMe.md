@@ -202,9 +202,9 @@ informer.compute_descriptors();
 
 In `PyInformer` folder, there is the necessary stuff to create Python bindings to the C++ library, so that you can use all the functions of the library in Python.
 
-To build and install the bindings, inside `PyInformer` folder:
+To build and install the bindings, inside the main repository folder:
 
-`sudo python setup.py install`
+`pip install ./PyInformer`
 
 <details>
 <summary>(Expand this section to build only without automatic installation)</summary>
