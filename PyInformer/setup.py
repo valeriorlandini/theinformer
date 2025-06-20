@@ -125,10 +125,10 @@ class CMakeBuild(build_ext):
 # logic and declaration, and simpler if you include description/version in a file.
 setup(
     name="pyinformer - Informer for Python",
-    version="0.0.1",
+    version="0.1.0",
     author="Valerio Orlandini",
     author_email="valeriorlandini@gmail.com",
-    description="A librarty to compute audio descriptors",
+    description="A library to compute audio descriptors",
     long_description="",
     ext_modules=[CMakeExtension("pyinformer")],
     cmdclass={"build_ext": CMakeBuild},

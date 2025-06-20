@@ -1313,13 +1313,12 @@ public:
     {
         if (frequency_descriptors_.find("centroid") != frequency_descriptors_.end())
         {
-            Frequency::centroid(magnitudes_, sample_rate_, precomputed_frequencies_);
+            spectral_centroid();
         }
 
         if (frequency_descriptors_.find("spread") != frequency_descriptors_.end())
         {
-            Frequency::spread(magnitudes_, sample_rate_, precomputed_frequencies_,
-                              frequency_descriptors_["centroid"]);
+            spectral_spread();
         }
 
         frequency_descriptors_["kurtosis"] = Frequency::kurtosis(magnitudes_, sample_rate_,
@@ -1349,17 +1348,18 @@ public:
     {
         if (frequency_descriptors_.find("centroid") != frequency_descriptors_.end())
         {
-            Frequency::centroid(magnitudes_, sample_rate_, precomputed_frequencies_);
+            spectral_centroid();
         }
 
         if (frequency_descriptors_.find("spread") != frequency_descriptors_.end())
         {
-            Frequency::spread(magnitudes_, sample_rate_, precomputed_frequencies_,
-                              frequency_descriptors_["centroid"]);
+            spectral_spread();
         }
 
-        return Frequency::skewness(magnitudes_, sample_rate_, precomputed_frequencies_,
-                                   frequency_descriptors_["centroid"], frequency_descriptors_["spread"]);
+        frequency_descriptors_["skewness"] = Frequency::skewness(magnitudes_, sample_rate_, precomputed_frequencies_,
+                                             frequency_descriptors_["centroid"], frequency_descriptors_["spread"]);
+
+        return frequency_descriptors_["skewness"];
     }
 
     TSample spectral_slope()
@@ -1374,7 +1374,7 @@ public:
     {
         if (frequency_descriptors_.find("centroid") != frequency_descriptors_.end())
         {
-            Frequency::centroid(magnitudes_, sample_rate_, precomputed_frequencies_);
+            spectral_centroid();
         }
 
         frequency_descriptors_["spread"] = Frequency::spread(magnitudes_, sample_rate_,
