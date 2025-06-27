@@ -84,7 +84,7 @@ $$ SK_n = \frac{\sum_{k=0}^{K/2-1}(f(k) - SC_n)^4 |X(k,n)|}{\left(\sqrt{\frac{\s
 
 * Peak frequency
 
-$$ PK_n = \frac{{argmax}_k \{ |X(k,n)| \} f_s}{K}  $$
+$$ PK_n = \frac{\{argmax}_k \{ |X(k,n)| \} f_s}{K}  $$
 
 * Rolloff (at 85%)
 
