@@ -272,7 +272,8 @@ std::vector<typename Container::value_type> magnitudes(const Container& stft)
 
     std::vector<TSample> magnitudes_vector;
 
-    if (stft.size() < 2u)
+    // An even number of values and a size greater than 2 are expected
+    if (stft.size() < 2u || stft.size % 2)
     {
         return magnitudes_vector;
     }
@@ -286,7 +287,7 @@ std::vector<typename Container::value_type> magnitudes(const Container& stft)
     for (auto b = 2; b < stft.size(); b += 2)
     {
         TSample real = stft[b];
-        TSample imag = stft[b];
+        TSample imag = stft[b + 1];
         magnitudes_vector[b / 2] = sqrt(real * real + imag * imag) / static_cast<TSample>(stft.size());
     }
 
