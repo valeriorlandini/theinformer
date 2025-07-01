@@ -273,7 +273,7 @@ std::vector<typename Container::value_type> magnitudes(const Container& stft)
     std::vector<TSample> magnitudes_vector;
 
     // An even number of values and a size greater than 2 are expected
-    if (stft.size() < 2u || stft.size % 2)
+    if (stft.size() < 2u || stft.size() % 2)
     {
         return magnitudes_vector;
     }
