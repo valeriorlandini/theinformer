@@ -24,83 +24,84 @@ Currently, these descriptors have been implemented:
 ### Amplitude descriptors
 
 * Kurtosis
-
-$$ K_n = \frac{\frac{1}{N} \sum_{n=1}^{N} (x(n) - \mu)^4}{\left(\sqrt{\frac{1}{N} \sum_{n=1}^{N} (x(n) - \mu)^2} \right)^4} - 3 $$
+  
+<img src="https://github.com/user-attachments/assets/9558f3d2-0482-4553-ae91-6dd73f5d41c6" />
 
 * Peak level
 
-$$ P_n = \max_{1 \leq n \leq N}\{\left|x(n)\right|\} $$
+<img src="https://github.com/user-attachments/assets/25900b04-0133-43de-9cd3-755e0b8b6bd9" />
 
 * Root mean square
 
-$$ RMS_n = \sqrt{\frac{\sum_{n=1}^{N} x(n)^2}{N}} $$
+<img src="https://github.com/user-attachments/assets/f0d30d24-44b0-40a6-ab1e-621fc8ae3662" />
 
 * Skewness
 
-$$ S_n = \frac{\frac{1}{N}\sum_{n=1}^{N}(x - \mu)^3}{\left(\sqrt{\frac{1}{N} \sum_{n=1}^{N} (x(n) - \mu)^2} \right)^3} $$
+<img src="https://github.com/user-attachments/assets/b2eae4f0-2180-4134-9574-25739d21a34b" />
 
 * Variance
 
-$$ \sigma_n = (\frac{1}{N} \sum_{n=1}^{N} (x[n] - \mu)^2) $$
+<img src="https://github.com/user-attachments/assets/245da9b8-1862-4a3b-a2e1-7f9a70315e55" />
 
 * Zero crossing rate
 
-$$ ZCR_n = \frac{1}{N-1} \sum_{n=2}^{N}|\mathrm{sgn}(x(n))-\mathrm{sgn}(x(n-1))| $$
+<img src="https://github.com/user-attachments/assets/a035a4b8-d75f-4f81-9a9b-b5578cbb8d14" />
+
 
 ### Spectral descriptors
 
 * Centroid
 
-$$ SC_n = \frac{\sum_{k=0}^{K/2-1} f(k) \cdot |X(k,n)|}{\sum_{k=0}^{K/2-1} |X(k,n)|} $$
+<img src="https://github.com/user-attachments/assets/ef6b6052-d3d7-4b54-9dbc-59dc886c16e0" />
 
 * Crest factor
 
-$$ CF_n = \frac{\max_{0 \leq k \leq K/2-1} \{ |X(k,n)| \}}{\sum_{k=0}^{K/2-1} |X(k,n)|} $$
+<img src="https://github.com/user-attachments/assets/9eaf1945-f163-4a0a-937f-600456a29a77" />
 
 * Decrease
 
-$$ D_n = \frac{\sum_{k=1}^{K/2-1}  \frac{|X(k,n)| - |X(0,n)|}{k}}{\sum_{k=1}^{K/2-1}|X(k,n)|} $$
+<img src="https://github.com/user-attachments/assets/44119bb1-52c9-496f-814a-0bda7beb6824" />
 
 * Entropy
 
-$$ H_n = - \frac{\sum_{k=0}^{K/2-1}  \frac{|X(k,n)|^2}{\sum_{k=0}^{K/2-1}|X(k,n)|^2} log_2\left(\frac{|X(k,n)|^2}{\sum_{k=0}^{K/2-1}|X(k,n)|^2}\right)}{log_2 (K/2)} $$
+<img alt="specentropy svg" src="https://github.com/user-attachments/assets/60c90830-0f39-4dc9-a261-383ed2173767" />
 
 * Flatness
 
-$$ FL_n = \frac{\exp\Big(\frac{\sum_{k=0}^{K/2-1} ln(| X(k,n) |)}{K/2}\Big)}{\frac{\sum_{k=0}^{K/2-1} | X(k,n) |}{K/2} } $$
+<img src="https://github.com/user-attachments/assets/28c46cce-bd0e-4b76-aacc-e469953fede0" />
 
 * Flux
 
-$$ SF_n = \frac{\sqrt{\sum_{k=0}^{K/2-1} \Big( | X(k,n) | - | X(k,n-1) | \Big)^2
-}}{K/2}$$
+<img src="https://github.com/user-attachments/assets/8c1a983f-d60a-44d7-9607-125ee1b6d99e" />
 
 * Irregularity
 
-$$ SI_n = \frac{\sum_{k=1}^{K/2-1} | X(k,n) - X(k-1,n) |}{\sum_{k=0}^{K/2-1} | X(k,n) |} $$
+<img src="https://github.com/user-attachments/assets/4b2c55e9-bcd9-4aff-b160-7280a3ac07c4" />
 
 * Kurtosis
 
-$$ SK_n = \frac{\sum_{k=0}^{K/2-1}(f(k) - SC_n)^4 |X(k,n)|}{\left(\sqrt{\frac{\sum_{k=0}^{K/2-1} (f(k) - SC_n)^2|X(k,n)|^2}{\sum_{k=0}^{K/2-1}|X(k,n)|^2}}\right)^4\sum_{k=0}^{K/2-1} |X(k,n)|} - 3 $$
+<img src="https://github.com/user-attachments/assets/27bde64f-4585-4987-80ec-abe1e16eede6" />
 
 * Peak frequency
 
-$$ PK_n = \frac{\{argmax}_k \{ |X(k,n)| \} f_s}{K}  $$
+<img src="https://github.com/user-attachments/assets/199537b9-2b1f-4cf0-88b7-7fc144bec2df" />
 
 * Rolloff (at 85%)
 
-$$ R_n = i \text{  such that  } \sum_{k=0}^{i} | X(k,n) | = 0.85 \sum_{k=0}^{K/2-1} | X(k,n) | $$
+<img src="https://github.com/user-attachments/assets/e17213e7-25e9-4226-97fe-be677563f4d2" />
 
 * Skewness
 
-$$ SS_n = \frac{\sum_{k=0}^{K/2-1}(f(k) - SC_n)^3 |X(k,n)|}{\left(\sqrt{\frac{\sum_{k=0}^{K/2-1} (f(k) - SC_n)^2|X(k,n)|^2}{\sum_{k=0}^{K/2-1}|X(k,n)|^2}}\right)^3\sum_{k=0}^{K/2-1} |X(k,n)|} $$
+<img src="https://github.com/user-attachments/assets/cc0c5371-0a1d-4534-a7b7-83faa8a7f5d7" />
 
 * Slope
 
-$$ SL_n = \frac{\sum_{k=0}^{K/2-1}(f(k) - \mu_f)(|X(k,n)| - \frac{\sum_{k=0}^{K/2-1}|X(k,n)|}{K/2})}{\sum_{k=0}^{K/2-1} (f(k) - \mu_f)^2} $$
+<img src="https://github.com/user-attachments/assets/c0097ca7-978c-4f05-bcf7-d510418c3d23" />
 
 * Spread
 
-$$ SP_n = \sqrt{\frac{\sum_{k=0}^{K/2-1} (f(k) - SC_n)^2|X(k,n)|}{\sum_{k=0}^{K/2-1}|X(k,n)|}} $$
+<img src="https://github.com/user-attachments/assets/a5a82bed-d69a-4a71-84b4-b3ce6b558c24" />
+
 
 Please note: when the _normalize_ parameter is enabled, all descriptors are adjusted to ensure they fall within the [0.0, 1.0] range. While some descriptors naturally adhere to this range or have well-defined boundaries (e.g., those typically limited to [0.0, Nyquist frequency]), others —such as kurtosis, skewness, and slope— are adjusted based on empirical observations. As a result, the normalize option is best suited for artistic purposes where exact precision is not essential, focusing instead on preventing values from falling outside the expected range, rather than for detailed sound analysis.
 
