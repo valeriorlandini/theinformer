@@ -128,6 +128,9 @@ The compiled binaries can be found inside `TheInformer_artefacts/Release` (or si
 
 *The Case Officer* is a Max for Live device that receives data from *The Informer* so that they can be used as modulation sources within Live. It runs on Live 12 (Windows/macOS), and can be found in the `Max4Live` folder of this repository.
 
+![image](https://github.com/user-attachments/assets/4571a509-41de-47e1-9bf7-15aedf0520ca)
+
+
 ## _Informer_ C++ library
 
 In `Library` folder, there is `informer.h`, a MIT-licensed C++ header-only library to use the plugin algorithms in any application. The library can be used in two ways: by directly calling the provided functions or by creating an instance of the implemented class and then computing and retrieving the descriptors from there.
