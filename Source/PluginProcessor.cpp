@@ -739,9 +739,9 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             sender.send(juce::OSCAddressPattern(root + mix + freq + "entropy"), entropy);
             sender.send(juce::OSCAddressPattern(root + mix + freq + "flatness"), flatness);
             sender.send(juce::OSCAddressPattern(root + mix + freq + "flux"), flux);
-            sender.send(juce::OSCAddressPattern(root + mix + freq + "peak"), peak);
             sender.send(juce::OSCAddressPattern(root + mix + freq + "irregularity"), irregularity);
             sender.send(juce::OSCAddressPattern(root + mix + freq + "kurtosis"), kurtosis);
+            sender.send(juce::OSCAddressPattern(root + mix + freq + "peak"), peak);
             sender.send(juce::OSCAddressPattern(root + mix + freq + "rolloff"), rolloff);
             sender.send(juce::OSCAddressPattern(root + mix + freq + "scf"), scf);
             sender.send(juce::OSCAddressPattern(root + mix + freq + "skewness"), skewness);
@@ -768,9 +768,9 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 sender.send(juce::OSCAddressPattern(root + ch_str + freq + "entropy"), entropies.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + freq + "flatness"), flatnesses.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + freq + "flux"), fluxes.at(ch));
-                sender.send(juce::OSCAddressPattern(root + ch_str + freq + "peak"), peaks.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + freq + "irregularity"), irregularities.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + freq + "kurtosis"), kurtoses.at(ch));
+                sender.send(juce::OSCAddressPattern(root + ch_str + freq + "peak"), peaks.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + freq + "rolloff"), rolloffs.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + freq + "scf"), scfs.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + freq + "skewness"), skewnesses.at(ch));
