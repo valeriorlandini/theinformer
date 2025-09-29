@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: pyinformer---Informer-for-Python
+Version: 0.1.0
+Summary: A library to compute audio descriptors
+Author: Valerio Orlandini
+Author-email: valeriorlandini@gmail.com
+Requires-Python: >=3.7
+License-File: LICENSE
+Provides-Extra: test
+Requires-Dist: pytest>=6.0; extra == "test"
+Dynamic: author
+Dynamic: author-email
+Dynamic: license-file
+Dynamic: provides-extra
+Dynamic: requires-python
+Dynamic: summary

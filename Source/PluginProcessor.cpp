@@ -41,6 +41,7 @@ TheInformerAudioProcessor::TheInformerAudioProcessor() :
     std::make_unique<juce::AudioParameterInt>("ip3", "IP address Octet 3", 0, 255, 0),
     std::make_unique<juce::AudioParameterInt>("ip4", "IP address Octet 4", 0, 255, 1),
     std::make_unique<juce::AudioParameterBool>("normalize", "Normalize Values", false),
+    std::make_unique<juce::AudioParameterInt>("reportbands", "Report Bands", 0, 16, 3),
 }),
 fftProcessorSmall(orderSmall),
 windowSmall(fftSizeSmall, juce::dsp::WindowingFunction<float>::hann),
@@ -66,6 +67,10 @@ windowLarge(fftSizeLarge, juce::dsp::WindowingFunction<float>::hann)
     host = makeHost();
 
     normParameter = treeState.getRawParameterValue("normalize");
+
+    reportBandsParameter = treeState.getRawParameterValue("reportbands");
+    reportBands = int(*reportBandsParameter);
+    getEqualOctaveBandEdges();
 }
 
 TheInformerAudioProcessor::~TheInformerAudioProcessor()
@@ -175,6 +180,8 @@ void TheInformerAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
     {
         invNyquist = 1.0f / (static_cast<float>(sampleRate) * 0.5f);        
     }
+
+    getEqualOctaveBandEdges();
 }
 
 void TheInformerAudioProcessor::releaseResources()
@@ -279,6 +286,20 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 
         float spread = 0.0f;
         std::vector<float> spreads;
+
+        std::array<std::vector<float>, 65> bandMagnitudes;
+        if (int(*reportBandsParameter) != reportBands)
+        {
+            reportBands = int(*reportBandsParameter);
+            getEqualOctaveBandEdges();
+        }
+        if (reportBands > 0)
+        {
+            for (auto &m : bandMagnitudes)
+            {
+                m.resize(reportBands);
+            }
+        }
 
         for (unsigned int ch = 0; ch < (unsigned int)std::min(totalNumInputChannels, 64); ch++)
         {
@@ -428,6 +449,14 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 }
 
                 chFlux += std::powf(magnitude - prev_magnitude, 2.0f);
+
+                if (reportBands > 0)
+                {
+                    auto currRepBand = std::upper_bound(bandsEdges.begin(), bandsEdges.end(), frequency) - bandsEdges.begin() - 1;
+                    bandMagnitudes.at(ch).at(currRepBand) += magnitude;
+                    // Mix
+                    bandMagnitudes.at(64).at(currRepBand) += magnitude / totalNumInputChannels;
+                }
             }
             chFlux = std::sqrtf(chFlux);
             if (powerSum > 0.0f)
@@ -719,7 +748,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                                              zerocrossing, zerocrossings,
                                              host = makeHost(),
                                              port = int(*portParameter),
-                                             root]() mutable
+                                             root, bandMagnitudes]() mutable
         {
             juce::OSCSender sender;
             sender.connect(host, port);
@@ -727,6 +756,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             juce::String mix = "mix/";
             juce::String time = "time/";
             juce::String freq = "freq/";
+            juce::String spec = "spec/";
 
             sender.send(juce::OSCAddressPattern(root + mix + time + "kurtosis"), ampKurtosis);
             sender.send(juce::OSCAddressPattern(root + mix + time + "peak"), ampPeak);
@@ -747,6 +777,16 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             sender.send(juce::OSCAddressPattern(root + mix + freq + "skewness"), skewness);
             sender.send(juce::OSCAddressPattern(root + mix + freq + "slope"), slope);
             sender.send(juce::OSCAddressPattern(root + mix + freq + "spread"), spread);
+            for (auto b = 0; b < bandMagnitudes.at(64).size(); b++)
+            {
+                std::string b_str = "band";
+                if (b < 9)
+                {
+                    b_str += "0";
+                }
+                b_str += std::to_string(b + 1);
+                sender.send(juce::OSCAddressPattern(root + mix + spec + b_str), bandMagnitudes.at(64).at(b));
+            }
 
             for (unsigned int ch = 0; ch < chRms.size(); ch++)
             {
@@ -776,6 +816,16 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 sender.send(juce::OSCAddressPattern(root + ch_str + freq + "skewness"), skewnesses.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + freq + "slope"), slopes.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + freq + "spread"), spreads.at(ch));
+                for (auto b = 0; b < bandMagnitudes.at(ch).size(); b++)
+                {
+                    std::string b_str = "band";
+                    if (b < 9)
+                    {
+                        b_str += "0";
+                    }
+                    b_str += std::to_string(b + 1);
+                    sender.send(juce::OSCAddressPattern(root + ch_str + spec + b_str), bandMagnitudes.at(ch).at(b));
+                }
             }
 
             sender.disconnect();

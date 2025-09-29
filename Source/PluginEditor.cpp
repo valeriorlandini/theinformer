@@ -23,10 +23,10 @@ TheInformerAudioProcessorEditor::TheInformerAudioProcessorEditor(TheInformerAudi
       customTypeface(juce::Typeface::createSystemTypefaceFor(BinaryData::Font_ttf, BinaryData::Font_ttfSize)),
       customFont(juce::Font(juce::FontOptions().withTypeface(customTypeface)))
 {
-    setSize(500, 230);
-    setResizeLimits(500, 230, 3000, 1380);
+    setSize(500, 250);
+    setResizeLimits(500, 250, 3000, 15000);
     setResizable(true, p.wrapperType != TheInformerAudioProcessor::wrapperType_AudioUnitv3);
-    getConstrainer()->setFixedAspectRatio(500.0f/230.0f);
+    getConstrainer()->setFixedAspectRatio(500.0f/250.0f);
 
     std::unique_ptr<juce::XmlElement> svgXml(juce::XmlDocument::parse(BinaryData::Logo_svg));
     if (svgXml != nullptr)
@@ -103,6 +103,23 @@ TheInformerAudioProcessorEditor::TheInformerAudioProcessorEditor(TheInformerAudi
     normLabel.setJustificationType(juce::Justification::centred);
     normLabel.setText("norm", juce::dontSendNotification);
     addAndMakeVisible(normLabel);
+
+    bandsSlider.setLookAndFeel(&customLookAndFeel);
+    bandsSlider.setColour(juce::Slider::trackColourId, juce::Colours::transparentBlack);
+    bandsSlider.setSliderStyle(juce::Slider::LinearBar);
+    bandsSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 0, 0);
+    bandsSlider.setPopupDisplayEnabled(false, false, this);
+    addAndMakeVisible(&bandsSlider);
+    bandsAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(p.treeState, "reportbands", bandsSlider);
+    bandsSlider.textFromValueFunction = [](double value)
+    {
+        return std::to_string(int(value)) + " bands";
+    };
+    bandsSlider.updateText();
+
+    bandsLabel.setJustificationType(juce::Justification::centred);
+    bandsLabel.setText("spec", juce::dontSendNotification);
+    addAndMakeVisible(bandsLabel);
 }
 
 TheInformerAudioProcessorEditor::~TheInformerAudioProcessorEditor()
@@ -158,4 +175,10 @@ void TheInformerAudioProcessorEditor::resized()
     normLabel.setFont(customFont.withHeight(fontSize));
     normSlider.setBounds(blockUI * 5, blockUI * 7, blockUI * 8, blockUI);
     normSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, blockUI * 8, blockUI);
+ 
+    bandsLabel.setJustificationType(juce::Justification::centred);
+    bandsLabel.setBounds(blockUI, blockUI * 8, blockUI * 3, blockUI);
+    bandsLabel.setFont(customFont.withHeight(fontSize));
+    bandsSlider.setBounds(blockUI * 5, blockUI * 8, blockUI * 8, blockUI);
+    bandsSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, blockUI * 8, blockUI);
 }
