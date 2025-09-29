@@ -1,9 +1,0 @@
-LICENSE
-pyproject.toml
-setup.py
-pyinformer___Informer_for_Python.egg-info/PKG-INFO
-pyinformer___Informer_for_Python.egg-info/SOURCES.txt
-pyinformer___Informer_for_Python.egg-info/dependency_links.txt
-pyinformer___Informer_for_Python.egg-info/not-zip-safe
-pyinformer___Informer_for_Python.egg-info/requires.txt
-pyinformer___Informer_for_Python.egg-info/top_level.txt

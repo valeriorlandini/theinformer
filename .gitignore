@@ -26,3 +26,5 @@ xcschememanagement.plist
 
 workspace.xml
 xcuserdata
+
+*.egg-info
