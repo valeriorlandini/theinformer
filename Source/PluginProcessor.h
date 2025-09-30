@@ -95,6 +95,7 @@ private:
     std::array<std::vector<float>, 64> samples;
     std::array<std::vector<float>, 64> nextSamples;
     std::vector<float> bandsEdges = {0.0f, 386.196f, 2485.79f, 22050.0f};
+    std::vector<float> binsPerReportedBand;
 
     float invNyquist = 1.0f / 44100.0f;
 
@@ -141,23 +142,48 @@ private:
     }
 
     inline void getEqualOctaveBandEdges() 
-    {
-        if (reportBands > 0)
+    {   
+        if (reportBands > 1)
         {
             const float f_min = 60.0f;
             const float f_max = 16000.0f;
-    
+            const float nyquist = 1.0f / invNyquist;
+        
             float totalOctaves = std::log2f(f_max / f_min);
             float octavesPerBand = totalOctaves / static_cast<float>(reportBands);
-    
+        
             bandsEdges.resize(reportBands + 1);
-    
-            for (auto i = 1; i < reportBands; ++i)
-            {
-                bandsEdges[i] = f_min * std::powf(2.0f, i * octavesPerBand);
-            }
+        
             bandsEdges[0] = 0.0f;
-            bandsEdges[reportBands] = 1.0f / invNyquist;
+            for (auto i = 0; i < reportBands; ++i)
+            {
+                bandsEdges[i + 1] = f_min * std::powf(2.0f, i * octavesPerBand);
+            }
+            bandsEdges[reportBands] = nyquist;
+
+            computeBinsPerReportedBand();
+        }
+    }
+
+    inline void computeBinsPerReportedBand()
+    {
+        if (reportBands > 1)
+        {
+            binsPerReportedBand.resize(reportBands);
+    
+            for (int band = 0; band < reportBands; ++band)
+            {
+                float bandStartFreq = bandsEdges[band];
+                float bandEndFreq = bandsEdges[band + 1];
+        
+                int binStart = static_cast<int>(std::floor(bandStartFreq / fftBandwidth));
+                int binEnd = static_cast<int>(std::ceil(bandEndFreq / fftBandwidth));
+        
+                binStart = std::max(0, binStart);
+                binEnd = std::min(fftSize / 2, binEnd);
+            
+                binsPerReportedBand[band] = static_cast<float>(std::max(0, binEnd - binStart));
+            }
         }
     }
 

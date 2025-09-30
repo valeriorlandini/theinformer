@@ -41,7 +41,7 @@ TheInformerAudioProcessor::TheInformerAudioProcessor() :
     std::make_unique<juce::AudioParameterInt>("ip3", "IP address Octet 3", 0, 255, 0),
     std::make_unique<juce::AudioParameterInt>("ip4", "IP address Octet 4", 0, 255, 1),
     std::make_unique<juce::AudioParameterBool>("normalize", "Normalize Values", false),
-    std::make_unique<juce::AudioParameterInt>("reportbands", "Report Bands", 0, 16, 3),
+    std::make_unique<juce::AudioParameterInt>("reportbands", "Report Bands", 2, 16, 3),
 }),
 fftProcessorSmall(orderSmall),
 windowSmall(fftSizeSmall, juce::dsp::WindowingFunction<float>::hann),
@@ -423,6 +423,8 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 magnitudes.at(ch).at(k) = fabs(fftData.at(ch).at(k));
             }
 
+            std::fill(bandMagnitudes.at(ch).begin(), bandMagnitudes.at(ch).end(), 0.0f);
+
             for (unsigned int k = 0; k < fftHalf; k++)
             {
                 float magnitude = magnitudes.at(ch).at(k);
@@ -453,11 +455,18 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 if (reportBands > 0)
                 {
                     auto currRepBand = std::upper_bound(bandsEdges.begin(), bandsEdges.end(), frequency) - bandsEdges.begin() - 1;
-                    bandMagnitudes.at(ch).at(currRepBand) += magnitude;
-                    // Mix
-                    bandMagnitudes.at(64).at(currRepBand) += magnitude / totalNumInputChannels;
+                    bandMagnitudes.at(ch).at(currRepBand) = std::max(magnitude, bandMagnitudes.at(ch).at(currRepBand));    
                 }
             }
+
+            // Scale magnitude values
+            for (auto b = 0; b < bandMagnitudes.at(ch).size(); b++)
+            {
+                bandMagnitudes.at(ch).at(b) *= 1.0f / static_cast<float>(fftHalf);
+                bandMagnitudes.at(ch).at(b) = std::min(1.0f, bandMagnitudes.at(ch).at(b));
+                bandMagnitudes.at(64).at(b) += bandMagnitudes.at(ch).at(b) / static_cast<float>(totalNumInputChannels);
+            }
+            
             chFlux = std::sqrtf(chFlux);
             if (powerSum > 0.0f)
             {
