@@ -463,7 +463,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             for (auto b = 0; b < bandMagnitudes.at(ch).size(); b++)
             {
                 bandMagnitudes.at(ch).at(b) *= 1.0f / static_cast<float>(fftHalf);
-                bandMagnitudes.at(ch).at(b) = std::min(1.0f, bandMagnitudes.at(ch).at(b));
+                bandMagnitudes.at(ch).at(b) = std::sqrtf(std::min(1.0f, bandMagnitudes.at(ch).at(b)));
                 bandMagnitudes.at(64).at(b) += bandMagnitudes.at(ch).at(b) / static_cast<float>(totalNumInputChannels);
             }
             

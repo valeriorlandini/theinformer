@@ -104,6 +104,7 @@ Currently, these descriptors have been implemented:
 
 
 Please note: when the _normalize_ parameter is enabled, all descriptors are adjusted to ensure they fall within the [0.0, 1.0] range. While some descriptors naturally adhere to this range or have well-defined boundaries (e.g., those typically limited to [0.0, Nyquist frequency]), others —such as kurtosis, skewness, and slope— are adjusted based on empirical observations. As a result, the normalize option is best suited for artistic purposes where exact precision is not essential, focusing instead on preventing values from falling outside the expected range, rather than for detailed sound analysis.
+In addition to the descriptors mentioned above, a simplified spectrum is provided, consisting of a user-specified number of equal-octave bands (ranging from 2 to 16 via the user interface). For each of these bands, the reported value corresponds to the square root of the highest magnitude among all the original frequency bands of the full spectrogram that fall within that equal-octave band.
 
 ## Pre-built binaries
 
