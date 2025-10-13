@@ -452,9 +452,11 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 
                 chFlux += std::powf(magnitude - prev_magnitude, 2.0f);
 
-                if (reportBands > 0)
+                if (reportBands > 1)
                 {
+                    // Find which reported band the current spectrogram band belongs to
                     auto currRepBand = std::upper_bound(bandsEdges.begin(), bandsEdges.end(), frequency) - bandsEdges.begin() - 1;
+                    // If current magnitude is greater than maximum value stored in the corresponding reported band, update its value
                     bandMagnitudes.at(ch).at(currRepBand) = std::max(magnitude, bandMagnitudes.at(ch).at(currRepBand));    
                 }
             }
