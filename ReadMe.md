@@ -104,7 +104,7 @@ Currently, these descriptors have been implemented:
 <img src="https://github.com/user-attachments/assets/a5a82bed-d69a-4a71-84b4-b3ce6b558c24" />
 
 
-Please note: when the _normalize_ parameter is enabled, all descriptors are adjusted to ensure they fall within the [0.0, 1.0] range. While some descriptors naturally adhere to this range or have well-defined boundaries (e.g., those typically limited to [0.0, Nyquist frequency]), others —such as kurtosis, skewness, and slope— are adjusted based on empirical observations. As a result, the normalize option is best suited for artistic purposes where exact precision is not essential, focusing instead on preventing values from falling outside the expected range, rather than for detailed sound analysis.
+Please note: when the _normalize_ parameter is enabled, all descriptors are adjusted to ensure they fall within the [0.0, 1.0] range. While some descriptors naturally adhere to this range or have well-defined boundaries (e.g., those typically limited to [0.0, Nyquist frequency]), others (such as kurtosis, skewness, and slope) are adjusted based on empirical observations. As a result, the normalize option is best suited for artistic purposes where exact precision is not essential, focusing instead on preventing values from falling outside the expected range, rather than for detailed sound analysis.
 In addition to the descriptors mentioned above, a simplified spectrum is provided, consisting of a user-specified number of equal-octave bands (ranging from 2 to 16 via the user interface). For each of these bands, the reported value corresponds to the square root of the highest magnitude among all the original frequency bands of the full spectrogram that fall within that equal-octave band.
 
 ## Pre-built binaries
@@ -247,3 +247,18 @@ zero_crossing_rate = pyinformer.amplitude.zerocrossing(example_buffer)
 ```
 
 Arguments to be passed to the various functions are the same and respect the same order of the corresponding C++ ones.
+
+The Python library has also a class-based implementantion, mirroring the one provided by the C++ counterpart. For example, provided that you have a buffer and its corresponding FFT magnitudes:
+
+```python
+import pyinformer 
+
+descriptors = pyinformer.Informer(sample_rate=sr, stft_size=n_fft)
+
+# Buffer and magnitudes can be also set during class initialization
+descriptors.set_buffer(buffer)
+descriptors.set_magnitudes(magnitudes)
+
+descriptors.compute_descriptors()
+centroid = descriptors.get_frequency_descriptor('centroid')
+```
