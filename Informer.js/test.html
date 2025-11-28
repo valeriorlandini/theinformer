@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Informer WASM Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+        }
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: inline-block;
+            width: 150px;
+            font-weight: bold;
+        }
+        input[type="number"], input[type="range"] {
+            width: 200px;
+            padding: 5px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .results {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .result-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .result-section h2 {
+            margin-top: 0;
+            color: #4CAF50;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .descriptor {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        .descriptor-name {
+            font-weight: bold;
+            color: #555;
+        }
+        .descriptor-value {
+            font-family: monospace;
+            color: #333;
+        }
+        .status {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .status.loading {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .status.ready {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎵 Audio Analysis with Informer WASM</h1>
+    
+    <div id="status" class="status loading">Loading libraries...</div>
+    
+    <div class="controls">
+        <h2>Audio uploader</h2>
+
+         <div class="control-group">
+            <label for="audioFile">Upload audio:</label>
+            <input type="file" id="audioFile" accept="audio/*">
+        </div>
+        
+        <div class="control-group">
+            <label for="fftSize">FFT Size:</label>
+            <select id="fftSize">
+                <option value="512">512</option>
+                <option value="1024">1024</option>
+                <option value="2048">2048</option>
+                <option value="4096" selected>4096</option>
+                <option value="8192">8192</option>
+            </select>
+        </div>
+        
+        <button id="analyzeBtn" disabled>Analyze Audio</button>
+    </div>
+    
+    <div class="results">
+        <div class="result-section">
+            <h2>⏱️ Time Domain Descriptors</h2>
+            <div id="timeResults">No data yet</div>
+        </div>
+        
+        <div class="result-section">
+            <h2>📊 Frequency Domain Descriptors</h2>
+            <div id="freqResults">No data yet</div>
+        </div>
+    </div>
+
+    <div class="result-section" style="margin-top: 20px;">
+        <h2>📈 Time-Frequency Analysis</h2>
+        <canvas id="analysisCanvas" width="1160" height="300" style="width: 100%; background: #fafafa; border: 1px solid #ddd; border-radius: 4px;"></canvas>
+    </div>
+    
+    <!-- Load your compiled Informer WASM -->
+    <script src="informer.js"></script>
+    
+    <script>
+        let InformerLib = null;
+        let isReady = false;
+        
+        const statusDiv = document.getElementById('status');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const timeResults = document.getElementById('timeResults');
+        const freqResults = document.getElementById('freqResults');
+        const audioFileInput = document.getElementById('audioFile');
+        const canvas = document.getElementById('analysisCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Load Informer WASM module
+        InformerModule().then(Module => {
+            InformerLib = Module;
+            isReady = true;
+            statusDiv.textContent = '✓ Libraries loaded and ready!';
+            statusDiv.className = 'status ready';
+            analyzeBtn.disabled = false;
+            console.log('Informer WASM library loaded successfully');
+        }).catch(error => {
+            statusDiv.textContent = '✗ Error loading Informer library';
+            statusDiv.className = 'status error';
+            console.error('Failed to load Informer:', error);
+        });
+        
+        // Generate audio signal
+        function generateSignal(waveform, frequency, sampleRate, duration) {
+            const samples = Math.floor(sampleRate * duration);
+            const buffer = new Float64Array(samples);
+            
+            for (let i = 0; i < samples; i++) {
+                const t = i / sampleRate;
+                const phase = 2 * Math.PI * frequency * t;
+                
+                switch(waveform) {
+                    case 'sine':
+                        buffer[i] = Math.sin(phase);
+                        break;
+                    case 'square':
+                        buffer[i] = Math.sin(phase) >= 0 ? 1 : -1;
+                        break;
+                    case 'sawtooth':
+                        buffer[i] = 2 * (t * frequency - Math.floor(0.5 + t * frequency));
+                        break;
+                    case 'triangle':
+                        buffer[i] = 2 * Math.abs(2 * (t * frequency - Math.floor(0.5 + t * frequency))) - 1;
+                        break;
+                    case 'noise':
+                        buffer[i] = Math.random() * 2 - 1;
+                        break;
+                }
+            }
+            
+            return buffer;
+        }
+        
+        // Perform FFT and get magnitudes
+                // Analyze an audio buffer in overlapping chunks and visualize
+        async function analyzeAudioBuffer(audioBuffer, sampleRate, fftSize) {
+            const totalSamples = audioBuffer.length;
+            const hopSize = fftSize / 2; // 50% overlap
+            const numFrames = Math.max(1, Math.floor((totalSamples - fftSize) / hopSize) + 1);
+
+            // Arrays to store results over time
+            const centroids = [];
+            const times = [];
+
+            // Get full waveform for drawing
+            const waveform = Array.from(audioBuffer); // copy
+
+            // Ensure canvas width matches duration
+            const duration = totalSamples / sampleRate;
+            canvas.width = canvas.offsetWidth;
+            canvas.height = 300;
+
+            // Process each frame
+            for (let i = 0; i < numFrames; i++) {
+                const start = i * hopSize;
+                const end = start + fftSize;
+                if (end > totalSamples) break;
+
+                const chunk = audioBuffer.slice(start, end);
+
+                // Create Informer instance per frame (lightweight in WASM)
+                const informer = new InformerLib.Informer(sampleRate, 0.85, fftSize);
+                informer.setBuffer(new Float64Array(chunk));
+                informer.computeDescriptors(true, false);
+
+                // Compute FFT magnitudes using the same method as before, but inline for efficiency
+                const magnitudes = await computeFFTMagnitudes(chunk, fftSize, sampleRate);
+                informer.setMagnitudes(magnitudes);
+                informer.computeDescriptors(false, true);
+
+                const freqDesc = informer.getFrequencyDescriptors();
+                const centroidHz = freqDesc.centroid || 0;
+
+                centroids.push(centroidHz);
+                times.push(start / sampleRate);
+
+                informer.delete();
+            }
+
+            // Render visualization
+            drawAnalysis(waveform, times, centroids, sampleRate, duration);
+        }
+
+        // Helper: Compute linear-magnitude FFT using OfflineAudioContext (optimized)
+        async function computeFFTMagnitudes(chunk, fftSize, sampleRate) {
+            const float32Data = new Float32Array(chunk);
+            let data;
+            if (float32Data.length >= fftSize) {
+                data = float32Data.slice(0, fftSize);
+            } else {
+                data = new Float32Array(fftSize);
+                data.set(float32Data);
+            }
+
+            const offlineCtx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)({
+                length: fftSize,
+                sampleRate: sampleRate,
+                numberOfChannels: 1
+            });
+
+            const buffer = offlineCtx.createBuffer(1, fftSize, sampleRate);
+            buffer.copyToChannel(data, 0);
+
+            const source = offlineCtx.createBufferSource();
+            source.buffer = buffer;
+
+            const analyser = offlineCtx.createAnalyser();
+            analyser.fftSize = fftSize;
+            analyser.smoothingTimeConstant = 0;
+
+            source.connect(analyser);
+            analyser.connect(offlineCtx.destination);
+            source.start(0);
+
+            await offlineCtx.startRendering();
+
+            const freqData = new Float32Array(analyser.frequencyBinCount);
+            analyser.getFloatFrequencyData(freqData);
+
+            const magnitudes = new Float64Array(freqData.length);
+            for (let i = 0; i < freqData.length; i++) {
+                magnitudes[i] = freqData[i] < -1000 ? 0 : Math.pow(10, freqData[i] / 20);
+            }
+            return magnitudes;
+        }
+
+        // Visualization function
+                // Visualization function
+        function drawAnalysis(waveform, times, centroids, sampleRate, duration) {
+            const width = canvas.width;
+            const height = canvas.height;
+            const nyquist = sampleRate / 2;
+
+            // Define the vertical range for centroid: from 0 Hz (bottom) to nyquist (top)
+            // We'll leave space below for waveform (waveOffset is the "floor" for centroid area)
+            const waveOffset = height * 0.85; // waveform drawn below this line
+            const centroidAreaHeight = waveOffset - 20; // leave 20px margin at top
+
+            ctx.clearRect(0, 0, width, height);
+
+            // --- Draw Y-axis Hz labels (left side) ---
+            ctx.fillStyle = '#555';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'right';
+
+            // Define a few key frequency ticks (log or linear? We'll use linear for clarity)
+            const freqTicks = [0, nyquist * 0.25, nyquist * 0.5, nyquist * 0.75, nyquist];
+            freqTicks.forEach(freq => {
+                // Y position: high freq = top, low freq = bottom (within centroid area)
+                const y = (1 - freq / nyquist) * centroidAreaHeight + 20; // +20 for top margin
+                ctx.fillText(`${Math.round(freq)} Hz`, 50, y + 4); // +4 for vertical alignment
+
+                // Optional: light horizontal grid lines
+                ctx.strokeStyle = '#eee';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(60, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            });
+            ctx.textAlign = 'center'; // reset for time labels
+
+            // --- Draw waveform ---
+            ctx.strokeStyle = '#4A90E2';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            const waveHeight = height * 0.15; // only 15% of canvas for waveform (was 70% before — too big!)
+            for (let i = 0; i < waveform.length; i++) {
+                const x = (i / waveform.length) * width;
+                const y = waveOffset + (waveform[i] * waveHeight); // centered on waveOffset
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // --- Draw waveform baseline ---
+            ctx.strokeStyle = '#999';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 2]);
+            ctx.beginPath();
+            ctx.moveTo(0, waveOffset);
+            ctx.lineTo(width, waveOffset);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // --- Draw spectral centroid ---
+            if (centroids.length > 1) {
+                ctx.strokeStyle = '#D32F2F';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                for (let i = 0; i < centroids.length; i++) {
+                    const x = (times[i] / duration) * width;
+                    const y = (1 - centroids[i] / nyquist) * centroidAreaHeight + 20;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+
+                // Label
+                ctx.fillStyle = '#D32F2F';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText('Spectral Centroid', 65, 15);
+            }
+
+            // --- Draw X-axis time labels ---
+            ctx.fillStyle = '#555';
+            ctx.textAlign = 'center';
+            const timeTicks = Math.max(2, Math.floor(duration));
+            for (let i = 0; i <= timeTicks; i++) {
+                const t = (i / timeTicks) * duration;
+                const x = (t / duration) * width;
+                ctx.fillText(t.toFixed(1), x, height - 5);
+            }
+        }
+        
+        // Display results
+        function displayResults(descriptors, elementId) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = '';
+            
+            const entries = Object.entries(descriptors);
+            if (entries.length === 0) {
+                element.innerHTML = '<p>No descriptors computed</p>';
+                return;
+            }
+            
+            entries.forEach(([name, value]) => {
+                const div = document.createElement('div');
+                div.className = 'descriptor';
+                div.innerHTML = `
+                    <span class="descriptor-name">${name}:</span>
+                    <span class="descriptor-value">${value.toFixed(6)}</span>
+                `;
+                element.appendChild(div);
+            });
+        }
+        
+        // Main analysis function
+                // Main analysis function
+        async function analyzeAudio() {
+            if (!isReady) {
+                alert('Libraries not ready yet!');
+                return;
+            }
+            
+            try {
+                // Get parameters
+                const frequency = parseFloat(document.getElementById('frequency').value);
+                const sampleRate = parseFloat(document.getElementById('sampleRate').value);
+                const duration = parseFloat(document.getElementById('duration').value);
+                const fftSize = parseInt(document.getElementById('fftSize').value);
+                const waveform = document.getElementById('waveform').value;
+                
+                // Generate audio signal
+                console.log(`Generating ${waveform} wave at ${frequency}Hz...`);
+                const audioBuffer = generateSignal(waveform, frequency, sampleRate, duration);
+                
+                // Create Informer instance
+                const informer = new InformerLib.Informer(sampleRate, 0.85, fftSize);
+                
+                // Set buffer and compute time domain descriptors
+                informer.setBuffer(audioBuffer);
+                informer.computeDescriptors(true, false);
+                
+                // Get time domain descriptors
+                const timeDescriptors = informer.getTimeDescriptors();
+                displayResults(timeDescriptors, 'timeResults');
+                
+                // Compute FFT (now async)
+                console.log('Computing FFT...');
+                const magnitudes = await computeFFT(audioBuffer, fftSize);
+                
+                // Set magnitudes and compute frequency domain descriptors
+                informer.setMagnitudes(magnitudes);
+                informer.computeDescriptors(false, true);
+                
+                // Get frequency domain descriptors
+                const freqDescriptors = informer.getFrequencyDescriptors();
+                displayResults(freqDescriptors, 'freqResults');
+                
+                // Log some key results
+                console.log('Analysis complete!');
+                console.log('Peak amplitude:', timeDescriptors.peak);
+                console.log('RMS:', timeDescriptors.rms);
+                console.log('Spectral centroid:', freqDescriptors.centroid, 'Hz');
+                console.log('Spectral peak:', freqDescriptors.peak, 'Hz');
+                
+                // Clean up
+                informer.delete();
+                
+            } catch (error) {
+                console.error('Analysis error:', error);
+                statusDiv.textContent = '✗ Analysis error: ' + error.message;
+                statusDiv.className = 'status error';
+            }
+        }
+        
+        // Event listener
+        analyzeBtn.addEventListener('click', analyzeAudio);
+        
+        // Allow Enter key to trigger analysis
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !analyzeBtn.disabled) {
+                analyzeAudio();
+            }
+        });
+        
+        console.log('FFT implementation loaded');
+
+                audioFileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            statusDiv.textContent = '✓ Decoding audio file...';
+            statusDiv.className = 'status ready';
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const decoded = await audioContext.decodeAudioData(arrayBuffer);
+
+                // Use only first channel if multichannel
+                const channelData = decoded.getChannelData(0);
+                const sampleRate = decoded.sampleRate;
+                const fftSize = parseInt(document.getElementById('fftSize').value);
+
+                // Run chunked analysis
+                await analyzeAudioBuffer(channelData, sampleRate, fftSize);
+
+                // Optional: also run your single-buffer analysis on full file?
+                // (You could add a flag or separate button)
+            } catch (err) {
+                statusDiv.textContent = '✗ Error decoding audio: ' + err.message;
+                statusDiv.className = 'status error';
+                console.error(err);
+            }
+        });
+    </script>
+</body>
+</html>
