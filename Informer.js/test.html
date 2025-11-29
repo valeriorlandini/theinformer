@@ -9,10 +9,10 @@
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #f5f5f5;
+            background-color: #222123;
         }
         h1 {
-            color: #333;
+            color: #c7c7c7;
         }
         .controls {
             background: white;
@@ -127,22 +127,11 @@
         
         <button id="analyzeBtn" disabled>Analyze Audio</button>
     </div>
-    
-    <div class="results">
-        <div class="result-section">
-            <h2>⏱️ Time Domain Descriptors</h2>
-            <div id="timeResults">No data yet</div>
-        </div>
-        
-        <div class="result-section">
-            <h2>📊 Frequency Domain Descriptors</h2>
-            <div id="freqResults">No data yet</div>
-        </div>
-    </div>
 
+    <div id="descriptor-legend"></div>
     <div class="result-section" style="margin-top: 20px;">
         <h2>📈 Time-Frequency Analysis</h2>
-        <canvas id="analysisCanvas" width="1160" height="300" style="width: 100%; background: #fafafa; border: 1px solid #ddd; border-radius: 4px;"></canvas>
+        <canvas id="analysisCanvas" style="width: 100%; height: 400px; background: white; border: 1px solid #ddd; border-radius: 4px;"></canvas>
     </div>
     
     <!-- Load your compiled Informer WASM -->
@@ -207,56 +196,10 @@
         
         // Perform FFT and get magnitudes
                 // Analyze an audio buffer in overlapping chunks and visualize
-        async function analyzeAudioBuffer(audioBuffer, sampleRate, fftSize) {
-            const totalSamples = audioBuffer.length;
-            const hopSize = fftSize / 2; // 50% overlap
-            const numFrames = Math.max(1, Math.floor((totalSamples - fftSize) / hopSize) + 1);
-
-            // Arrays to store results over time
-            const centroids = [];
-            const times = [];
-
-            // Get full waveform for drawing
-            const waveform = Array.from(audioBuffer); // copy
-
-            // Ensure canvas width matches duration
-            const duration = totalSamples / sampleRate;
-            canvas.width = canvas.offsetWidth;
-            canvas.height = 300;
-
-            // Process each frame
-            for (let i = 0; i < numFrames; i++) {
-                const start = i * hopSize;
-                const end = start + fftSize;
-                if (end > totalSamples) break;
-
-                const chunk = audioBuffer.slice(start, end);
-
-                // Create Informer instance per frame (lightweight in WASM)
-                const informer = new InformerLib.Informer(sampleRate, 0.85, fftSize);
-                informer.setBuffer(new Float64Array(chunk));
-                informer.computeDescriptors(true, false);
-
-                // Compute FFT magnitudes using the same method as before, but inline for efficiency
-                const magnitudes = await computeFFTMagnitudes(chunk, fftSize, sampleRate);
-                informer.setMagnitudes(magnitudes);
-                informer.computeDescriptors(false, true);
-
-                const freqDesc = informer.getFrequencyDescriptors();
-                const centroidHz = freqDesc.centroid || 0;
-
-                centroids.push(centroidHz);
-                times.push(start / sampleRate);
-
-                informer.delete();
-            }
-
-            // Render visualization
-            drawAnalysis(waveform, times, centroids, sampleRate, duration);
-        }
-
-        // Helper: Compute linear-magnitude FFT using OfflineAudioContext (optimized)
-        async function computeFFTMagnitudes(chunk, fftSize, sampleRate) {
+                // Global state for visualization
+                // Helper: Compute linear-magnitude FFT using OfflineAudioContext
+                async function computeFFTMagnitudes(chunk, fftSize, sampleRate) {
+            // Ensure input is Float32Array
             const float32Data = new Float32Array(chunk);
             let data;
             if (float32Data.length >= fftSize) {
@@ -266,17 +209,15 @@
                 data.set(float32Data);
             }
 
-            const offlineCtx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)({
-                length: fftSize,
-                sampleRate: sampleRate,
-                numberOfChannels: 1
-            });
+            // Create offline context
+            const OfflineAudioContext = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+            const offlineCtx = new OfflineAudioContext(1, fftSize, sampleRate);
 
-            const buffer = offlineCtx.createBuffer(1, fftSize, sampleRate);
-            buffer.copyToChannel(data, 0);
+            const audioBuffer = offlineCtx.createBuffer(1, fftSize, sampleRate);
+            audioBuffer.copyToChannel(data, 0);
 
             const source = offlineCtx.createBufferSource();
-            source.buffer = buffer;
+            source.buffer = audioBuffer;
 
             const analyser = offlineCtx.createAnalyser();
             analyser.fftSize = fftSize;
@@ -288,104 +229,280 @@
 
             await offlineCtx.startRendering();
 
+            // Get frequency data in dB
             const freqData = new Float32Array(analyser.frequencyBinCount);
             analyser.getFloatFrequencyData(freqData);
 
+            // Convert dB to linear magnitude
             const magnitudes = new Float64Array(freqData.length);
             for (let i = 0; i < freqData.length; i++) {
-                magnitudes[i] = freqData[i] < -1000 ? 0 : Math.pow(10, freqData[i] / 20);
+                if (freqData[i] < -1000) {
+                    magnitudes[i] = 0.0;
+                } else {
+                    magnitudes[i] = Math.pow(10, freqData[i] / 20.0);
+                }
             }
             return magnitudes;
+        }    
+
+        // Analyze audio buffer and compute multiple descriptors over time
+        async function analyzeAudioBuffer(audioBuffer, sampleRate, fftSize) {
+            const totalSamples = audioBuffer.length;
+            const hopSize = fftSize / 2;
+            const numFrames = Math.max(1, Math.floor((totalSamples - fftSize) / hopSize) + 1);
+
+            // Initialize descriptor arrays
+            const descriptors = {};
+            for (const key of allDescriptorKeys) {
+                descriptors[key] = [];
+            }
+
+            const times = [];
+            const waveform = Array.from(audioBuffer);
+            const duration = totalSamples / sampleRate;
+
+            for (let i = 0; i < numFrames; i++) {
+                const start = i * hopSize;
+                const end = start + fftSize;
+                if (end > totalSamples) break;
+
+                const chunk = audioBuffer.slice(start, end);
+                const informer = new InformerLib.Informer(sampleRate, 0.85, fftSize);
+                
+                // Time descriptors
+                informer.setBuffer(new Float64Array(chunk));
+                informer.computeDescriptors(true, false);
+                const timeDesc = informer.getTimeDescriptors();
+
+                // Fill time descriptors (clamp to [0,1] if needed)
+                descriptors.peak.push(Math.min(1, Math.abs(timeDesc.peak || 0)));
+                descriptors.rms.push(Math.min(1, timeDesc.rms || 0));
+                descriptors.variance.push(Math.min(1, timeDesc.variance || 0));
+                descriptors.zcr.push(Math.min(1, timeDesc.zcr || 0));
+
+                // Frequency descriptors
+                const magnitudes = await computeFFTMagnitudes(chunk, fftSize, sampleRate);
+                informer.setMagnitudes(magnitudes);
+                informer.computeDescriptors(false, true);
+                const freqDesc = informer.getFrequencyDescriptors();
+
+                // Fill frequency descriptors
+                descriptors.centroid.push(freqDesc.centroid || 0);
+                descriptors.peakFreq.push(freqDesc.peak || 0);
+                descriptors.rolloff.push(freqDesc.rolloff || 0);
+                descriptors.spread.push(freqDesc.spread || 0);
+                descriptors.flatness.push(Math.min(1, Math.max(0, freqDesc.flatness || 0)));
+                descriptors.entropy.push(Math.min(1, Math.max(0, freqDesc.entropy || 0)));
+                descriptors.irregularity.push(Math.min(2, Math.max(0, freqDesc.irregularity || 0)));
+                descriptors.crest.push(freqDesc.crest || 0);
+                descriptors.flux.push(Math.min(1, Math.max(0, freqDesc.flux || 0)));
+                descriptors.slope.push(freqDesc.slope || 0);
+                descriptors.decrease.push(freqDesc.decrease || 0);
+
+                times.push(start / sampleRate);
+                informer.delete();
+            }
+
+            analysisData = { times, duration, sampleRate, waveform, descriptors };
+            drawAnalysis();
+            renderDescriptorLegend();
         }
 
         // Visualization function
                 // Visualization function
-        function drawAnalysis(waveform, times, centroids, sampleRate, duration) {
-            const width = canvas.width;
-            const height = canvas.height;
+                // Colors for each descriptor
+                const descriptorColors = {
+            centroid: '#D32F2F',    // red
+            flatness: '#7B1FA2',    // purple
+            rms: '#388E3C',         // green
+            peak: '#FF6D00',        // orange
+            rolloff: '#0288D1',     // blue
+            spread: '#5D4037'       // brown
+        };
+
+                // Descriptor metadata: name, min, max, unit, category
+                const descriptorMeta = {
+            // Time Domain
+            peak:        { min: 0, max: 1, unit: '',          category: 'time',   label: 'Peak' },
+            rms:         { min: 0, max: 1, unit: '',          category: 'time',   label: 'RMS' },
+            variance:    { min: 0, max: 1, unit: '',          category: 'time',   label: 'Variance' },
+            zcr:         { min: 0, max: 1, unit: '',          category: 'time',   label: 'Zero Crossing Rate' },
+            // Skewness/kurtosis time are undefined — we'll skip or estimate
+
+            // Frequency Domain
+            centroid:    { min: 0, max: 'nyquist', unit: 'Hz', category: 'freq', label: 'Spectral Centroid' },
+            peakFreq:    { min: 0, max: 'nyquist', unit: 'Hz', category: 'freq', label: 'Spectral Peak' },
+            rolloff:     { min: 0, max: 'nyquist', unit: 'Hz', category: 'freq', label: 'Spectral Rolloff' },
+            spread:      { min: 0, max: 'nyquist/2', unit: 'Hz', category: 'freq', label: 'Spectral Spread' },
+            flatness:    { min: 0, max: 1, unit: '',          category: 'freq', label: 'Spectral Flatness' },
+            entropy:     { min: 0, max: 1, unit: '',          category: 'freq', label: 'Spectral Entropy' },
+            irregularity:{ min: 0, max: 2, unit: '',          category: 'freq', label: 'Spectral Irregularity' },
+            crest:       { min: 0, max: 10, unit: '',         category: 'freq', label: 'Crest Factor' }, // typical range ~2–10
+            flux:        { min: 0, max: 1, unit: '',          category: 'freq', label: 'Spectral Flux' },
+            slope:       { min: -1, max: 1, unit: '',         category: 'freq', label: 'Spectral Slope' },
+            decrease:    { min: -1, max: 1, unit: '',         category: 'freq', label: 'Spectral Decrease' }
+            // Skip undefined skew/kurtosis (or treat as 0 if returned)
+        };
+
+        const allDescriptorKeys = Object.keys(descriptorMeta);
+        let analysisData = null;
+        const visibleDescriptors = new Set(['centroid']); // default
+
+        // Vertical mapping helpers
+        function freqToY(freq, nyquist, top, height) {
+            return top + (1 - freq / nyquist) * height;
+        }
+
+        function ampToY(amp, waveOffset, waveHeight) {
+            return waveOffset + amp * waveHeight;
+        }
+
+        function drawAnalysis() {
+            if (!analysisData) return;
+
+            const { times, duration, sampleRate, waveform, descriptors } = analysisData;
+            const width = canvas.width = canvas.offsetWidth;
+            const totalHeight = canvas.height = 400; // taller canvas
+
+            // Separate visible descriptors by category
+            const visibleTime = allDescriptorKeys.filter(k => visibleDescriptors.has(k) && descriptorMeta[k].category === 'time');
+            const visibleFreq = allDescriptorKeys.filter(k => visibleDescriptors.has(k) && descriptorMeta[k].category === 'freq');
+
+            const numTracks = visibleFreq.length + visibleTime.length;
+            const waveformHeight = 80;
+            const trackHeight = numTracks > 0 ? (totalHeight - waveformHeight - 40) / numTracks : 0;
+            let currentY = 20; // top margin
+
+            ctx.clearRect(0, 0, width, totalHeight);
+
+            // --- Draw frequency tracks (top) ---
+            for (const key of visibleFreq) {
+                drawTrack(key, descriptors[key], times, duration, sampleRate, currentY, trackHeight, true);
+                currentY += trackHeight;
+            }
+
+            // --- Draw time tracks ---
+            for (const key of visibleTime) {
+                drawTrack(key, descriptors[key], times, duration, sampleRate, currentY, trackHeight, false);
+                currentY += trackHeight;
+            }
+
+            // --- Draw waveform at bottom ---
+            const waveY = totalHeight - waveformHeight;
+            drawWaveform(waveform, width, totalHeight, waveformHeight, waveY);
+        }
+
+        function drawTrack(key, values, times, duration, sampleRate, y, height, isFreq) {
+            const meta = descriptorMeta[key];
             const nyquist = sampleRate / 2;
 
-            // Define the vertical range for centroid: from 0 Hz (bottom) to nyquist (top)
-            // We'll leave space below for waveform (waveOffset is the "floor" for centroid area)
-            const waveOffset = height * 0.85; // waveform drawn below this line
-            const centroidAreaHeight = waveOffset - 20; // leave 20px margin at top
+            // Resolve dynamic max
+            let min = meta.min;
+            let max = meta.max;
+            if (max === 'nyquist') max = nyquist;
+            else if (max === 'nyquist/2') max = nyquist / 2;
 
-            ctx.clearRect(0, 0, width, height);
+            // Background
+            ctx.fillStyle = '#fafafa';
+            ctx.fillRect(0, y, canvas.width, height);
 
-            // --- Draw Y-axis Hz labels (left side) ---
-            ctx.fillStyle = '#555';
+            // Label
+            ctx.fillStyle = '#000';
             ctx.font = '12px Arial';
-            ctx.textAlign = 'right';
+            ctx.textAlign = 'left';
+            ctx.fillText(`${meta.label} (${meta.unit})`, 10, y + 15);
 
-            // Define a few key frequency ticks (log or linear? We'll use linear for clarity)
-            const freqTicks = [0, nyquist * 0.25, nyquist * 0.5, nyquist * 0.75, nyquist];
-            freqTicks.forEach(freq => {
-                // Y position: high freq = top, low freq = bottom (within centroid area)
-                const y = (1 - freq / nyquist) * centroidAreaHeight + 20; // +20 for top margin
-                ctx.fillText(`${Math.round(freq)} Hz`, 50, y + 4); // +4 for vertical alignment
+            // Grid lines
+            ctx.strokeStyle = '#eee';
+            ctx.beginPath();
+            ctx.moveTo(0, y + height/2);
+            ctx.lineTo(canvas.width, y + height/2);
+            ctx.stroke();
 
-                // Optional: light horizontal grid lines
-                ctx.strokeStyle = '#eee';
-                ctx.lineWidth = 1;
+            // Curve
+            if (values.length > 1) {
+                ctx.strokeStyle = '#D32F2F';
+                ctx.lineWidth = 1.5;
                 ctx.beginPath();
-                ctx.moveTo(60, y);
-                ctx.lineTo(width, y);
+                for (let i = 0; i < times.length; i++) {
+                    const x = (times[i] / duration) * canvas.width;
+                    // Normalize value to [0,1] within [min, max]
+                    let norm = max !== min ? (values[i] - min) / (max - min) : 0;
+                    norm = Math.max(0, Math.min(1, norm)); // clamp
+                    const valY = y + (1 - norm) * height; // high value = top
+                    if (i === 0) ctx.moveTo(x, valY);
+                    else ctx.lineTo(x, valY);
+                }
                 ctx.stroke();
-            });
-            ctx.textAlign = 'center'; // reset for time labels
+            }
 
-            // --- Draw waveform ---
+            // Border
+            ctx.strokeStyle = '#ddd';
+            ctx.strokeRect(0, y, canvas.width, height);
+        }
+
+        function drawWaveform(waveform, width, totalHeight, height, y) {
+            ctx.fillStyle = '#fafafa';
+            ctx.fillRect(0, y, width, height);
+
             ctx.strokeStyle = '#4A90E2';
             ctx.lineWidth = 1;
             ctx.beginPath();
-            const waveHeight = height * 0.15; // only 15% of canvas for waveform (was 70% before — too big!)
             for (let i = 0; i < waveform.length; i++) {
                 const x = (i / waveform.length) * width;
-                const y = waveOffset + (waveform[i] * waveHeight); // centered on waveOffset
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
+                const wy = y + height / 2 + waveform[i] * (height / 2);
+                if (i === 0) ctx.moveTo(x, wy);
+                else ctx.lineTo(x, wy);
             }
             ctx.stroke();
 
-            // --- Draw waveform baseline ---
+            // Baseline
             ctx.strokeStyle = '#999';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([4, 2]);
+            ctx.setLineDash([4,2]);
             ctx.beginPath();
-            ctx.moveTo(0, waveOffset);
-            ctx.lineTo(width, waveOffset);
+            ctx.moveTo(0, y + height / 2);
+            ctx.lineTo(width, y + height / 2);
             ctx.stroke();
             ctx.setLineDash([]);
 
-            // --- Draw spectral centroid ---
-            if (centroids.length > 1) {
-                ctx.strokeStyle = '#D32F2F';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                for (let i = 0; i < centroids.length; i++) {
-                    const x = (times[i] / duration) * width;
-                    const y = (1 - centroids[i] / nyquist) * centroidAreaHeight + 20;
-                    if (i === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                }
-                ctx.stroke();
+            ctx.fillStyle = '#000';
+            ctx.fillText('Waveform', 10, y + 15);
+            ctx.strokeRect(0, y, width, height);
+        }
 
-                // Label
-                ctx.fillStyle = '#D32F2F';
-                ctx.font = '12px Arial';
-                ctx.textAlign = 'left';
-                ctx.fillText('Spectral Centroid', 65, 15);
-            }
+        function renderDescriptorLegend() {
+            const container = document.getElementById('descriptor-legend');
+            if (!container) return;
 
-            // --- Draw X-axis time labels ---
-            ctx.fillStyle = '#555';
-            ctx.textAlign = 'center';
-            const timeTicks = Math.max(2, Math.floor(duration));
-            for (let i = 0; i <= timeTicks; i++) {
-                const t = (i / timeTicks) * duration;
-                const x = (t / duration) * width;
-                ctx.fillText(t.toFixed(1), x, height - 5);
-            }
+            container.innerHTML = '';
+            container.style.display = 'flex';
+            container.style.flexWrap = 'wrap';
+            container.style.gap = '8px';
+            container.style.margin = '10px 0';
+
+            allDescriptorKeys.forEach(key => {
+                const item = document.createElement('span');
+                item.textContent = descriptorMeta[key].label;
+                item.style.cursor = 'pointer';
+                item.style.padding = '4px 8px';
+                item.style.borderRadius = '4px';
+                item.style.fontSize = '12px';
+                item.style.backgroundColor = visibleDescriptors.has(key) ? '#e3f2fd' : '#f5f5f5';
+                item.style.border = `1px solid ${visibleDescriptors.has(key) ? '#2196f3' : '#ccc'}`;
+                item.style.color = '#333';
+
+                item.addEventListener('click', () => {
+                    if (visibleDescriptors.has(key)) {
+                        visibleDescriptors.delete(key);
+                    } else {
+                        visibleDescriptors.add(key);
+                    }
+                    drawAnalysis();
+                    renderDescriptorLegend();
+                });
+
+                container.appendChild(item);
+            });
         }
         
         // Display results
