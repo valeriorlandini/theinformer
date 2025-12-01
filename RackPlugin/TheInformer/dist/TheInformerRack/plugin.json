@@ -1,0 +1,23 @@
+{
+  "slug": "TheInformerRack",
+  "name": "The Informer for Rack",
+  "version": "2.0.0",
+  "license": "GPL-3.0-or-later",
+  "brand": "Valerio Orlandini",
+  "author": "Valerio Orlandini",
+  "authorEmail": "",
+  "authorUrl": "http://www.valeriorlandini.com",
+  "pluginUrl": "",
+  "manualUrl": "",
+  "sourceUrl": "",
+  "donateUrl": "",
+  "changelogUrl": "",
+  "modules": [
+    {
+      "slug": "TheInformer",
+      "name": "The Informer",
+      "description": "",
+      "tags": []
+    }
+  ]
+}
