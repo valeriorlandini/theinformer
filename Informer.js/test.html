@@ -2,17 +2,23 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Informer WASM Demo</title>
+    <title>Informer.js Demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Special+Gothic:wdth@87.5&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: "Special Gothic", Arial, sans-serif;
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #222123;
+            background-color: #171b33;
         }
-        h1 {
+        h1, h2 {
             color: #c7c7c7;
+        }
+        .logo {
+            text-align: center;
         }
         .controls {
             background: white;
@@ -60,6 +66,7 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
         }
         .result-section h2 {
             margin-top: 0;
@@ -81,6 +88,22 @@
             font-family: monospace;
             color: #333;
         }
+        .descriptor-rows {
+    margin: 15px 0;
+}
+.descriptor-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding: 8px;
+    background: #f9f9f9;
+    border-radius: 6px;
+}
+.descriptor-row strong {
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+}
         .status {
             padding: 10px;
             margin-bottom: 20px;
@@ -102,8 +125,9 @@
     </style>
 </head>
 <body>
-    <h1>🎵 Audio Analysis with Informer WASM</h1>
-    
+    <div class="logo"><img src="logo.png">
+    <h2>Audio Analysis with</h2><h1>Informer.js</h1>
+</div>
     <div id="status" class="status loading">Loading libraries...</div>
     
     <div class="controls">
@@ -115,24 +139,46 @@
         </div>
         
         <div class="control-group">
-            <label for="fftSize">FFT Size:</label>
+            <label for="fftSize">FFT and Buffer Size:</label>
             <select id="fftSize">
-                <option value="512">512</option>
                 <option value="1024">1024</option>
                 <option value="2048">2048</option>
                 <option value="4096" selected>4096</option>
                 <option value="8192">8192</option>
+                <option value="16384">16384</option>
             </select>
         </div>
         
         <button id="analyzeBtn" disabled>Analyze Audio</button>
     </div>
 
-    <div id="descriptor-legend"></div>
-    <div class="result-section" style="margin-top: 20px;">
-        <h2>📈 Time-Frequency Analysis</h2>
-        <canvas id="analysisCanvas" style="width: 100%; height: 400px; background: white; border: 1px solid #ddd; border-radius: 4px;"></canvas>
+    <div class="descriptor-rows">
+        <div id="time-descriptor-legend" class="descriptor-row">
+            <strong style="color:#388E3C; margin-right:10px;">⏱️ Time:</strong>
+        </div>
+        <div id="freq-descriptor-legend" class="descriptor-row">
+            <strong style="color:#D32F2F; margin-right:10px;">📊 Frequency:</strong>
+        </div>
     </div>
+    <div class="result-section" style="margin-top: 20px; position: relative;"> <!-- ✅ ADD position: relative -->
+        <h2>📈 Analysis Results</h2>
+        <div id="canvasContainer" style="width: 100%; min-height: 300px; background: white; border: 1px solid #ddd; border-radius: 4px; overflow: hidden;">
+            <canvas id="analysisCanvas" style="display: block; width: 100%;"></canvas>
+        </div>
+        <div id="tooltip" style="
+            position: absolute;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            display: none;
+            z-index: 100;
+        "></div>
+    </div>
+
+
     
     <!-- Load your compiled Informer WASM -->
     <script src="informer.js"></script>
@@ -153,7 +199,7 @@
         InformerModule().then(Module => {
             InformerLib = Module;
             isReady = true;
-            statusDiv.textContent = '✓ Libraries loaded and ready!';
+            statusDiv.textContent = '✓ Informer.js loaded and ready!';
             statusDiv.className = 'status ready';
             analyzeBtn.disabled = false;
             console.log('Informer WASM library loaded successfully');
@@ -162,37 +208,6 @@
             statusDiv.className = 'status error';
             console.error('Failed to load Informer:', error);
         });
-        
-        // Generate audio signal
-        function generateSignal(waveform, frequency, sampleRate, duration) {
-            const samples = Math.floor(sampleRate * duration);
-            const buffer = new Float64Array(samples);
-            
-            for (let i = 0; i < samples; i++) {
-                const t = i / sampleRate;
-                const phase = 2 * Math.PI * frequency * t;
-                
-                switch(waveform) {
-                    case 'sine':
-                        buffer[i] = Math.sin(phase);
-                        break;
-                    case 'square':
-                        buffer[i] = Math.sin(phase) >= 0 ? 1 : -1;
-                        break;
-                    case 'sawtooth':
-                        buffer[i] = 2 * (t * frequency - Math.floor(0.5 + t * frequency));
-                        break;
-                    case 'triangle':
-                        buffer[i] = 2 * Math.abs(2 * (t * frequency - Math.floor(0.5 + t * frequency))) - 1;
-                        break;
-                    case 'noise':
-                        buffer[i] = Math.random() * 2 - 1;
-                        break;
-                }
-            }
-            
-            return buffer;
-        }
         
         // Perform FFT and get magnitudes
                 // Analyze an audio buffer in overlapping chunks and visualize
@@ -253,13 +268,18 @@
 
             // Initialize descriptor arrays
             const descriptors = {};
+            const descriptorRanges = {};
             for (const key of allDescriptorKeys) {
                 descriptors[key] = [];
+                descriptorRanges[key] = { min: Infinity, max: -Infinity };
             }
 
             const times = [];
             const waveform = Array.from(audioBuffer);
             const duration = totalSamples / sampleRate;
+
+            // ✅ CREATE ONE INFORMER INSTANCE FOR THE ENTIRE ANALYSIS
+            const informer = new InformerLib.Informer(sampleRate, 0.85, fftSize);
 
             for (let i = 0; i < numFrames; i++) {
                 const start = i * hopSize;
@@ -267,43 +287,67 @@
                 if (end > totalSamples) break;
 
                 const chunk = audioBuffer.slice(start, end);
-                const informer = new InformerLib.Informer(sampleRate, 0.85, fftSize);
-                
-                // Time descriptors
+
+                // --- Time domain descriptors ---
                 informer.setBuffer(new Float64Array(chunk));
                 informer.computeDescriptors(true, false);
                 const timeDesc = informer.getTimeDescriptors();
 
-                // Fill time descriptors (clamp to [0,1] if needed)
-                descriptors.peak.push(Math.min(1, Math.abs(timeDesc.peak || 0)));
-                descriptors.rms.push(Math.min(1, timeDesc.rms || 0));
-                descriptors.variance.push(Math.min(1, timeDesc.variance || 0));
-                descriptors.zcr.push(Math.min(1, timeDesc.zcr || 0));
+                // Helper to safely push and track range
+                function pushValue(key, val) {
+                    val = val || 0;
+                    descriptors[key].push(val);
+                    if (val < descriptorRanges[key].min) descriptorRanges[key].min = val;
+                    if (val > descriptorRanges[key].max) descriptorRanges[key].max = val;
+                }
 
-                // Frequency descriptors
+                // Time descriptors (clamped to [0,1] as they are normalized)
+                pushValue('peak', Math.min(1, Math.abs(timeDesc.peak || 0)));
+                pushValue('rms', Math.min(1, timeDesc.rms || 0));
+                pushValue('variance', Math.min(1, timeDesc.variance || 0));
+                pushValue('zcr', Math.min(1, timeDesc.zerocrossing || 0));
+                pushValue('skewnessTime', timeDesc.skewness || 0);
+                pushValue('kurtosisTime', timeDesc.kurtosis || 0);
+
+                // --- Frequency domain descriptors ---
                 const magnitudes = await computeFFTMagnitudes(chunk, fftSize, sampleRate);
                 informer.setMagnitudes(magnitudes);
-                informer.computeDescriptors(false, true);
+                informer.computeDescriptors(false, true); // ✅ Uses internal state (prev frame!)
                 const freqDesc = informer.getFrequencyDescriptors();
 
-                // Fill frequency descriptors
-                descriptors.centroid.push(freqDesc.centroid || 0);
-                descriptors.peakFreq.push(freqDesc.peak || 0);
-                descriptors.rolloff.push(freqDesc.rolloff || 0);
-                descriptors.spread.push(freqDesc.spread || 0);
-                descriptors.flatness.push(Math.min(1, Math.max(0, freqDesc.flatness || 0)));
-                descriptors.entropy.push(Math.min(1, Math.max(0, freqDesc.entropy || 0)));
-                descriptors.irregularity.push(Math.min(2, Math.max(0, freqDesc.irregularity || 0)));
-                descriptors.crest.push(freqDesc.crest || 0);
-                descriptors.flux.push(Math.min(1, Math.max(0, freqDesc.flux || 0)));
-                descriptors.slope.push(freqDesc.slope || 0);
-                descriptors.decrease.push(freqDesc.decrease || 0);
+                // Frequency descriptors — NO clamping except for normalized ones
+                pushValue('centroid', freqDesc.centroid || 0);
+                pushValue('peakFreq', freqDesc.peak || 0);
+                pushValue('rolloff', freqDesc.rolloff || 0);
+                pushValue('spread', freqDesc.spread || 0);
+                pushValue('flatness', Math.min(1, Math.max(0, freqDesc.flatness || 0)));
+                pushValue('entropy', Math.min(1, Math.max(0, freqDesc.entropy || 0)));
+                pushValue('irregularity', Math.min(2, Math.max(0, freqDesc.irregularity || 0)));
+                pushValue('crest', freqDesc.crestfactor || 0);   // 🚫 No clamp
+                pushValue('flux', freqDesc.flux || 0);           // 🚫 No clamp — THIS IS KEY!
+                pushValue('slope', freqDesc.slope || 0);         // 🚫 No clamp
+                pushValue('decrease', freqDesc.decrease || 0);   // 🚫 No clamp
+                pushValue('skewnessFreq', freqDesc.skewness || 0);
+                pushValue('kurtosisFreq', freqDesc.kurtosis || 0);
 
                 times.push(start / sampleRate);
-                informer.delete();
             }
 
-            analysisData = { times, duration, sampleRate, waveform, descriptors };
+            // ✅ CLEAN UP ONCE AT THE END
+            informer.delete();
+
+            // Finalize ranges
+            for (const key of allDescriptorKeys) {
+                if (descriptorRanges[key].min === Infinity) {
+                    descriptorRanges[key] = { min: 0, max: 1 };
+                } else if (descriptorRanges[key].min === descriptorRanges[key].max) {
+                    const val = descriptorRanges[key].min;
+                    descriptorRanges[key].min = val - 0.1 * Math.abs(val || 1);
+                    descriptorRanges[key].max = val + 0.1 * Math.abs(val || 1);
+                }
+            }
+
+            analysisData = { times, duration, sampleRate, waveform, descriptors, descriptorRanges };
             drawAnalysis();
             renderDescriptorLegend();
         }
@@ -321,13 +365,14 @@
         };
 
                 // Descriptor metadata: name, min, max, unit, category
-                const descriptorMeta = {
+                    const descriptorMeta = {
             // Time Domain
             peak:        { min: 0, max: 1, unit: '',          category: 'time',   label: 'Peak' },
             rms:         { min: 0, max: 1, unit: '',          category: 'time',   label: 'RMS' },
             variance:    { min: 0, max: 1, unit: '',          category: 'time',   label: 'Variance' },
             zcr:         { min: 0, max: 1, unit: '',          category: 'time',   label: 'Zero Crossing Rate' },
-            // Skewness/kurtosis time are undefined — we'll skip or estimate
+            skewnessTime:{ min: -10, max: 10, unit: '',      category: 'time',   label: 'Skewness (Time)' },
+            kurtosisTime:{ min: -10, max: 50, unit: '',      category: 'time',   label: 'Kurtosis (Time)' },
 
             // Frequency Domain
             centroid:    { min: 0, max: 'nyquist', unit: 'Hz', category: 'freq', label: 'Spectral Centroid' },
@@ -337,99 +382,192 @@
             flatness:    { min: 0, max: 1, unit: '',          category: 'freq', label: 'Spectral Flatness' },
             entropy:     { min: 0, max: 1, unit: '',          category: 'freq', label: 'Spectral Entropy' },
             irregularity:{ min: 0, max: 2, unit: '',          category: 'freq', label: 'Spectral Irregularity' },
-            crest:       { min: 0, max: 10, unit: '',         category: 'freq', label: 'Crest Factor' }, // typical range ~2–10
-            flux:        { min: 0, max: 1, unit: '',          category: 'freq', label: 'Spectral Flux' },
+            crest:       { min: 0, max: 100, unit: '',        category: 'freq', label: 'Crest Factor' },
+            flux:        { min: 0, max: 1000, unit: '',       category: 'freq', label: 'Spectral Flux' },
             slope:       { min: -1, max: 1, unit: '',         category: 'freq', label: 'Spectral Slope' },
-            decrease:    { min: -1, max: 1, unit: '',         category: 'freq', label: 'Spectral Decrease' }
-            // Skip undefined skew/kurtosis (or treat as 0 if returned)
+            decrease:    { min: -1, max: 1, unit: '',         category: 'freq', label: 'Spectral Decrease' },
+            skewnessFreq:{ min: -10, max: 10, unit: '',      category: 'freq', label: 'Skewness (Freq)' },
+            kurtosisFreq:{ min: -10, max: 50, unit: '',      category: 'freq', label: 'Kurtosis (Freq)' }
         };
+
+        const tooltip = document.getElementById('tooltip');
+
+canvas.addEventListener('mousemove', handleMouseMove);
+canvas.addEventListener('mouseleave', () => {
+    tooltip.style.display = 'none';
+});
+
+function handleMouseMove(e) {
+    if (!analysisData || visibleDescriptors.size === 0) return;
+
+    const container = document.getElementById('canvasContainer');
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    // Get time from X position
+    const containerWidth = container.clientWidth;
+    const plotWidth = containerWidth - 60;
+    const time = (mouseX - 60) / plotWidth * analysisData.duration;
+
+    // Ignore if outside plot area
+    if (mouseX < 60 || mouseX > containerWidth || time < 0 || time > analysisData.duration) {
+        tooltip.style.display = 'none';
+        return;
+    }
+
+    // Determine which track (descriptor) is being hovered
+    const visibleList = allDescriptorKeys.filter(k => visibleDescriptors.has(k));
+    const waveformHeight = 80;
+    const trackHeight = 100;
+    const topMargin = 20;
+
+    let hoveredDescriptor = null;
+    let trackIndex = -1;
+
+    // Check descriptor tracks
+    for (let i = 0; i < visibleList.length; i++) {
+        const yTop = topMargin + i * trackHeight;
+        const yBottom = yTop + trackHeight;
+        if (mouseY >= yTop && mouseY <= yBottom) {
+            hoveredDescriptor = visibleList[i];
+            trackIndex = i;
+            break;
+        }
+    }
+
+    // Check waveform
+    const waveY = topMargin + visibleList.length * trackHeight;
+    const isOverWaveform = mouseY >= waveY && mouseY <= waveY + waveformHeight;
+
+    // Find nearest frame index
+    const times = analysisData.times;
+    let frameIndex = 0;
+    let minDist = Math.abs(times[0] - time);
+    for (let i = 1; i < times.length; i++) {
+        const dist = Math.abs(times[i] - time);
+        if (dist < minDist) {
+            minDist = dist;
+            frameIndex = i;
+        }
+    }
+
+    const actualTime = times[frameIndex];
+
+    // Build tooltip content
+    let content = `<strong>${actualTime.toFixed(3)} s</strong><br>`;
+
+    if (hoveredDescriptor) {
+        const value = analysisData.descriptors[hoveredDescriptor][frameIndex];
+        const unit = descriptorMeta[hoveredDescriptor].unit;
+        content += `${descriptorMeta[hoveredDescriptor].label}: ${value.toFixed(4)}${unit ? ' ' + unit : ''}`;
+    } else if (isOverWaveform) {
+        // Estimate waveform sample (resample)
+        const waveform = analysisData.waveform;
+        const sampleIndex = Math.round((actualTime / analysisData.duration) * waveform.length);
+        const sample = (sampleIndex >= 0 && sampleIndex < waveform.length) ? waveform[sampleIndex] : 0;
+        content += `Waveform: ${sample.toFixed(4)}`;
+    } else {
+        tooltip.style.display = 'none';
+        return;
+    }
+
+    // ✅ POSITION TOOLTIP RELATIVE TO CANVAS CONTAINER
+    tooltip.innerHTML = content;
+    tooltip.style.left = (mouseX + 10) + 'px';
+    tooltip.style.top = (mouseY + 10) + 'px';
+    tooltip.style.display = 'block';
+}
 
         const allDescriptorKeys = Object.keys(descriptorMeta);
         let analysisData = null;
         const visibleDescriptors = new Set(['centroid']); // default
 
-        // Vertical mapping helpers
-        function freqToY(freq, nyquist, top, height) {
-            return top + (1 - freq / nyquist) * height;
-        }
-
-        function ampToY(amp, waveOffset, waveHeight) {
-            return waveOffset + amp * waveHeight;
-        }
-
         function drawAnalysis() {
             if (!analysisData) return;
 
             const { times, duration, sampleRate, waveform, descriptors } = analysisData;
-            const width = canvas.width = canvas.offsetWidth;
-            const totalHeight = canvas.height = 400; // taller canvas
 
-            // Separate visible descriptors by category
-            const visibleTime = allDescriptorKeys.filter(k => visibleDescriptors.has(k) && descriptorMeta[k].category === 'time');
-            const visibleFreq = allDescriptorKeys.filter(k => visibleDescriptors.has(k) && descriptorMeta[k].category === 'freq');
+            // Get correct width from container
+            const container = document.getElementById('canvasContainer');
+            if (!container) return;
+            const width = container.clientWidth;
 
-            const numTracks = visibleFreq.length + visibleTime.length;
+            const visibleDescriptorsList = allDescriptorKeys.filter(k => visibleDescriptors.has(k));
+            const numTracks = visibleDescriptorsList.length;
+
             const waveformHeight = 80;
-            const trackHeight = numTracks > 0 ? (totalHeight - waveformHeight - 40) / numTracks : 0;
-            let currentY = 20; // top margin
+            const trackHeight = 100;
+            const topMargin = 20;
+            const bottomMargin = 20;
+            const totalHeight = topMargin + (numTracks * trackHeight) + waveformHeight + bottomMargin;
+
+            // Apply height to container
+            container.style.height = totalHeight + 'px';
+
+            // Set canvas dimensions (must be in pixel units, not CSS %)
+            canvas.width = width;
+            canvas.height = totalHeight;
 
             ctx.clearRect(0, 0, width, totalHeight);
 
-            // --- Draw frequency tracks (top) ---
-            for (const key of visibleFreq) {
-                drawTrack(key, descriptors[key], times, duration, sampleRate, currentY, trackHeight, true);
+            let currentY = topMargin;
+            for (const key of visibleDescriptorsList) {
+                drawTrack(key, descriptors[key], times, duration, sampleRate, currentY, trackHeight, width);
                 currentY += trackHeight;
             }
 
-            // --- Draw time tracks ---
-            for (const key of visibleTime) {
-                drawTrack(key, descriptors[key], times, duration, sampleRate, currentY, trackHeight, false);
-                currentY += trackHeight;
-            }
-
-            // --- Draw waveform at bottom ---
-            const waveY = totalHeight - waveformHeight;
-            drawWaveform(waveform, width, totalHeight, waveformHeight, waveY);
+            drawWaveform(waveform, width, totalHeight, waveformHeight, currentY);
         }
 
-        function drawTrack(key, values, times, duration, sampleRate, y, height, isFreq) {
-            const meta = descriptorMeta[key];
-            const nyquist = sampleRate / 2;
+        function drawTrack(key, values, times, duration, sampleRate, y, height, width) {
+            const data = analysisData.descriptorRanges[key];
+            const actualMin = data.min;
+            const actualMax = data.max;
 
-            // Resolve dynamic max
-            let min = meta.min;
-            let max = meta.max;
-            if (max === 'nyquist') max = nyquist;
-            else if (max === 'nyquist/2') max = nyquist / 2;
-
-            // Background
             ctx.fillStyle = '#fafafa';
-            ctx.fillRect(0, y, canvas.width, height);
+            ctx.fillRect(0, y, width, height);
 
-            // Label
-            ctx.fillStyle = '#000';
+            // Y-axis labels (left)
+            ctx.textAlign = 'right';
+            ctx.fillStyle = '#555';
             ctx.font = '12px Arial';
-            ctx.textAlign = 'left';
-            ctx.fillText(`${meta.label} (${meta.unit})`, 10, y + 15);
+            const minLabel = actualMin.toLocaleString(undefined, { maximumFractionDigits: 2 });
+            const maxLabel = actualMax.toLocaleString(undefined, { maximumFractionDigits: 2 });
+            ctx.fillText(minLabel, 55, y + height - 5);
+            ctx.fillText(maxLabel, 55, y + 16);
 
-            // Grid lines
+            // Descriptor name (top-right)
+            ctx.textAlign = 'right';
+            ctx.fillStyle = '#000';
+            const label = descriptorMeta[key].label;
+            const unit = descriptorMeta[key].unit ? ` (${descriptorMeta[key].unit})` : '';
+            ctx.fillText(`${label}${unit}`, width - 10, y + 16);
+
+            // Grid lines (keep them light gray — do NOT color them)
             ctx.strokeStyle = '#eee';
+            ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(0, y + height/2);
-            ctx.lineTo(canvas.width, y + height/2);
+            ctx.moveTo(60, y + height);
+            ctx.lineTo(width, y + height);
+            ctx.moveTo(60, y + height / 2);
+            ctx.lineTo(width, y + height / 2);
+            ctx.moveTo(60, y);
+            ctx.lineTo(width, y);
             ctx.stroke();
 
-            // Curve
+            // ✅ Curve: color by category
             if (values.length > 1) {
-                ctx.strokeStyle = '#D32F2F';
-                ctx.lineWidth = 1.5;
+                const color = descriptorMeta[key].category === 'time' ? '#388E3C' : '#D32F2F';
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
                 ctx.beginPath();
+                const plotWidth = width - 60;
                 for (let i = 0; i < times.length; i++) {
-                    const x = (times[i] / duration) * canvas.width;
-                    // Normalize value to [0,1] within [min, max]
-                    let norm = max !== min ? (values[i] - min) / (max - min) : 0;
-                    norm = Math.max(0, Math.min(1, norm)); // clamp
-                    const valY = y + (1 - norm) * height; // high value = top
+                    const x = 60 + (times[i] / duration) * plotWidth;
+                    let norm = (actualMax !== actualMin) ? (values[i] - actualMin) / (actualMax - actualMin) : 0;
+                    norm = Math.max(0, Math.min(1, norm));
+                    const valY = y + (1 - norm) * height;
                     if (i === 0) ctx.moveTo(x, valY);
                     else ctx.lineTo(x, valY);
                 }
@@ -438,57 +576,70 @@
 
             // Border
             ctx.strokeStyle = '#ddd';
-            ctx.strokeRect(0, y, canvas.width, height);
+            ctx.strokeRect(0, y, width, height);
         }
 
         function drawWaveform(waveform, width, totalHeight, height, y) {
             ctx.fillStyle = '#fafafa';
             ctx.fillRect(0, y, width, height);
 
+            const plotWidth = width - 60;
             ctx.strokeStyle = '#4A90E2';
             ctx.lineWidth = 1;
             ctx.beginPath();
             for (let i = 0; i < waveform.length; i++) {
-                const x = (i / waveform.length) * width;
+                const x = 60 + (i / waveform.length) * plotWidth;
                 const wy = y + height / 2 + waveform[i] * (height / 2);
                 if (i === 0) ctx.moveTo(x, wy);
                 else ctx.lineTo(x, wy);
             }
             ctx.stroke();
 
-            // Baseline
             ctx.strokeStyle = '#999';
             ctx.setLineDash([4,2]);
             ctx.beginPath();
-            ctx.moveTo(0, y + height / 2);
+            ctx.moveTo(60, y + height / 2);
             ctx.lineTo(width, y + height / 2);
             ctx.stroke();
             ctx.setLineDash([]);
 
             ctx.fillStyle = '#000';
-            ctx.fillText('Waveform', 10, y + 15);
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'right';
+            ctx.fillText('Waveform', width - 10, y + 16);
+
+            ctx.strokeStyle = '#ddd';
             ctx.strokeRect(0, y, width, height);
         }
 
         function renderDescriptorLegend() {
-            const container = document.getElementById('descriptor-legend');
-            if (!container) return;
+            const timeContainer = document.getElementById('time-descriptor-legend');
+            const freqContainer = document.getElementById('freq-descriptor-legend');
+            
+            if (!timeContainer || !freqContainer) return;
 
-            container.innerHTML = '';
-            container.style.display = 'flex';
-            container.style.flexWrap = 'wrap';
-            container.style.gap = '8px';
-            container.style.margin = '10px 0';
+            // Clear containers (keep the <strong> label)
+            timeContainer.innerHTML = '<strong style="color:#388E3C; margin-right:10px;">⏱️ Time:</strong>';
+            freqContainer.innerHTML = '<strong style="color:#D32F2F; margin-right:10px;">📊 Frequency:</strong>';
 
             allDescriptorKeys.forEach(key => {
+                const meta = descriptorMeta[key];
                 const item = document.createElement('span');
-                item.textContent = descriptorMeta[key].label;
+                item.textContent = meta.label;
                 item.style.cursor = 'pointer';
                 item.style.padding = '4px 8px';
                 item.style.borderRadius = '4px';
                 item.style.fontSize = '12px';
-                item.style.backgroundColor = visibleDescriptors.has(key) ? '#e3f2fd' : '#f5f5f5';
-                item.style.border = `1px solid ${visibleDescriptors.has(key) ? '#2196f3' : '#ccc'}`;
+                item.style.fontWeight = visibleDescriptors.has(key) ? 'bold' : 'normal';
+
+                const isTime = meta.category === 'time';
+                const activeColor = isTime ? '#388E3C' : '#D32F2F';
+                const bgColor = visibleDescriptors.has(key)
+                    ? (isTime ? '#e8f5e9' : '#ffebee')
+                    : '#f5f5f5';
+
+                item.style.backgroundColor = bgColor;
+                item.style.border = `1px solid ${visibleDescriptors.has(key) ? activeColor : '#ccc'}`;
                 item.style.color = '#333';
 
                 item.addEventListener('click', () => {
@@ -501,7 +652,11 @@
                     renderDescriptorLegend();
                 });
 
-                container.appendChild(item);
+                if (isTime) {
+                    timeContainer.appendChild(item);
+                } else {
+                    freqContainer.appendChild(item);
+                }
             });
         }
         
@@ -527,75 +682,16 @@
             });
         }
         
-        // Main analysis function
-                // Main analysis function
-        async function analyzeAudio() {
-            if (!isReady) {
-                alert('Libraries not ready yet!');
-                return;
-            }
-            
-            try {
-                // Get parameters
-                const frequency = parseFloat(document.getElementById('frequency').value);
-                const sampleRate = parseFloat(document.getElementById('sampleRate').value);
-                const duration = parseFloat(document.getElementById('duration').value);
-                const fftSize = parseInt(document.getElementById('fftSize').value);
-                const waveform = document.getElementById('waveform').value;
-                
-                // Generate audio signal
-                console.log(`Generating ${waveform} wave at ${frequency}Hz...`);
-                const audioBuffer = generateSignal(waveform, frequency, sampleRate, duration);
-                
-                // Create Informer instance
-                const informer = new InformerLib.Informer(sampleRate, 0.85, fftSize);
-                
-                // Set buffer and compute time domain descriptors
-                informer.setBuffer(audioBuffer);
-                informer.computeDescriptors(true, false);
-                
-                // Get time domain descriptors
-                const timeDescriptors = informer.getTimeDescriptors();
-                displayResults(timeDescriptors, 'timeResults');
-                
-                // Compute FFT (now async)
-                console.log('Computing FFT...');
-                const magnitudes = await computeFFT(audioBuffer, fftSize);
-                
-                // Set magnitudes and compute frequency domain descriptors
-                informer.setMagnitudes(magnitudes);
-                informer.computeDescriptors(false, true);
-                
-                // Get frequency domain descriptors
-                const freqDescriptors = informer.getFrequencyDescriptors();
-                displayResults(freqDescriptors, 'freqResults');
-                
-                // Log some key results
-                console.log('Analysis complete!');
-                console.log('Peak amplitude:', timeDescriptors.peak);
-                console.log('RMS:', timeDescriptors.rms);
-                console.log('Spectral centroid:', freqDescriptors.centroid, 'Hz');
-                console.log('Spectral peak:', freqDescriptors.peak, 'Hz');
-                
-                // Clean up
-                informer.delete();
-                
-            } catch (error) {
-                console.error('Analysis error:', error);
-                statusDiv.textContent = '✗ Analysis error: ' + error.message;
-                statusDiv.className = 'status error';
-            }
-        }
-        
         // Event listener
-        analyzeBtn.addEventListener('click', analyzeAudio);
-        
-        // Allow Enter key to trigger analysis
-        document.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !analyzeBtn.disabled) {
-                analyzeAudio();
+        analyzeBtn.addEventListener('click', () => {
+            const file = audioFileInput.files[0];
+            if (file) {
+                audioFileInput.dispatchEvent(new Event('change'));
+            } else {
+            alert('Please upload an audio file first.');
             }
         });
+
         
         console.log('FFT implementation loaded');
 
