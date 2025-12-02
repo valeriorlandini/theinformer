@@ -2,7 +2,7 @@ body {
   font-family: "Special Gothic", Arial, sans-serif;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 15px; /* Reduced on mobile */
   background-color: #171b33;
 }
 h1,
@@ -12,36 +12,70 @@ h2 {
 .logo {
   text-align: center;
 }
+
+.logo img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto 15px;
+}
+
+input,
+button,
+select,
+textarea {
+  font-family: "Special Gothic", Arial, sans-serif;
+}
+
+/* MOBILE-FIRST CONTROLS */
 .controls {
   background: white;
-  padding: 20px;
+  padding: 16px; /* Slightly smaller padding */
   border-radius: 8px;
   margin-bottom: 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  color: #333; /* Ensure text is readable */
 }
+
 .control-group {
-  margin-bottom: 15px;
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column; /* Stack on mobile */
 }
+
 label {
-  display: inline-block;
-  width: 150px;
   font-weight: bold;
+  margin-bottom: 6px;
+  /* Remove fixed width */
+  display: block;
+  font-size: 16px; /* Prevents iOS zoom */
 }
+
+/* Make inputs full-width and larger tap targets */
+input[type="file"],
 input[type="number"],
-input[type="range"] {
-  width: 200px;
-  padding: 5px;
+input[type="range"],
+select {
+  width: 100%;
+  padding: 10px; /* Bigger touch targets */
+  font-size: 16px; /* Critical for mobile */
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box; /* Include padding in width */
 }
+
 button {
   background-color: #4caf50;
   color: white;
-  padding: 10px 20px;
+  padding: 12px; /* Taller button */
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-size: 16px;
   margin-top: 10px;
+  width: 100%; /* Full width on mobile */
 }
+
 button:hover {
   background-color: #45a049;
 }
@@ -49,59 +83,84 @@ button:disabled {
   background-color: #cccccc;
   cursor: not-allowed;
 }
+
+/* Hide the old .results grid (you're not using it) */
 .results {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  display: none; /* You removed these sections, so hide to be safe */
 }
+
 .result-section {
   background: white;
-  padding: 20px;
+  padding: 16px;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   position: relative;
+  color: #333; /* Ensure text is readable */
 }
 .result-section h2 {
   margin-top: 0;
   color: #4caf50;
   border-bottom: 2px solid #4caf50;
   padding-bottom: 10px;
+  font-size: 20px; /* Slightly smaller */
 }
-.descriptor {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px;
-  border-bottom: 1px solid #eee;
-}
-.descriptor-name {
-  font-weight: bold;
-  color: #555;
-}
-.descriptor-value {
-  font-family: monospace;
-  color: #333;
-}
+
+/* Responsive descriptor rows */
 .descriptor-rows {
   margin: 15px 0;
 }
 .descriptor-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px; /* Smaller gap */
   margin-bottom: 10px;
   padding: 8px;
   background: #f9f9f9;
   border-radius: 6px;
+  font-size: 14px; /* Slightly larger */
 }
 .descriptor-row strong {
   font-family: Arial, sans-serif;
   font-weight: bold;
+  min-width: 80px; /* Prevent layout shift */
 }
+.descriptor-row span {
+  padding: 6px 10px !important; /* Ensure touch targets */
+  font-size: 13px !important;
+}
+
+/* Canvas container */
+#canvasContainer {
+  width: 100%;
+  min-height: 250px; /* Slightly shorter */
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* Tooltip */
+#tooltip {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  pointer-events: none;
+  display: none;
+  z-index: 100;
+  max-width: 180px;
+  word-wrap: break-word;
+}
+
+/* Status messages */
 .status {
-  padding: 10px;
+  padding: 12px;
   margin-bottom: 20px;
   border-radius: 4px;
   text-align: center;
+  font-size: 16px; /* Larger for readability */
 }
 .status.loading {
   background-color: #fff3cd;
@@ -115,14 +174,32 @@ button:disabled {
   background-color: #f8d7da;
   color: #721c24;
 }
-.tooltip {
-  position: absolute;
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 6px 10px;
-  border-radius: 4px;
-  font-size: 12px;
-  pointer-events: none;
-  display: none;
-  z-index: 100;
+
+/* DESKTOP ENHANCEMENTS (>=768px) */
+@media (min-width: 768px) {
+  .control-group {
+    flex-direction: row;
+    align-items: center;
+    gap: 15px;
+  }
+  label {
+    width: 150px;
+    margin-bottom: 0;
+  }
+  input[type="file"],
+  input[type="number"],
+  input[type="range"],
+  select {
+    width: 200px;
+    max-width: 200px;
+  }
+  button {
+    width: auto;
+    padding: 10px 20px;
+  }
+  .results {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
 }
