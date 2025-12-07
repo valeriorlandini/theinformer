@@ -39,6 +39,7 @@
     </div>
 
     <button id="analyzeBtn" disabled>Analyze Audio</button>
+    <button id="downloadCsvBtn" disabled>Download CSV</button>
   </div>
 
   <div class="descriptor-rows">
@@ -167,6 +168,7 @@
       const waveform = Array.from(audioBuffer);
       const duration = totalSamples / sampleRate;
       let decodedAudioData = null;
+      let originalFileName = null;
 
       // Create one Informer instance for the entire analysis
       const informer = new InformerLib.Informer(sampleRate, 0.85, fftSize);
@@ -777,11 +779,13 @@
 
       try {
         await analyzeAudioBuffer(channelData, sampleRate, fftSize);
+        document.getElementById('downloadCsvBtn').disabled = false;
         statusDiv.textContent = "✓ Analysis complete!";
         statusDiv.className = "status ready";
       } catch (err) {
         statusDiv.textContent = "✗ Analysis error: " + err.message;
         statusDiv.className = "status error";
+        document.getElementById('downloadCsvBtn').disabled = true;
         console.error(err);
       }
     });
@@ -792,36 +796,74 @@
       const file = e.target.files[0];
       if (!file) {
         decodedAudioData = null;
+        originalFileName = null;
         analyzeBtn.disabled = true;
+        document.getElementById('downloadCsvBtn').disabled = true;
         return;
       }
+
+      // ✅ Store clean filename (without extension)
+      originalFileName = file.name.replace(/\.[^/.]+$/, "");
 
       statusDiv.textContent = "✓ Decoding audio file...";
       statusDiv.className = "status ready";
 
       try {
         const arrayBuffer = await file.arrayBuffer();
-        const audioContext = new (window.AudioContext ||
-          window.webkitAudioContext)();
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const decoded = await audioContext.decodeAudioData(arrayBuffer);
 
-        // Store for later analysis
         decodedAudioData = {
           channelData: decoded.getChannelData(0),
           sampleRate: decoded.sampleRate,
         };
 
-        // Enable the Analyze button
         analyzeBtn.disabled = false;
-        statusDiv.textContent =
-          "✓ File loaded. Click 'Analyze Audio' to proceed.";
+        document.getElementById('downloadCsvBtn').disabled = true; // ← CSV not ready yet
+        statusDiv.textContent = "✓ File loaded. Click 'Analyze Audio' to proceed.";
       } catch (err) {
         decodedAudioData = null;
+        originalFileName = null;
         analyzeBtn.disabled = true;
+        document.getElementById('downloadCsvBtn').disabled = true;
         statusDiv.textContent = "✗ Error decoding audio: " + err.message;
         statusDiv.className = "status error";
         console.error(err);
       }
+    });
+
+    // Download CSV button
+    document.getElementById('downloadCsvBtn').addEventListener('click', () => {
+      if (!analysisData) {
+        alert('Please analyze audio first.');
+        return;
+      }
+
+      const { times, descriptors } = analysisData;
+      const fftSize = document.getElementById('fftSize').value;
+
+      // Build CSV: header row
+      let csv = 'Time,' + times.map(t => t.toFixed(6)).join(',') + '\n';
+
+      // Add each descriptor as a row
+      allDescriptorKeys.forEach(key => {
+        const values = descriptors[key] || [];
+        const row = times.map((_, i) => i < values.length ? values[i].toFixed(6) : '');
+        csv += `"${descriptorMeta[key].label}",${row.join(',')}\n`;
+      });
+
+      // Generate filename
+      const fileName = originalFileName
+        ? `${originalFileName}-${fftSize}.csv`
+        : `informer-analysis-${fftSize}.csv`;
+
+      // Trigger download
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName;
+      link.click();
+      URL.revokeObjectURL(link.href);
     });
 
     // Handle window resize (e.g. rotate phone)
