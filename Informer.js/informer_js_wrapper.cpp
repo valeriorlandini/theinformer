@@ -150,6 +150,13 @@ namespace FrequencyWrapper {
         std::vector<double> precomp_freqs;
         return Frequency::slope(magnitudes, sample_rate, precomp_freqs);
     }
+    
+    double f0_hps(const val& jsMagnitudes, double sample_rate) {
+        auto magnitudes = vecFromJSArray<double>(jsMagnitudes);
+        std::vector<double> precomp_freqs;
+        return Frequency::f0_hps(magnitudes, 5u, sample_rate, precomp_freqs);
+    }
+
 }
 
 // Wrapper class for Informer
@@ -280,6 +287,7 @@ EMSCRIPTEN_BINDINGS(informer_module) {
     function("frequency_rolloff", &FrequencyWrapper::rolloff);
     function("frequency_skewness", &FrequencyWrapper::skewness);
     function("frequency_slope", &FrequencyWrapper::slope);
+    function("frequency_f0", &FrequencyWrapper::f0_hps);
     
     // Informer class
     class_<InformerWrapper>("Informer")

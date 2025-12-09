@@ -228,8 +228,8 @@
           Math.min(2, Math.max(0, freqDesc.irregularity || 0))
         );
         pushValue("crest", freqDesc.crestfactor || 0);
-        pushValue("flux", freqDesc.flux || 0);
-        pushValue("slope", freqDesc.slope || 0);
+        pushValue("flux", freqDesc.flux * 10000.0 || 0); // Multiplication because of usually very small numbers
+        pushValue("slope", freqDesc.slope * 1000000.0 || 0); // Same as above
         pushValue("decrease", freqDesc.decrease || 0);
         pushValue("skewnessFreq", freqDesc.skewness || 0);
         pushValue("kurtosisFreq", freqDesc.kurtosis || 0);

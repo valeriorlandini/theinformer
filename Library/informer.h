@@ -321,10 +321,10 @@ std::vector<typename Container::value_type> window(const Container& buffer, cons
         {
             window = static_cast<TSample>(0.35875) -
                      static_cast<TSample>(0.48829) * cos(static_cast<TSample>(2.0) *
-                     static_cast<TSample>(m_pi) * x) + static_cast<TSample>(0.14128) *
+                         static_cast<TSample>(m_pi) * x) + static_cast<TSample>(0.14128) *
                      cos(static_cast<TSample>(4.0) * static_cast<TSample>(m_pi) * x) -
                      static_cast<TSample>(0.01168) * cos(static_cast<TSample>(6.0) *
-                     static_cast<TSample>(m_pi) * x);
+                         static_cast<TSample>(m_pi) * x);
         }
 
         windowed_buffer[i] = window * buffer[i];
@@ -505,6 +505,87 @@ typename Container::value_type decrease(const Container& magnitudes)
     }
 
     return decrease;
+}
+
+// ESTIMATED FUNDAMENTAL FREQUENCY, HPS METHOD
+template <typename Container>
+#if __cplusplus >= 202002L
+requires std::floating_point<typename Container::value_type>
+#endif
+typename Container::value_type f0_hps(const Container& magnitudes, const unsigned int &max_compression = 5u,
+                                      typename Container::value_type sample_rate = static_cast<typename Container::value_type>(44100.0),
+                                      std::vector<typename Container::value_type>& precomputed_frequencies = {},
+                                      unsigned int stft_size = 0u)
+{
+    using TSample = typename Container::value_type;
+
+    TSample f0 = static_cast<TSample>(0.0);
+
+    if (magnitudes.empty() || max_compression < 2u)
+    {
+        return f0;
+    }
+
+    unsigned int fft_size = magnitudes.size();
+    unsigned int bins = stft_size > 0u ? stft_size : (fft_size - 1u) * 2u;
+
+    if (precomputed_frequencies.size() < bins)
+    {
+        precomputed_frequencies = precompute_frequencies(bins, sample_rate);
+    }
+
+    // Consider magnitudes only in the range 50 - 2000 Hz
+    std::vector<TSample> filtered_magnitudes;
+    unsigned int filtered_low_bands = 0u;
+    for (unsigned int b = 0u; b < fft_size; b++)
+    {
+        if (precomputed_frequencies[b] >= 50.0 && precomputed_frequencies[b] <= 2000.0)
+        {
+            filtered_magnitudes.push_back(magnitudes[b]);
+        }
+        else if (precomputed_frequencies[b] < 50.0)
+        {
+            ++filtered_low_bands;
+        }
+    }
+
+    if (filtered_magnitudes.size() < max_compression)
+    {
+        return f0;
+    }
+
+    unsigned int hps_length = filtered_magnitudes.size() / max_compression;
+
+    if (hps_length < 2u)
+    {
+        return f0;
+    }
+
+    std::vector<TSample> hps_products(hps_length);
+    for (unsigned int k = 0u; k < hps_length; k++)
+    {
+        hps_products[k] = filtered_magnitudes[k];
+    }
+
+    for (unsigned int n = 2u; n <= max_compression; n++)
+    {
+        for (unsigned int k = 0u; k < hps_length; k++)
+        {
+            unsigned int original_index = n * k;
+
+            if (original_index < filtered_magnitudes.size())
+            {
+                hps_products[k] *= filtered_magnitudes[original_index];
+            }
+        }
+    }
+
+    auto max_prod = std::max_element(hps_products.begin(), hps_products.end());
+    unsigned int k_peak = std::distance(hps_products.begin(), max_prod) + filtered_low_bands;
+
+    f0 = precomputed_frequencies[k_peak];
+
+    return f0;
 }
 
 // SPECTRAL ENTROPY
@@ -1136,6 +1217,7 @@ public:
             spectral_rolloff();
             spectral_skewness();
             spectral_slope();
+            fundamental_pitch();
         }
 
         return true;
@@ -1382,6 +1464,14 @@ public:
                                            precomputed_frequencies_, frequency_descriptors_["centroid"]);
 
         return frequency_descriptors_["spread"];
+    }
+
+    TSample fundamental_pitch()
+    {
+        frequency_descriptors_["f0"] = Frequency::f0_hps(magnitudes_, 5u, sample_rate_,
+                                                         precomputed_frequencies_);
+
+        return frequency_descriptors_["f0"];
     }
 
 private:
