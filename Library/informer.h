@@ -534,12 +534,12 @@ typename Container::value_type f0_hps(const Container& magnitudes, const unsigne
         precomputed_frequencies = precompute_frequencies(bins, sample_rate);
     }
 
-    // Consider magnitudes only in the range 50 - 2000 Hz
+    // Consider magnitudes only in the range 50 - 10000 Hz
     std::vector<TSample> filtered_magnitudes;
     unsigned int filtered_low_bands = 0u;
     for (unsigned int b = 0u; b < fft_size; b++)
     {
-        if (precomputed_frequencies[b] >= 50.0 && precomputed_frequencies[b] <= 2000.0)
+        if (precomputed_frequencies[b] >= 50.0 && precomputed_frequencies[b] <= 10000.0)
         {
             filtered_magnitudes.push_back(magnitudes[b]);
         }

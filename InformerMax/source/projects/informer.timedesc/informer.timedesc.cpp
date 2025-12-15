@@ -9,16 +9,15 @@
 
 using namespace c74::min;
 
-class freqdesc : public object<freqdesc>, public sample_operator<2, 0>
+class freqdesc : public object<freqdesc>, public sample_operator<1, 0>
 {
 public:
-	MIN_DESCRIPTION {"Compute spectral descriptors from magnitude spectrum input"};
-	MIN_TAGS {"audio, analysis, spectral descriptors"};
+	MIN_DESCRIPTION {"Compute time domain descriptors from sample input"};
+	MIN_TAGS {"audio, analysis, amplitude descriptors"};
 	MIN_AUTHOR {"Valerio Orlandini"};
-	MIN_RELATED {""};
+	MIN_RELATED {"informer.freqdesc"};
 
-	inlet<>  in_m {this, "(signal) Magntiude spectrum input"};
-	inlet<>  in_b {this, "(signal) Bin"};
+	inlet<>  in_s {this, "(signal) Input"};
 	outlet<> out {this, "Computed descriptors"};
 
 	message<> dspsetup
@@ -28,23 +27,24 @@ public:
 		MIN_FUNCTION
 		{
 			informer_.set_sample_rate(args[0]);
-			magnitudes_.resize(stft_size_);
+			buffer_.fill(0.0);
 			return {};
 		}
 	};
 
-	argument<int> spectral_frame_size_arg
+	argument<int> buffer_size_arg
     {
         this,
-        "frame_size",
-        "Size of the spectral frame (number of bins)."
+        "buffer_size",
+        "Size of the buffer."
     };
 
 	freqdesc(const atoms& args = {})
     {
         if (!args.empty())
         {
-            spectral_frame_size = std::max(2, int(args[0]));
+            buffer_.resize(std::max(2, int(args[0])));
+			buffer_.fill(0.0);
         }
     }
 
@@ -57,39 +57,38 @@ public:
         description {"When activated, the output messages are formatted so that they can be directly sent to a dictionary."}
     };
 
-	attribute<int> spectral_frame_size
+	attribute<int> buffer_size
 	{
 		this,
-		"frame_size",
+		"buffer_size",
 		4096,
-		title {"STFT Size"},
-		description {"Size of the spectral frame (number of bins)."},
+		title {"Buffer Size"},
+		description {"Buffer size for descriptors computation."},
 		setter
 		{
 			MIN_FUNCTION
 			{
-				stft_size_ = std::max(2, int(args[0]));
-				magnitudes_.resize(stft_size_);
-				informer_.set_stft_size(stft_size_);
+				buffer_.resize(std::max(2, int(args[0])));
+				buffer_.fill(0.0);
 				return args;
 			}
 		}
 	};
 
-	samples<0> operator()(sample mag, sample index)
+	samples<0> operator()(sample input)
     {
-		if (index < magnitudes_.size())
+		if (sample_count_ < buffer_.size() - 1)
 		{
-			magnitudes_[static_cast<size_t>(index)] = mag;
-		}	
-
-		if (index == magnitudes_.size() - 1)
+			buffer_[sample_count_] = input;
+			sample_count_++;
+		}
+		else if (!buffer_.empty())
 		{
-			
-			informer_.set_magnitudes(magnitudes_, true);
-			informer_.compute_descriptors(false, true);
-			auto spectral_descriptors = informer_.get_frequency_descriptors();
-			for (const auto& descriptor : spectral_descriptors)
+			sample_count_ = 0u;
+			informer_.set_buffer(buffer_);
+			informer_.compute_descriptors(true, false);
+			auto amp_descriptors = informer_.get_time_descriptors();
+			for (const auto& descriptor : amp_descriptors)
 			{
 				atoms output;
 				if (bool(dict))
@@ -113,11 +112,11 @@ public:
 	}
 
 private:
-	std::vector<sample> magnitudes_;
+	std::vector<sample> buffer_;
 	Informer::Informer<sample> informer_;
-	unsigned int stft_size_ = 4096u;
+	unsigned int sample_count_ = 0u;
 
-	constexpr static const size_t num_descriptors_ = 13;
+	constexpr static const size_t num_descriptors_ = 6;
 };
 
 MIN_EXTERNAL(freqdesc);

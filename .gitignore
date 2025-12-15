@@ -28,3 +28,23 @@ workspace.xml
 xcuserdata
 
 *.egg-info
+
+__*
+sysbuild
+*.sdf
+*.suo
+*.sln
+*.opensdf
+log.txt
+externals
+extensions
+support
+build/
+build-*/
+tests
+*.o
+*.dylib
+tmp
+.DS_Store
+.vs
+package-info.json
