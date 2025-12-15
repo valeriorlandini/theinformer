@@ -1,0 +1,24 @@
+{
+	"author" : "Valerio Orlandini",
+	"description" : "The Informer is a framework for audio descriptors computation. This package implements a Max interface for it, with externals working both in real time and on buffers.",
+	"homepatcher" : "sonus Overview.maxpat",
+	"max_version_min" : "8.0", "max_version_max" : "none",
+	"name" : "Informer for Max",
+	"os" : {
+		"macintosh" : {
+			"platform" : [ "x64", "aarch64" ],
+			"min_version" : "10.11"
+		},
+		"windows" : {
+			"platform" : [ "x64" ],
+			"min_version" : "10"
+		}
+	},
+	"package_extra" : {
+		"reverse_domain" : "com.valeriorlandini",
+		"copyright" : "Copyright (c) 2023-2025 Valerio Orlandini"
+	},
+	"tags" : [ "sound descriptors", "audio descriptors", "audio analysis", "feature extraction", "music information retrieval", "MIR", "informer" ],
+	"version" : "0.5.0",
+	"website" : "https://valeriorlandini.github.io/theinformer/"
+}

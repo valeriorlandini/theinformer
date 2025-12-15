@@ -1,3 +1,9 @@
 [submodule "PyInformer/pybind11"]
 	path = PyInformer/pybind11
 	url = https://github.com/pybind/pybind11.git
+[submodule "InformerMax/source/min-api"]
+	path = InformerMax/source/min-api
+	url = https://github.com/Cycling74/min-api.git
+[submodule "InformerMax/source/min-lib"]
+	path = InformerMax/source/min-lib
+	url = https://github.com/Cycling74/min-lib.git
