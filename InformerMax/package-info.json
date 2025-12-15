@@ -19,6 +19,6 @@
 		"copyright" : "Copyright (c) 2023-2025 Valerio Orlandini"
 	},
 	"tags" : [ "sound descriptors", "audio descriptors", "audio analysis", "feature extraction", "music information retrieval", "MIR", "informer" ],
-	"version" : "0.5.0",
+	"version" : "0.1.0",
 	"website" : "https://valeriorlandini.github.io/theinformer/"
 }

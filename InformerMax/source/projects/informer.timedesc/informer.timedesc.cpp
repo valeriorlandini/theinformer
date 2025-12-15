@@ -4,7 +4,6 @@
 ///	@license	Use of this source code is governed by the MIT License found in the License.md file.
 
 #include "c74_min.h"
-#include <vector>
 #include "../../../../Library/informer.h"
 
 using namespace c74::min;
