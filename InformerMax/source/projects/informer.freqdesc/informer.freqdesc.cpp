@@ -57,18 +57,19 @@ public:
         description {"When activated, the output messages are formatted so that they can be directly sent to a dictionary."}
     };
 
-	attribute<int> spectral_frame_size
+	attribute<int, threadsafe::no, limit::clamp> spectral_frame_size
 	{
 		this,
 		"frame_size",
 		4096,
-		title {"STFT Size"},
+		range { 2, 65536 },
+		title {"Frame Size (bins)"},
 		description {"Size of the spectral frame (number of bins)."},
 		setter
 		{
 			MIN_FUNCTION
 			{
-				stft_size_ = std::max(2, int(args[0]));
+				stft_size_ = int(args[0]);
 				magnitudes_.resize(stft_size_);
 				informer_.set_stft_size(stft_size_);
 				return args;

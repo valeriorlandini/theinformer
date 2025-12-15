@@ -43,7 +43,7 @@ public:
     {
         if (!args.empty())
         {
-            buffer_.resize(std::max(2, int(args[0])));
+			buffer_.resize(int(args[0]));
 			sample_count_ = 0u;
         }
     }
@@ -57,22 +57,33 @@ public:
         description {"When activated, the output messages are formatted so that they can be directly sent to a dictionary."}
     };
 
-	attribute<int> buffer_size
+	attribute<int, threadsafe::no, limit::clamp> buffer_size
 	{
 		this,
 		"buffer_size",
 		4096,
+		range { 2, 65536 },
 		title {"Buffer Size"},
 		description {"Buffer size for descriptors computation."},
 		setter
 		{
 			MIN_FUNCTION
 			{
-				buffer_.resize(std::max(2, int(args[0])));
+				buffer_.resize(int(args[0]));
 				sample_count_ = 0u;
 				return args;
 			}
 		}
+	};
+
+	attribute<number, threadsafe::no, limit::clamp> overlap
+	{
+		this,
+		"overlap",
+		0.5,
+		range { 0.0 , 0.75 },
+		title {"Overlap Factor"},
+		description {"Overlap factor between consecutive buffers."}
 	};
 
 	samples<0> operator()(sample input)
@@ -84,7 +95,6 @@ public:
 		}
 		else if (!buffer_.empty())
 		{
-			sample_count_ = 0u;
 			informer_.set_buffer(buffer_);
 			informer_.compute_descriptors(true, false);
 			auto amp_descriptors = informer_.get_time_descriptors();
@@ -106,6 +116,16 @@ public:
 				output.push_back(descriptor.second);
 				out.send(output);
 			}
+
+			// Prepare next buffer with overlap
+			unsigned int overlap_samples = static_cast<unsigned int>(static_cast<double>(buffer_.size()) * double(overlap));
+			unsigned int last_item = buffer_.size() - overlap_samples;
+			if (overlap_samples > 0)
+			{
+				std::move(buffer_.begin() + last_item, buffer_.end(), buffer_.begin());
+				// std::fill(buffer_.begin() + overlap_samples, buffer_.end(), 0.0);
+			}
+			sample_count_ = overlap_samples;
 		}
 
 		return { };
