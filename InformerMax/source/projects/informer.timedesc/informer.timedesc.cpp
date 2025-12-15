@@ -5,11 +5,11 @@
 
 #include "c74_min.h"
 #include <vector>
-#include "../../../Library/informer.h"
+#include "../../../../Library/informer.h"
 
 using namespace c74::min;
 
-class freqdesc : public object<freqdesc>, public sample_operator<1, 0>
+class timedesc : public object<timedesc>, public sample_operator<1, 0>
 {
 public:
 	MIN_DESCRIPTION {"Compute time domain descriptors from sample input"};
@@ -27,7 +27,7 @@ public:
 		MIN_FUNCTION
 		{
 			informer_.set_sample_rate(args[0]);
-			buffer_.fill(0.0);
+			sample_count_ = 0u;
 			return {};
 		}
 	};
@@ -39,12 +39,12 @@ public:
         "Size of the buffer."
     };
 
-	freqdesc(const atoms& args = {})
+	timedesc(const atoms& args = {})
     {
         if (!args.empty())
         {
             buffer_.resize(std::max(2, int(args[0])));
-			buffer_.fill(0.0);
+			sample_count_ = 0u;
         }
     }
 
@@ -69,7 +69,7 @@ public:
 			MIN_FUNCTION
 			{
 				buffer_.resize(std::max(2, int(args[0])));
-				buffer_.fill(0.0);
+				sample_count_ = 0u;
 				return args;
 			}
 		}
@@ -119,4 +119,4 @@ private:
 	constexpr static const size_t num_descriptors_ = 6;
 };
 
-MIN_EXTERNAL(freqdesc);
+MIN_EXTERNAL(timedesc);

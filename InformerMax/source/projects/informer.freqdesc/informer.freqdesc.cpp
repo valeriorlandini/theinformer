@@ -5,7 +5,7 @@
 
 #include "c74_min.h"
 #include <vector>
-#include "../../../Library/informer.h"
+#include "../../../../Library/informer.h"
 
 using namespace c74::min;
 
