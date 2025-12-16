@@ -36,16 +36,12 @@ public:
     {
         this,
         "frame_size",
-        "Size of the spectral frame (number of bins)."
-    };
-
-	freqdesc(const atoms& args = {})
-    {
-        if (!args.empty())
-        {
-            spectral_frame_size = std::max(2, int(args[0]));
+        "Size of the spectral frame (number of bins).",
+		MIN_ARGUMENT_FUNCTION
+		{
+            spectral_frame_size = arg;
         }
-    }
+    };
 
 	attribute<bool> dict
 	{

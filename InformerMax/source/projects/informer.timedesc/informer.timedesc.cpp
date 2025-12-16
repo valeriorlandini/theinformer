@@ -35,18 +35,13 @@ public:
     {
         this,
         "buffer_size",
-        "Size of the buffer."
+        "Size of the buffer.",
+		MIN_ARGUMENT_FUNCTION
+		{
+			buffer_size = arg;
+		}
     };
-
-	timedesc(const atoms& args = {})
-    {
-        if (!args.empty())
-        {
-			buffer_.resize(int(args[0]));
-			sample_count_ = 0u;
-        }
-    }
-
+	
 	attribute<bool> dict
 	{
         this,
