@@ -1223,6 +1223,90 @@ public:
         return true;
     }
 
+    // Normalize descriptors inside [0, 1] range, some normalizations are performed
+    // on euristic bases, use only for artistic purposes
+    void normalize_descriptors()
+    {
+        if (time_descriptors_.find("kurtosis") != time_descriptors_.end())
+        {
+            time_descriptors_.at("kurtosis") += static_cast<TSample>(2.0);
+            time_descriptors_.at("kurtosis") = std::clamp(time_descriptors_.at("kurtosis"), static_cast<TSample>(0.0), static_cast<TSample>(4.0));
+            time_descriptors_.at("kurtosis") *= static_cast<TSample>(0.25);
+        }
+
+        if (time_descriptors_.find("skewness") != time_descriptors_.end())
+        {
+            time_descriptors_.at("skewness") = std::clamp(time_descriptors_.at("skewness"), static_cast<TSample>(-5.0), static_cast<TSample>(5.0));
+            time_descriptors_.at("skewness") += static_cast<TSample>(5.0);
+            time_descriptors_.at("skewness") *= static_cast<TSample>(0.1);
+        }
+
+        if (frequency_descriptors_.find("kurtosis") != frequency_descriptors_.end())
+        {
+            frequency_descriptors_.at("kurtosis") += static_cast<TSample>(2.0);
+            frequency_descriptors_.at("kurtosis") = std::clamp(frequency_descriptors_.at("kurtosis"), static_cast<TSample>(0.0), static_cast<TSample>(40.0));
+            frequency_descriptors_.at("kurtosis") *= static_cast<TSample>(0.025);
+        }
+
+        TSample invNyquist = static_cast<TSample>(1.0) / (sample_rate_ * 0.5);
+
+        if (frequency_descriptors_.find("centroid") != frequency_descriptors_.end())
+        {
+            frequency_descriptors_.at("centroid") *= invNyquist;
+        }
+
+        if (frequency_descriptors_.find("decrease") != frequency_descriptors_.end())
+        {
+            frequency_descriptors_.at("decrease") += static_cast<TSample>(0.05);
+            frequency_descriptors_.at("decrease") *= static_cast<TSample>(10.0);
+            frequency_descriptors_.at("decrease") = std::clamp(frequency_descriptors_.at("decrease"), static_cast<TSample>(0.0), static_cast<TSample>(1.0));
+        }
+
+        if (frequency_descriptors_.find("flux") != frequency_descriptors_.end())
+        {
+            if (stft_size_ > 1u)
+            {
+                frequency_descriptors_.at("flux") /= static_cast<TSample>(stft_size_) * static_cast<TSample>(0.5);
+                frequency_descriptors_.at("flux") = std::clamp(frequency_descriptors_.at("flux"), static_cast<TSample>(0.0), static_cast<TSample>(1.0));
+            }
+        }
+
+        if (frequency_descriptors_.find("irregularity") != frequency_descriptors_.end())
+        {
+            frequency_descriptors_.at("irregularity") *= static_cast<TSample>(0.5);
+            frequency_descriptors_.at("irregularity") = std::clamp(frequency_descriptors_.at("irregularity"), static_cast<TSample>(0.0), static_cast<TSample>(1.0));
+        }
+
+        if (frequency_descriptors_.find("peak") != frequency_descriptors_.end())
+        {
+            frequency_descriptors_.at("peak") *= invNyquist;
+        }
+
+        if (frequency_descriptors_.find("rolloff") != frequency_descriptors_.end())
+        {
+            frequency_descriptors_.at("rolloff") *= invNyquist;
+        }
+
+        if (frequency_descriptors_.find("skewness") != frequency_descriptors_.end())
+        {
+            frequency_descriptors_.at("skewness") = std::clamp(frequency_descriptors_.at("skewness"), static_cast<TSample>(-5.0), static_cast<TSample>(5.0));
+            frequency_descriptors_.at("skewness") += static_cast<TSample>(5.0);
+            frequency_descriptors_.at("skewness") *= static_cast<TSample>(0.1);
+        }
+
+        if (frequency_descriptors_.find("slope") != frequency_descriptors_.end())
+        {
+            frequency_descriptors_.at("slope") += static_cast<TSample>(1.0);
+            frequency_descriptors_.at("slope") *= static_cast<TSample>(0.5);
+            frequency_descriptors_.at("slope") = std::clamp(frequency_descriptors_.at("slope"), static_cast<TSample>(0.0), static_cast<TSample>(1.0));
+        }
+
+        if (frequency_descriptors_.find("spread") != frequency_descriptors_.end())
+        {
+            frequency_descriptors_.at("spread") *= invNyquist * static_cast<TSample>(0.5);
+        }
+    }
+
     std::vector<TSample> get_magnitudes() const
     {
         return magnitudes_;
