@@ -9,8 +9,20 @@
             "modernui": 1
         },
         "classnamespace": "box",
-        "rect": [ 425.0, 331.0, 847.0, 549.0 ],
+        "rect": [ 425.0, 330.0, 847.0, 549.0 ],
         "boxes": [
+            {
+                "box": {
+                    "hidden": 1,
+                    "id": "obj-17",
+                    "maxclass": "newobj",
+                    "numinlets": 1,
+                    "numoutlets": 1,
+                    "outlettype": [ "bang" ],
+                    "patching_rect": [ 300.0, 245.0, 58.0, 22.0 ],
+                    "text": "loadbang"
+                }
+            },
             {
                 "box": {
                     "id": "obj-4",
@@ -102,7 +114,7 @@
                     "numinlets": 2,
                     "numoutlets": 5,
                     "outlettype": [ "dictionary", "", "", "", "" ],
-                    "patching_rect": [ 279.0, 259.0, 61.0, 22.0 ],
+                    "patching_rect": [ 279.0, 286.0, 61.0, 22.0 ],
                     "saved_object_attributes": {
                         "legacy": 0,
                         "parameter_enable": 0,
@@ -300,7 +312,7 @@
                     "numinlets": 1,
                     "numoutlets": 0,
                     "patching_rect": [ 16.0, 55.0, 805.0, 29.0 ],
-                    "text": "frequency domain real time descriptors analysis"
+                    "text": "frequency domain descriptors real time analysis"
                 }
             },
             {
@@ -355,6 +367,13 @@
                     "destination": [ "obj-16", 0 ],
                     "midpoints": [ 288.5, 282.0, 276.0, 282.0, 276.0, 123.0, 36.5, 123.0 ],
                     "source": [ "obj-15", 0 ]
+                }
+            },
+            {
+                "patchline": {
+                    "destination": [ "obj-15", 0 ],
+                    "hidden": 1,
+                    "source": [ "obj-17", 0 ]
                 }
             },
             {

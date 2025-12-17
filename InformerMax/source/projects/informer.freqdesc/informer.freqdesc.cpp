@@ -52,6 +52,15 @@ public:
         description {"When activated, the output messages are formatted so that they can be directly sent to a dictionary."}
     };
 
+	attribute<bool> normalize
+	{
+        this,
+        "normalize",
+        false,
+        title {"Normalize descriptors"},
+        description {"When activated, the computed descriptors are normalized inside the [0, 1] range. Consider that some normalizations are performed on euristic bases, use only for artistic purposes."}
+    };
+
 	attribute<int, threadsafe::no, limit::clamp> spectral_frame_size
 	{
 		this,
@@ -84,6 +93,10 @@ public:
 			
 			informer_.set_magnitudes(magnitudes_, true);
 			informer_.compute_descriptors(false, true);
+			if (bool(normalize))
+			{
+				informer_.normalize_descriptors();
+			}
 			auto spectral_descriptors = informer_.get_frequency_descriptors();
 			for (const auto& descriptor : spectral_descriptors)
 			{
