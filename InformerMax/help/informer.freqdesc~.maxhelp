@@ -9,18 +9,32 @@
             "modernui": 1
         },
         "classnamespace": "box",
-        "rect": [ 99.0, 100.0, 847.0, 544.0 ],
+        "rect": [ 378.0, 333.0, 847.0, 549.0 ],
         "boxes": [
             {
                 "box": {
-                    "attr": "normalize",
+                    "fontface": 0,
+                    "fontname": "Arial",
+                    "fontsize": 12.0,
+                    "id": "obj-2",
+                    "maxclass": "number~",
+                    "mode": 2,
+                    "numinlets": 2,
+                    "numoutlets": 2,
+                    "outlettype": [ "signal", "float" ],
+                    "patching_rect": [ 24.0, 317.0, 104.0, 22.0 ],
+                    "sig": 0.0
+                }
+            },
+            {
+                "box": {
                     "id": "obj-4",
-                    "maxclass": "attrui",
+                    "maxclass": "newobj",
                     "numinlets": 1,
                     "numoutlets": 1,
-                    "outlettype": [ "" ],
-                    "parameter_enable": 0,
-                    "patching_rect": [ 33.0, 169.76607578992844, 192.0, 22.0 ]
+                    "outlettype": [ "signal" ],
+                    "patching_rect": [ 24.0, 206.0, 184.0, 22.0 ],
+                    "text": "pfft~ frequency_descriptor~ 8192"
                 }
             },
             {
@@ -32,7 +46,7 @@
                     "maxclass": "comment",
                     "numinlets": 1,
                     "numoutlets": 0,
-                    "patching_rect": [ 576.0, 137.76607578992844, 81.28654617071152, 66.0 ],
+                    "patching_rect": [ 257.0, 138.0, 81.28654617071152, 66.0 ],
                     "text": "Audio file\nSine wave\nWhite noise\nAudio input",
                     "textcolor": [ 0.6196078431372549, 0.7450980392156863, 0.9529411764705882, 1.0 ]
                 }
@@ -46,7 +60,7 @@
                     "numoutlets": 2,
                     "outlettype": [ "signal", "" ],
                     "parameter_enable": 0,
-                    "patching_rect": [ 644.0, 352.76607578992844, 123.0, 26.0 ]
+                    "patching_rect": [ 338.0, 353.0, 123.0, 26.0 ]
                 }
             },
             {
@@ -56,7 +70,7 @@
                     "numinlets": 1,
                     "numoutlets": 2,
                     "outlettype": [ "signal", "signal" ],
-                    "patching_rect": [ 703.0, 217.76607578992844, 35.0, 22.0 ],
+                    "patching_rect": [ 397.0, 218.0, 35.0, 22.0 ],
                     "text": "adc~"
                 }
             },
@@ -68,7 +82,7 @@
                     "numinlets": 2,
                     "numoutlets": 1,
                     "outlettype": [ "int" ],
-                    "patching_rect": [ 559.0, 217.76607578992844, 29.5, 22.0 ],
+                    "patching_rect": [ 240.0, 217.0, 29.5, 22.0 ],
                     "text": "+ 1"
                 }
             },
@@ -82,46 +96,9 @@
                     "numoutlets": 1,
                     "outlettype": [ "" ],
                     "parameter_enable": 0,
-                    "patching_rect": [ 559.0, 137.76607578992844, 18.0, 66.0 ],
+                    "patching_rect": [ 240.0, 138.0, 18.0, 66.0 ],
                     "size": 4,
                     "value": 0
-                }
-            },
-            {
-                "box": {
-                    "hidden": 1,
-                    "id": "obj-17",
-                    "maxclass": "newobj",
-                    "numinlets": 1,
-                    "numoutlets": 1,
-                    "outlettype": [ "bang" ],
-                    "patching_rect": [ 59.0, 273.0, 58.0, 22.0 ],
-                    "text": "loadbang"
-                }
-            },
-            {
-                "box": {
-                    "id": "obj-16",
-                    "maxclass": "dict.view",
-                    "numinlets": 1,
-                    "numoutlets": 0,
-                    "patching_rect": [ 33.0, 353.0, 237.0, 125.0 ]
-                }
-            },
-            {
-                "box": {
-                    "id": "obj-15",
-                    "maxclass": "newobj",
-                    "numinlets": 2,
-                    "numoutlets": 5,
-                    "outlettype": [ "dictionary", "", "", "", "" ],
-                    "patching_rect": [ 33.0, 312.0, 61.0, 22.0 ],
-                    "saved_object_attributes": {
-                        "legacy": 0,
-                        "parameter_enable": 0,
-                        "parameter_mappable": 0
-                    },
-                    "text": "dict"
                 }
             },
             {
@@ -130,31 +107,7 @@
                     "maxclass": "ezdac~",
                     "numinlets": 2,
                     "numoutlets": 0,
-                    "patching_rect": [ 644.0, 432.76607578992844, 45.0, 45.0 ]
-                }
-            },
-            {
-                "box": {
-                    "attr": "overlap",
-                    "id": "obj-12",
-                    "maxclass": "attrui",
-                    "numinlets": 1,
-                    "numoutlets": 1,
-                    "outlettype": [ "" ],
-                    "parameter_enable": 0,
-                    "patching_rect": [ 33.0, 193.76607578992844, 192.0, 22.0 ]
-                }
-            },
-            {
-                "box": {
-                    "attr": "dict",
-                    "id": "obj-11",
-                    "maxclass": "attrui",
-                    "numinlets": 1,
-                    "numoutlets": 1,
-                    "outlettype": [ "" ],
-                    "parameter_enable": 0,
-                    "patching_rect": [ 33.0, 145.76607578992844, 192.0, 22.0 ]
+                    "patching_rect": [ 338.0, 433.0, 45.0, 45.0 ]
                 }
             },
             {
@@ -164,7 +117,7 @@
                     "numinlets": 5,
                     "numoutlets": 1,
                     "outlettype": [ "signal" ],
-                    "patching_rect": [ 644.0, 267.76607578992844, 78.0, 22.0 ],
+                    "patching_rect": [ 338.0, 268.0, 78.0, 22.0 ],
                     "text": "selector~ 4 1"
                 }
             },
@@ -175,7 +128,7 @@
                     "numinlets": 2,
                     "numoutlets": 1,
                     "outlettype": [ "signal" ],
-                    "patching_rect": [ 674.0, 169.76607578992844, 66.0, 22.0 ],
+                    "patching_rect": [ 368.0, 170.0, 66.0, 22.0 ],
                     "text": "cycle~ 440"
                 }
             },
@@ -186,7 +139,7 @@
                     "numinlets": 1,
                     "numoutlets": 1,
                     "outlettype": [ "signal" ],
-                    "patching_rect": [ 688.0, 193.76607578992844, 44.0, 22.0 ],
+                    "patching_rect": [ 382.0, 194.0, 44.0, 22.0 ],
                     "text": "noise~"
                 }
             },
@@ -214,7 +167,7 @@
                     "numoutlets": 5,
                     "outlettype": [ "signal", "signal", "signal", "", "dictionary" ],
                     "parameter_enable": 0,
-                    "patching_rect": [ 659.0, 137.76607578992844, 150.0, 30.0 ],
+                    "patching_rect": [ 353.0, 138.0, 150.0, 30.0 ],
                     "quality": "basic",
                     "saved_attribute_attributes": {
                         "candicane2": {
@@ -239,18 +192,6 @@
                             "expression": ""
                         }
                     }
-                }
-            },
-            {
-                "box": {
-                    "attr": "buffer_size",
-                    "id": "obj-14",
-                    "maxclass": "attrui",
-                    "numinlets": 1,
-                    "numoutlets": 1,
-                    "outlettype": [ "" ],
-                    "parameter_enable": 0,
-                    "patching_rect": [ 33.0, 121.76607578992844, 192.0, 22.0 ]
                 }
             },
             {
@@ -301,26 +242,17 @@
             {
                 "box": {
                     "bubble": 1,
+                    "bubbleside": 2,
                     "fontname": "Arial",
                     "fontsize": 13.0,
                     "id": "obj-19",
-                    "linecount": 7,
+                    "linecount": 2,
                     "maxclass": "comment",
                     "numinlets": 1,
                     "numoutlets": 0,
-                    "patching_rect": [ 227.0, 113.26607578992844, 325.0, 115.0 ],
-                    "text": "when dict is turned on, the messages are formatted to directly feed a dictionary, otherwise the external ouptuts messages in the format [descriptor] [value]\nwhen normalize is turned on, all the descriptors are scaled inside [0, 1] range: consider that for some descriptors this is done using an euristic approach, so it may not be suitable for scientific purposes"
-                }
-            },
-            {
-                "box": {
-                    "id": "obj-2",
-                    "maxclass": "newobj",
-                    "numinlets": 1,
-                    "numoutlets": 1,
-                    "outlettype": [ "" ],
-                    "patching_rect": [ 33.0, 238.0, 252.0, 22.0 ],
-                    "text": "informer.timedesc 8192 @dict 1 @overlap 0.5"
+                    "patching_rect": [ 29.0, 138.0, 174.0, 55.0 ],
+                    "text": "open the pfft~ patch to see how the external is used",
+                    "textjustification": 1
                 }
             },
             {
@@ -339,11 +271,12 @@
                     "fontname": "Arial",
                     "fontsize": 16.0,
                     "id": "obj-1",
+                    "linecount": 2,
                     "maxclass": "comment",
                     "numinlets": 1,
                     "numoutlets": 0,
-                    "patching_rect": [ 16.0, 80.0, 805.0, 25.0 ],
-                    "text": "Computation of a series of time domain descriptors in real time, with user definable buffer size and overlap.",
+                    "patching_rect": [ 16.0, 80.0, 805.0, 43.0 ],
+                    "text": "Computation of aof frequency domain descriptors in real time from the magnitude values of a FFT, with the result returned as signal.",
                     "textcolor": [ 0.956862745098039, 0.764705882352941, 0.450980392156863, 1.0 ]
                 }
             },
@@ -358,7 +291,7 @@
                     "numinlets": 1,
                     "numoutlets": 0,
                     "patching_rect": [ 16.0, 55.0, 805.0, 29.0 ],
-                    "text": "time domain descriptors real time analysis"
+                    "text": "frequency domain descriptors real time analysis"
                 }
             },
             {
@@ -387,75 +320,32 @@
                     "numinlets": 1,
                     "numoutlets": 0,
                     "patching_rect": [ 16.0, 12.0, 805.0, 48.0 ],
-                    "text": "informer.timedesc"
+                    "text": "informer.freqdesc~"
                 }
             }
         ],
         "lines": [
             {
                 "patchline": {
-                    "destination": [ "obj-2", 0 ],
-                    "midpoints": [ 653.5, 291.0, 129.0, 291.0, 129.0, 270.0, 30.0, 270.0, 30.0, 234.0, 42.5, 234.0 ],
-                    "order": 1,
-                    "source": [ "obj-10", 0 ]
-                }
-            },
-            {
-                "patchline": {
                     "destination": [ "obj-26", 0 ],
-                    "midpoints": [ 653.5, 291.0, 653.5, 291.0 ],
+                    "midpoints": [ 347.5, 291.0, 347.5, 291.0 ],
                     "order": 0,
                     "source": [ "obj-10", 0 ]
                 }
             },
             {
                 "patchline": {
-                    "destination": [ "obj-2", 0 ],
-                    "midpoints": [ 42.5, 168.0, 18.0, 168.0, 18.0, 225.0, 42.5, 225.0 ],
-                    "source": [ "obj-11", 0 ]
-                }
-            },
-            {
-                "patchline": {
-                    "destination": [ "obj-2", 0 ],
-                    "midpoints": [ 42.5, 216.0, 42.5, 216.0 ],
-                    "source": [ "obj-12", 0 ]
-                }
-            },
-            {
-                "patchline": {
-                    "destination": [ "obj-2", 0 ],
-                    "midpoints": [ 42.5, 144.0, 18.0, 144.0, 18.0, 225.0, 42.5, 225.0 ],
-                    "source": [ "obj-14", 0 ]
-                }
-            },
-            {
-                "patchline": {
-                    "destination": [ "obj-16", 0 ],
-                    "midpoints": [ 42.5, 336.0, 42.5, 336.0 ],
-                    "source": [ "obj-15", 0 ]
-                }
-            },
-            {
-                "patchline": {
-                    "destination": [ "obj-15", 0 ],
-                    "hidden": 1,
-                    "midpoints": [ 68.5, 297.0, 42.5, 297.0 ],
-                    "source": [ "obj-17", 0 ]
-                }
-            },
-            {
-                "patchline": {
-                    "destination": [ "obj-15", 0 ],
-                    "midpoints": [ 42.5, 261.0, 42.5, 261.0 ],
-                    "source": [ "obj-2", 0 ]
+                    "destination": [ "obj-4", 0 ],
+                    "midpoints": [ 347.5, 291.0, 21.0, 291.0, 21.0, 201.0, 33.5, 201.0 ],
+                    "order": 1,
+                    "source": [ "obj-10", 0 ]
                 }
             },
             {
                 "patchline": {
                     "destination": [ "obj-23", 0 ],
                     "hidden": 1,
-                    "midpoints": [ 568.5, 204.0, 568.5, 204.0 ],
+                    "midpoints": [ 249.5, 207.0, 249.5, 207.0 ],
                     "source": [ "obj-22", 0 ]
                 }
             },
@@ -463,21 +353,21 @@
                 "patchline": {
                     "destination": [ "obj-10", 0 ],
                     "hidden": 1,
-                    "midpoints": [ 568.5, 252.0, 653.5, 252.0 ],
+                    "midpoints": [ 249.5, 255.0, 347.5, 255.0 ],
                     "source": [ "obj-23", 0 ]
                 }
             },
             {
                 "patchline": {
                     "destination": [ "obj-10", 4 ],
-                    "midpoints": [ 712.5, 240.0, 712.5, 240.0 ],
+                    "midpoints": [ 406.5, 243.0, 406.5, 243.0 ],
                     "source": [ "obj-25", 0 ]
                 }
             },
             {
                 "patchline": {
                     "destination": [ "obj-13", 1 ],
-                    "midpoints": [ 653.5, 417.0, 679.5, 417.0 ],
+                    "midpoints": [ 347.5, 420.0, 373.5, 420.0 ],
                     "order": 0,
                     "source": [ "obj-26", 0 ]
                 }
@@ -485,7 +375,7 @@
             {
                 "patchline": {
                     "destination": [ "obj-13", 0 ],
-                    "midpoints": [ 653.5, 381.0, 653.5, 381.0 ],
+                    "midpoints": [ 347.5, 381.0, 347.5, 381.0 ],
                     "order": 1,
                     "source": [ "obj-26", 0 ]
                 }
@@ -493,7 +383,7 @@
             {
                 "patchline": {
                     "destination": [ "obj-2", 0 ],
-                    "midpoints": [ 42.5, 192.0, 30.0, 192.0, 30.0, 225.0, 42.5, 225.0 ],
+                    "midpoints": [ 33.5, 231.0, 33.5, 231.0 ],
                     "source": [ "obj-4", 0 ]
                 }
             },
@@ -508,21 +398,21 @@
             {
                 "patchline": {
                     "destination": [ "obj-10", 1 ],
-                    "midpoints": [ 668.5, 168.0, 668.25, 168.0 ],
+                    "midpoints": [ 362.5, 171.0, 362.25, 171.0 ],
                     "source": [ "obj-7", 0 ]
                 }
             },
             {
                 "patchline": {
                     "destination": [ "obj-10", 3 ],
-                    "midpoints": [ 697.5, 216.0, 697.75, 216.0 ],
+                    "midpoints": [ 391.5, 219.0, 391.75, 219.0 ],
                     "source": [ "obj-8", 0 ]
                 }
             },
             {
                 "patchline": {
                     "destination": [ "obj-10", 2 ],
-                    "midpoints": [ 683.5, 192.0, 683.0, 192.0 ],
+                    "midpoints": [ 377.5, 195.0, 377.0, 195.0 ],
                     "source": [ "obj-9", 0 ]
                 }
             }

@@ -8,16 +8,16 @@
 
 using namespace c74::min;
 
-class timedesc : public object<timedesc>, public sample_operator<1, 0>
+class timedesc_tilde : public object<timedesc_tilde>, public sample_operator<1, 1>
 {
 public:
-	MIN_DESCRIPTION {"Compute time domain descriptors from sample input"};
+	MIN_DESCRIPTION {"Compute the selected time domain descriptor from sample input and returns it as a signal"};
 	MIN_TAGS {"audio, analysis, amplitude descriptors"};
 	MIN_AUTHOR {"Valerio Orlandini"};
-	MIN_RELATED {"informer.freqdesc, informer.timedesc~"};
+	MIN_RELATED {"informer.timedesc, informer.freqdesc~"};
 
-	inlet<>  in_s {this, "(signal) Input"};
-	outlet<> out {this, "Computed descriptors"};
+	inlet<>  in {this, "(signal) Input"};
+	outlet<> out {this, "(signal) Computed descriptor", "signal"};
 
 	message<> dspsetup
 	{
@@ -31,6 +31,44 @@ public:
 		}
 	};
 
+	enum class t_descriptors : int { peak, rms, kurtosis, skewness, variance, zerocrossing, enum_count };
+
+    enum_map t_descriptors_range = {"peak", "rms", "kurtosis", "skewness", "variance", "zerocrossing"};
+
+	argument<symbol> descriptor_arg
+	{
+		this,
+		"descriptor",
+		"Time domain descriptor to output.",
+        MIN_ARGUMENT_FUNCTION
+		{
+			if (arg == "peak")
+			{
+				descriptor = t_descriptors::peak;
+			}
+			if (arg == "rms")
+			{
+				descriptor = t_descriptors::rms;
+            }
+			if (arg == "kurtosis")
+			{
+				descriptor = t_descriptors::kurtosis;
+			}
+			if (arg == "skewness")
+			{
+				descriptor = t_descriptors::skewness;
+			}
+			if (arg == "variance")
+			{
+				descriptor = t_descriptors::variance;
+			}
+			if (arg == "zerocrossing")
+			{
+				descriptor = t_descriptors::zerocrossing;
+			}
+		}
+    };
+
 	argument<int> buffer_size_arg
     {
         this,
@@ -41,14 +79,24 @@ public:
 			buffer_size = arg;
 		}
     };
-	
-	attribute<bool> dict
+
+	attribute<t_descriptors> descriptor
 	{
         this,
-        "dict",
-        false,
-        title {"Output for dict"},
-        description {"When activated, the output messages are formatted so that they can be directly sent to a dictionary."}
+        "descriptor",
+        t_descriptors::peak,
+		t_descriptors_range,
+        title {"Descriptor"},
+		description {"Descriptor to output."},
+		setter
+		{
+			MIN_FUNCTION
+			{
+				int index = static_cast<int>(args[0]);
+                selected_descriptor_name_ = t_descriptors_range[index];
+				return args;
+			}
+		}
     };
 
 	attribute<bool> normalize
@@ -56,8 +104,8 @@ public:
         this,
         "normalize",
         false,
-        title {"Normalize descriptors"},
-        description {"When activated, the computed descriptors are normalized inside the [0, 1] range. Consider that some normalizations are performed on euristic bases, use only for artistic purposes."}
+        title {"Normalize descriptor"},
+        description {"When activated, the computed descriptor is normalized inside the [0, 1] range. Consider that some normalizations are performed on euristic bases, use only for artistic purposes."}
     };
 
 	attribute<int, threadsafe::no, limit::clamp> buffer_size
@@ -89,7 +137,7 @@ public:
 		description {"Overlap factor between consecutive buffers."}
 	};
 
-	samples<0> operator()(sample input)
+	sample operator()(sample input)
     {
 		if (sample_count_ < buffer_.size() - 1)
 		{
@@ -104,25 +152,6 @@ public:
 			{
 				informer_.normalize_descriptors();
 			}
-			auto amp_descriptors = informer_.get_time_descriptors();
-			for (const auto& descriptor : amp_descriptors)
-			{
-				atoms output;
-				if (bool(dict))
-				{
-					output.reserve(3);
-					output.push_back("set");
-				}
-				else
-				{
-					output.reserve(2);
-				}
-				// Descriptor name
-				output.push_back(descriptor.first);
-				// Descriptor value
-				output.push_back(descriptor.second);
-				out.send(output);
-			}
 
 			// Prepare next buffer with overlap
 			unsigned int overlap_samples = static_cast<unsigned int>(static_cast<double>(buffer_.size()) * double(overlap));
@@ -134,13 +163,14 @@ public:
 			sample_count_ = overlap_samples;
 		}
 
-		return { };
+        return informer_.get_time_descriptor(selected_descriptor_name_);
 	}
 
 private:
 	std::vector<sample> buffer_ = std::vector<sample>(4096, 0.0);
 	Informer::Informer<sample> informer_;
 	unsigned int sample_count_ = 0u;
+	std::string selected_descriptor_name_ = "peak";
 };
 
-MIN_EXTERNAL(timedesc);
+MIN_EXTERNAL(timedesc_tilde);

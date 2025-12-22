@@ -14,7 +14,7 @@ public:
 	MIN_DESCRIPTION {"Compute frequency domain descriptors from magnitude spectrum input"};
 	MIN_TAGS {"audio, analysis, spectral descriptors"};
 	MIN_AUTHOR {"Valerio Orlandini"};
-	MIN_RELATED {"informer.timedesc"};
+	MIN_RELATED {"informer.timedesc, informer.freqdesc~"};
 
 	inlet<>  in_m {this, "(signal) Magntiude spectrum input"};
 	inlet<>  in_b {this, "(signal) Bin"};
@@ -122,11 +122,9 @@ public:
 	}
 
 private:
-	std::vector<sample> magnitudes_;
+	std::vector<sample> magnitudes_ = std::vector<sample>(4096, 0.0);;
 	Informer::Informer<sample> informer_;
 	unsigned int stft_size_ = 4096u;
-
-	constexpr static const size_t num_descriptors_ = 13;
 };
 
 MIN_EXTERNAL(freqdesc);
