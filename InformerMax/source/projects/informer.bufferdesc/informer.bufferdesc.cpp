@@ -36,7 +36,7 @@ public:
 		MIN_FUNCTION
 		{
 			informer_.set_sample_rate(args[0]);
-			window_.resize(frame_size_ / 2 + 1);
+			window_.resize(frame_size_);
 			fill_window_();
 			return {};
 		}
@@ -99,21 +99,21 @@ public:
 						size = power;
 					}
 				}
-				cout << "Frame size must be a power of two between 64 and 32768. Clamping to nearest valid value: " << size << ".";
+				cout << "Frame size must be a power of two between 64 and 32768. Clamping to nearest valid value: " << size << "." << endl;
 			}
 
 			switch (size)
         	{
-            	case 64:      frame_size = f_framesizes::f64;
-           		case 128:     frame_size = f_framesizes::f128;
-            	case 256:     frame_size = f_framesizes::f256;
-            	case 512:     frame_size = f_framesizes::f512;
-            	case 1024:    frame_size = f_framesizes::f1024;
-            	case 2048:    frame_size = f_framesizes::f2048;
-            	case 4096:    frame_size = f_framesizes::f4096;
-            	case 8192:    frame_size = f_framesizes::f8192;
-            	case 16384:   frame_size = f_framesizes::f16384;
-            	case 32768:   frame_size = f_framesizes::f32768;
+            	case 64:      frame_size = f_framesizes::f64; break;
+           		case 128:     frame_size = f_framesizes::f128; break;
+            	case 256:     frame_size = f_framesizes::f256; break;
+            	case 512:     frame_size = f_framesizes::f512; break;
+            	case 1024:    frame_size = f_framesizes::f1024; break;
+            	case 2048:    frame_size = f_framesizes::f2048; break;
+            	case 4096:    frame_size = f_framesizes::f4096; break;
+            	case 8192:    frame_size = f_framesizes::f8192; break;
+            	case 16384:   frame_size = f_framesizes::f16384; break;
+            	case 32768:   frame_size = f_framesizes::f32768; break;
             	default:      frame_size = f_framesizes::f4096;
         	}
 		}
@@ -134,18 +134,18 @@ public:
 				frame_size_ = std::stoi(f_framesizes_range[static_cast<int>(args[0])]);
 				hop_size_ = frame_size_ / 2;
 				informer_.set_stft_size(frame_size_ / 2 + 1);
-				window_.resize(frame_size_ / 2 + 1);
+				window_.resize(frame_size_);
 				fill_window_();
 				return args;
 			}
 		}
 	};
 
-	message<> bang
+	message<> analyze
 	{
 		this,
-		"bang",
-		"Analyze the specified buffer and output the computed descriptors.",
+		"analyze",
+		"Analyze the current buffer.",
 		setter
 		{
 			MIN_FUNCTION
@@ -155,49 +155,56 @@ public:
 			}
 		}
 	};
-/*
-	samples<0> operator()(sample mag, sample index)
-    {
-		if (index < magnitudes_.size())
-		{
-			magnitudes_[static_cast<size_t>(index)] = mag;
-		}	
 
-		if (index == magnitudes_.size() - 1)
+	message<> bang
+	{
+		this,
+		"bang",
+		"Output the computed descriptors.",
+		setter
 		{
-			
-			informer_.set_magnitudes(magnitudes_, true);
-			informer_.compute_descriptors(false, true);
-			auto spectral_descriptors = informer_.get_frequency_descriptors();
-			for (const auto& descriptor : spectral_descriptors)
+			MIN_FUNCTION
 			{
-				atoms output;
-				if (bool(dict))
+				for (auto ch = 0; ch < t_analysis_outputs_.size(); ch++)
 				{
-					output.reserve(3);
-					output.push_back("set");
+					std::string channel = "ch" + std::to_string(ch+1);
+					for (auto frame = 0; frame < t_analysis_outputs_[ch].size(); frame++)
+					{
+						for (const auto& descriptor : t_analysis_outputs_[ch][frame])
+						{
+							atoms output;
+							output.reserve(3);
+							output.push_back("append");
+							std::string path = channel + "::" + "time" + "::" + descriptor.first;
+							output.push_back(path);
+							output.push_back(descriptor.second);
+							out.send(output);
+						}		
+						for (const auto& descriptor : f_analysis_outputs_[ch][frame])
+						{
+							atoms output;
+							output.reserve(3);
+							output.push_back("append");
+							std::string path = channel + "::" + "freq" + "::" + descriptor.first;
+							output.push_back(path);
+							output.push_back(descriptor.second);
+							out.send(output);
+						}			
+					}
 				}
-				else
-				{
-					output.reserve(2);
-				}
-				// Descriptor name
-				output.push_back(descriptor.first);
-				// Descriptor value
-				output.push_back(descriptor.second);
-				out.send(output);
+				return {};
 			}
 		}
+	};
 
-		return { };
-	}
-*/
 private:
 	Informer::Informer<sample> informer_;
 	std::vector<sample> window_;
-	//std::vector<std::array<std::vector<sample>, descriptors_>> analysis_outputs_;
 	unsigned int hop_size_ = 2048u;
 	unsigned int frame_size_ = 4096u;
+
+	std::vector<std::vector<std::unordered_map<std::string, sample>>> f_analysis_outputs_;
+	std::vector<std::vector<std::unordered_map<std::string, sample>>> t_analysis_outputs_;
 
 	inline void analyze_()
 	{
@@ -205,8 +212,16 @@ private:
 
 		if (b.valid())
 		{
+			f_analysis_outputs_.clear();
+			t_analysis_outputs_.clear();
+
 			for (auto ch = 0; ch < b.channel_count(); ++ch)
-			{				
+			{
+				std::vector<std::unordered_map<std::string, sample>> f_analysis_channel_;
+				std::vector<std::unordered_map<std::string, sample>> t_analysis_channel_;
+
+				cout << "Analyzing channel " << ch + 1 << "..." << endl;
+
 				for (auto f = 0; f < b.frame_count(); f += hop_size_)
 				{
 					// Read frame
@@ -226,12 +241,12 @@ private:
 					// Set buffer
 					informer_.set_buffer(current_frame_);
 
-					dj::fft_arg<sample> fft_frame;
+					dj::fft_arg<sample> fft_frame(frame_size_);
 
 					// Prepare FFT frame
         			for (int s = 0; s < frame_size_; ++s)
 					{
-            			fft_frame.push_back(std::complex<sample>(current_frame_[s] * window_[s], 0.0));
+            			fft_frame[s] = std::complex<sample>(current_frame_[s] * window_[s], 0.0);
 					}
 
 					// Compute magnitude spectrum
@@ -251,12 +266,18 @@ private:
 					// Get and output descriptors
 					auto time_descriptors = informer_.get_time_descriptors();
 					auto frequency_descriptors = informer_.get_frequency_descriptors();
+
+					f_analysis_channel_.push_back(frequency_descriptors);
+					t_analysis_channel_.push_back(time_descriptors);
 				}
+
+				t_analysis_outputs_.push_back(t_analysis_channel_);
+				f_analysis_outputs_.push_back(f_analysis_channel_);
 			}
 		}
 	}
 
-	static constexpr sample pi_2_ = 3.14159265358979323846 * 2.0;
+	static constexpr sample double_pi_ = 3.14159265358979323846 * 2.0;
 	
 	inline void fill_window_()
 	{
@@ -264,7 +285,7 @@ private:
 
 		for (auto n = 0; n < window_.size(); n++)
 		{
-			window_[n] = 0.5 * (1.0 - cos(pi_2_ * n * w_mul));
+			window_[n] = 0.5 * (1.0 - cos(double_pi_ * n * w_mul));
 		}
 	}
 };
