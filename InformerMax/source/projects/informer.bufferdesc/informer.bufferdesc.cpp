@@ -228,9 +228,10 @@ private:
 					std::vector<sample> current_frame_(frame_size_, 0.0);
 					for (auto s = 0; s < frame_size_; ++s)
 					{
-						if (s < b.frame_count())
+						auto current_sample = f + s;
+						if (current_sample < b.frame_count())
 						{
-							current_frame_[s] = b.lookup(f + s, ch);
+							current_frame_[s] = b.lookup(current_sample, ch);
 						}
 						else
 						{
