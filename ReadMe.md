@@ -9,6 +9,7 @@
 - [Informer C++ library](#informer-c-library)
 - [pyinformer: Informer Python bindings](#pyinformer-informer-python-bindings)
 - [informer.js: Informer JavaScript bindings](#informerjs-informer-javascript-bindings)
+- [License](#license)
 
 
 # The Informer
@@ -267,3 +268,7 @@ centroid = descriptors.get_frequency_descriptor('centroid')
 ## _informer.js_: _Informer_ JavaScript bindings
 
 In `Informer.js` folder, there is a WASM implementation of the library, with both the C++ source code to build it with Emscripten and the compiled module and JS file. Documentation coming soon, in the meanwhile you can check a demo [here](https://valeriorlandini.github.io/theinformer/Informer.js/demo/), available also inside `demo` subfolder of `Informer.js`.
+
+## License
+
+JUCE-based software (VST/AU/LV2 plugins and standalone) and Rack module are licensed under GPLv3, while the rest of the project (libraries, Max for Live device and Max/MSP externals) is MIT licensed.
