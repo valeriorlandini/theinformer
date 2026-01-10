@@ -28,20 +28,6 @@ public:
 
     enum_map f_framesizes_range = {"64", "128", "256", "512", "1024", "2048", "4096", "8192", "16384", "32768"};
 
-
-	message<> dspsetup
-	{
-		this,
-		"dspsetup", 
-		MIN_FUNCTION
-		{
-			informer_.set_sample_rate(args[0]);
-			window_.resize(frame_size_);
-			fill_window_();
-			return {};
-		}
-	};    
-	
 	buffer_reference source_buffer
     {
         this,
@@ -212,6 +198,7 @@ private:
 
 		if (b.valid())
 		{
+			informer_.set_sample_rate(b.samplerate());
 			f_analysis_outputs_.clear();
 			t_analysis_outputs_.clear();
 
