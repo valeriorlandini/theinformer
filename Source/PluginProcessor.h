@@ -1,6 +1,6 @@
 /******************************************************************************
 This file is part of The Informer.
-Copyright 2024-2025 Valerio Orlandini <valeriorlandini@gmail.com>.
+Copyright 2024-2026 Valerio Orlandini <valeriorlandini@gmail.com>.
 
 The Informer is free software: you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software

@@ -1,6 +1,6 @@
 /// @file
 ///	@ingroup 	informer.*
-///	@copyright	Copyright 2024-2025 Valerio Orlandini. All rights reserved.
+///	@copyright	Copyright 2024-2026 Valerio Orlandini. All rights reserved.
 ///	@license	Use of this source code is governed by the MIT License found in the License.md file.
 
 #include "c74_min.h"

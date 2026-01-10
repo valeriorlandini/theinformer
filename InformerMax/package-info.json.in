@@ -16,7 +16,7 @@
 	},
 	"package_extra" : {
 		"reverse_domain" : "com.valeriorlandini",
-		"copyright" : "Copyright (c) 2023-2025 Valerio Orlandini"
+		"copyright" : "Copyright (c) 2023-2026 Valerio Orlandini"
 	},
 	"tags" : [ "sound descriptors", "audio descriptors", "audio analysis", "feature extraction", "music information retrieval", "MIR", "informer" ],
 	"version" : "0.1.0",
