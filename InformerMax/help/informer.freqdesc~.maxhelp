@@ -9,7 +9,7 @@
             "modernui": 1
         },
         "classnamespace": "box",
-        "rect": [ 378.0, 333.0, 847.0, 549.0 ],
+        "rect": [ 99.0, 100.0, 847.0, 549.0 ],
         "boxes": [
             {
                 "box": {
@@ -275,8 +275,8 @@
                     "maxclass": "comment",
                     "numinlets": 1,
                     "numoutlets": 0,
-                    "patching_rect": [ 16.0, 80.0, 805.0, 43.0 ],
-                    "text": "Computation of aof frequency domain descriptors in real time from the magnitude values of a FFT, with the result returned as signal.",
+                    "patching_rect": [ 16.0, 80.0, 809.0, 43.0 ],
+                    "text": "Computation of frequency domain descriptors in real time from the magnitude values of a FFT, with the result returned as signal.",
                     "textcolor": [ 0.956862745098039, 0.764705882352941, 0.450980392156863, 1.0 ]
                 }
             },
