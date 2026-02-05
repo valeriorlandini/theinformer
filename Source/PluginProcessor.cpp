@@ -341,7 +341,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             float chAmpSkewness = 0.0f;
             for (auto const& s : samples.at(ch))
             {
-                chVariance += powf(s - mean, 2.0f);
+                chVariance += std::pow(s - mean, 2.0f);
             }
             chVariance /= frameSamples;
 
@@ -354,8 +354,8 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 invSqrChVariance = 1.0f / invSqrChVariance;
                 for (auto const& s : samples.at(ch))
                 {
-                    chAmpKurtosis += powf(s - mean, 4.0f);
-                    chAmpSkewness += powf(s - mean, 3.0f);
+                    chAmpKurtosis += std::pow(s - mean, 4.0f);
+                    chAmpSkewness += std::pow(s - mean, 3.0f);
                 }
 
                 chAmpKurtosis /= frameSamples;
@@ -363,7 +363,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 chAmpKurtosis -= 3.0f;
 
                 chAmpSkewness /= frameSamples;
-                chAmpSkewness /= powf(sqrt(chVariance), 3.0f);
+                chAmpSkewness /= std::pow(sqrt(chVariance), 3.0f);
             }
             else
             {
@@ -450,7 +450,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                     magnLnSum += std::log(0.00001f);
                 }
 
-                chFlux += std::powf(magnitude - prev_magnitude, 2.0f);
+                chFlux += std::pow(magnitude - prev_magnitude, 2.0f);
 
                 if (reportBands > 1)
                 {
@@ -465,11 +465,11 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             for (auto b = 0; b < bandMagnitudes.at(ch).size(); b++)
             {
                 bandMagnitudes.at(ch).at(b) *= 1.0f / static_cast<float>(fftHalf);
-                bandMagnitudes.at(ch).at(b) = std::sqrtf(std::min(1.0f, bandMagnitudes.at(ch).at(b)));
+                bandMagnitudes.at(ch).at(b) = std::sqrt(std::min(1.0f, bandMagnitudes.at(ch).at(b)));
                 bandMagnitudes.at(64).at(b) += bandMagnitudes.at(ch).at(b) / static_cast<float>(totalNumInputChannels);
             }
             
-            chFlux = std::sqrtf(chFlux);
+            chFlux = std::sqrt(chFlux);
             if (powerSum > 0.0f)
             {
                 for (unsigned int k = 0; k < fftHalf; k++)
@@ -511,7 +511,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             for (unsigned int k = 0; k < fftHalf; k++)
             {
                 float frequency = frequencies.at(k);
-                a += magnitudes.at(ch).at(k) * std::powf(frequency - chCentroid, 2.0);
+                a += magnitudes.at(ch).at(k) * std::pow(frequency - chCentroid, 2.0);
 
                 if (cumulPower < rolloffThresh)
                 {
@@ -531,7 +531,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             }
             if (abs(powerSum) > 0.00001f)
             {
-                chSpread = std::sqrtf(a / magnSum);
+                chSpread = std::sqrt(a / magnSum);
             }
 
             float magnSumNoDC = magnSum - magnitudes.at(ch).at(0);
@@ -562,12 +562,12 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 float frequency = frequencies.at(k);
                 float magnitude = magnitudes.at(ch).at(k);
 
-                kurtNum += std::powf(frequency - chCentroid, 4.0f) * magnitude;
-                skewNum += std::powf(frequency - chCentroid, 3.0f) * magnitude;
+                kurtNum += std::pow(frequency - chCentroid, 4.0f) * magnitude;
+                skewNum += std::pow(frequency - chCentroid, 3.0f) * magnitude;
                 skewDen += magnitude; 
             }
-            kurtDen = skewDen * std::powf(chSpread, 4.0f);
-            skewDen *= std::powf(chSpread, 3.0f);
+            kurtDen = skewDen * std::pow(chSpread, 4.0f);
+            skewDen *= std::pow(chSpread, 3.0f);
             if (abs(skewDen) > 0.00001f)
             {
                 chSkewness = skewNum / skewDen;
