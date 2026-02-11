@@ -87,9 +87,9 @@ public:
     juce::Value rootValue;
 
 private:
-    int updateBlocks = 1;
-    int counter = 0;
-    int expectedSamples = 0;
+    unsigned int updateBlocks = 1u;
+    unsigned int counter = 0u;
+    unsigned int expectedSamples = 0u;
     float updateInterval = 0.05f;
     std::array<float, 64> sqrGains = { 0.0f };
     std::array<std::vector<float>, 64> samples;
@@ -115,7 +115,7 @@ private:
     std::array<float, fftSizeLarge / 2> frequencies = {};
     std::array<std::array<float, fftSizeLarge / 2>, 64> magnitudes = {};
     std::array<std::array<float, fftSizeLarge / 2>, 64> prev_magnitudes = {};
-    int fftSize = fftSizeSmall;
+    unsigned int fftSize = static_cast<unsigned int>(fftSizeSmall);
 
     std::reference_wrapper<juce::dsp::FFT> fftProcessor = fftProcessorSmall;
     std::reference_wrapper<juce::dsp::WindowingFunction<float>> window = windowSmall;
@@ -123,7 +123,7 @@ private:
     
     int port = 9000;
 
-    int reportBands = 3;
+    unsigned int reportBands = 3u;
 
     inline juce::String makeHost()
     {
@@ -143,7 +143,7 @@ private:
 
     inline void getEqualOctaveBandEdges() 
     {   
-        if (reportBands > 1)
+        if (reportBands > 1u)
         {
             const float f_min = 60.0f;
             const float f_max = 16000.0f;
@@ -152,12 +152,12 @@ private:
             float totalOctaves = std::log2f(f_max / f_min);
             float octavesPerBand = totalOctaves / static_cast<float>(reportBands);
         
-            bandsEdges.resize(reportBands + 1);
+            bandsEdges.resize(reportBands + 1u);
         
             bandsEdges[0] = 0.0f;
-            for (auto i = 0; i < reportBands; ++i)
+            for (auto i = 0u; i < reportBands; ++i)
             {
-                bandsEdges[i + 1] = f_min * std::powf(2.0f, i * octavesPerBand);
+                bandsEdges[i + 1u] = f_min * std::powf(2.0f, i * octavesPerBand);
             }
             bandsEdges[reportBands] = nyquist;
 
@@ -167,22 +167,22 @@ private:
 
     inline void computeBinsPerReportedBand()
     {
-        if (reportBands > 1)
+        if (reportBands > 1u)
         {
             binsPerReportedBand.resize(reportBands);
     
-            for (int band = 0; band < reportBands; ++band)
+            for (auto band = 0u; band < reportBands; ++band)
             {
                 float bandStartFreq = bandsEdges[band];
-                float bandEndFreq = bandsEdges[band + 1];
+                float bandEndFreq = bandsEdges[band + 1u];
         
-                int binStart = static_cast<int>(std::floor(bandStartFreq / fftBandwidth));
-                int binEnd = static_cast<int>(std::ceil(bandEndFreq / fftBandwidth));
+                unsigned int binStart = static_cast<unsigned int>(std::floor(bandStartFreq / fftBandwidth));
+                unsigned int binEnd = static_cast<unsigned int>(std::ceil(bandEndFreq / fftBandwidth));
         
-                binStart = std::max(0, binStart);
-                binEnd = std::min(fftSize / 2, binEnd);
+                binStart = std::max(0u, binStart);
+                binEnd = std::min(fftSize / 2u, binEnd);
             
-                binsPerReportedBand[band] = static_cast<float>(std::max(0, binEnd - binStart));
+                binsPerReportedBand[band] = static_cast<float>(std::max(0u, binEnd - binStart));
             }
         }
     }

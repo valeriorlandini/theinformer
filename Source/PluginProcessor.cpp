@@ -58,7 +58,7 @@ windowLarge(fftSizeLarge, juce::dsp::WindowingFunction<float>::hann)
     rootValue.referTo(treeState.state.getPropertyAsValue("root", nullptr));
 
     portParameter = treeState.getRawParameterValue("port");
-    port = int(*portParameter);
+    port = static_cast<int>(*portParameter);
 
     for (unsigned int i = 0; i < 4; i++)
     {
@@ -69,7 +69,7 @@ windowLarge(fftSizeLarge, juce::dsp::WindowingFunction<float>::hann)
     normParameter = treeState.getRawParameterValue("normalize");
 
     reportBandsParameter = treeState.getRawParameterValue("reportbands");
-    reportBands = int(*reportBandsParameter);
+    reportBands = static_cast<unsigned int>(*reportBandsParameter);
     getEqualOctaveBandEdges();
 }
 
@@ -157,13 +157,13 @@ void TheInformerAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
         window = windowSmall;
     }
 
-    updateBlocks = fftSize / (samplesPerBlock * 2);
-    if (updateBlocks == 0)
+    updateBlocks = fftSize / (static_cast<unsigned int>(samplesPerBlock) * 2u);
+    if (updateBlocks == 0u)
     {
         ++updateBlocks;
     }
-    expectedSamples = samplesPerBlock * updateBlocks * 2;
-    counter = 0;
+    expectedSamples = static_cast<unsigned int>(samplesPerBlock) * updateBlocks * 2u;
+    counter = 0u;
     for (auto &s : samples)
     {
         s.clear();
@@ -171,9 +171,9 @@ void TheInformerAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
 
     fftBandwidth = static_cast<float>(sampleRate) / static_cast<float>(fftSize);
     frequencies.fill(0.0f);
-    for (auto b = 0; b < fftSize / 2; b++)
+    for (auto b = 0u; b < fftSize / 2u; b++)
     {
-        frequencies.at(static_cast<unsigned int>(b)) = b * fftBandwidth;
+        frequencies.at(b) = static_cast<float>(b) * fftBandwidth;
     }
 
     if (sampleRate > 0.0)
@@ -288,9 +288,9 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         std::vector<float> spreads;
 
         std::array<std::vector<float>, 65> bandMagnitudes;
-        if (int(*reportBandsParameter) != reportBands)
+        if (static_cast<unsigned int>(*reportBandsParameter) != reportBands)
         {
-            reportBands = int(*reportBandsParameter);
+            reportBands = static_cast<unsigned int>(*reportBandsParameter);
             getEqualOctaveBandEdges();
         }
         if (reportBands > 0)
@@ -301,7 +301,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             }
         }
 
-        for (unsigned int ch = 0; ch < (unsigned int)std::min(totalNumInputChannels, 64); ch++)
+        for (unsigned int ch = 0; ch < static_cast<unsigned int>(std::min(totalNumInputChannels, 64)); ch++)
         {
             /* AMPLITUDE DESCRIPTORS */
 
@@ -363,7 +363,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 chAmpKurtosis -= 3.0f;
 
                 chAmpSkewness /= frameSamples;
-                chAmpSkewness /= std::pow(sqrt(chVariance), 3.0f);
+                chAmpSkewness /= std::pow(std::sqrt(chVariance), 3.0f);
             }
             else
             {
@@ -388,8 +388,8 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             /* SPECTRAL DESCRIPTORS */
 
             fftData.at(ch).clear();
-            fftData.at(ch).resize(static_cast<unsigned int>(fftSize) * 2);
-            for (unsigned int s = 0; s < static_cast<unsigned int>(std::min(static_cast<int>(samples.at(ch).size()), fftSize)); s++)
+            fftData.at(ch).resize(static_cast<unsigned int>(fftSize) * 2u);
+            for (unsigned int s = 0u; s < static_cast<unsigned int>(std::min(static_cast<unsigned int>(samples.at(ch).size()), fftSize)); s++)
             {
                 fftData.at(ch).at(s) = samples.at(ch).at(s);
             }
@@ -416,7 +416,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             float magnSum = 0.0f;
             std::vector<float> power;
             float powerSum = 0.0f;
-            unsigned int fftHalf = static_cast<unsigned int>(fftSize) / 2;
+            unsigned int fftHalf = static_cast<unsigned int>(fftSize) / 2u;
             for (unsigned int k = 0; k < fftHalf; k++)
             {
                 prev_magnitudes.at(ch).at(k) = magnitudes.at(ch).at(k);
@@ -425,7 +425,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 
             std::fill(bandMagnitudes.at(ch).begin(), bandMagnitudes.at(ch).end(), 0.0f);
 
-            for (unsigned int k = 0; k < fftHalf; k++)
+            for (unsigned int k = 0u; k < fftHalf; k++)
             {
                 float magnitude = magnitudes.at(ch).at(k);
                 float prev_magnitude = prev_magnitudes.at(ch).at(k);
@@ -452,17 +452,17 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 
                 chFlux += std::pow(magnitude - prev_magnitude, 2.0f);
 
-                if (reportBands > 1)
+                if (reportBands > 1u)
                 {
                     // Find which reported band the current spectrogram band belongs to
-                    auto currRepBand = std::upper_bound(bandsEdges.begin(), bandsEdges.end(), frequency) - bandsEdges.begin() - 1;
+                    unsigned int currRepBand = std::upper_bound(bandsEdges.begin(), bandsEdges.end(), frequency) - bandsEdges.begin() - 1u;
                     // If current magnitude is greater than maximum value stored in the corresponding reported band, update its value
                     bandMagnitudes.at(ch).at(currRepBand) = std::max(magnitude, bandMagnitudes.at(ch).at(currRepBand));    
                 }
             }
 
             // Scale magnitude values
-            for (auto b = 0; b < bandMagnitudes.at(ch).size(); b++)
+            for (auto b = 0u; b < bandMagnitudes.at(ch).size(); b++)
             {
                 bandMagnitudes.at(ch).at(b) *= 1.0f / static_cast<float>(fftHalf);
                 bandMagnitudes.at(ch).at(b) = std::sqrt(std::min(1.0f, bandMagnitudes.at(ch).at(b)));
@@ -472,7 +472,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             chFlux = std::sqrt(chFlux);
             if (powerSum > 0.0f)
             {
-                for (unsigned int k = 0; k < fftHalf; k++)
+                for (unsigned int k = 0u; k < fftHalf; k++)
                 {
                     if (power.at(k) > 0.0f)
                     {
@@ -495,7 +495,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 float chSlopeNum = 0.0f;
                 float chSlopeDen = 0.0f;
                 float freqMean = freqSum / static_cast<float>(fftHalf);
-                for (unsigned int k = 0; k < fftHalf; k++)
+                for (unsigned int k = 0u; k < fftHalf; k++)
                 {
                     chSlopeNum += (frequencies.at(k) - freqMean) * (magnitudes.at(ch).at(k) - magnMean);
                     chSlopeDen += (frequencies.at(k) - freqMean) * (frequencies.at(k) - freqMean);
@@ -508,7 +508,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             float rolloffThresh = powerSum * 0.85f;
             bool threshReached = false;
             a = 0.0f;
-            for (unsigned int k = 0; k < fftHalf; k++)
+            for (unsigned int k = 0u; k < fftHalf; k++)
             {
                 float frequency = frequencies.at(k);
                 a += magnitudes.at(ch).at(k) * std::pow(frequency - chCentroid, 2.0);
@@ -557,7 +557,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             float kurtDen = 0.0f;
             float skewNum = 0.0f;
             float skewDen = 0.0f;
-            for (unsigned int k = 0; k < fftHalf; k++)
+            for (unsigned int k = 0u; k < fftHalf; k++)
             {
                 float frequency = frequencies.at(k);
                 float magnitude = magnitudes.at(ch).at(k);
@@ -727,7 +727,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             }
         }
 
-        for (unsigned int i = 0; i < 64; i++)
+        for (unsigned int i = 0u; i < 64u; i++)
         {
             // Erase the first half of the samples if it is not the first cycle
             if (samples.at(i).size() >= static_cast<unsigned int>(expectedSamples))
@@ -788,25 +788,25 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             sender.send(juce::OSCAddressPattern(root + mix + freq + "skewness"), skewness);
             sender.send(juce::OSCAddressPattern(root + mix + freq + "slope"), slope);
             sender.send(juce::OSCAddressPattern(root + mix + freq + "spread"), spread);
-            for (auto b = 0; b < bandMagnitudes.at(64).size(); b++)
+            for (auto b = 0u; b < bandMagnitudes.at(64).size(); b++)
             {
                 std::string b_str = "band";
                 if (b < 9)
                 {
                     b_str += "0";
                 }
-                b_str += std::to_string(b + 1);
+                b_str += std::to_string(b + 1u);
                 sender.send(juce::OSCAddressPattern(root + mix + spec + b_str), bandMagnitudes.at(64).at(b));
             }
 
-            for (unsigned int ch = 0; ch < chRms.size(); ch++)
+            for (auto ch = 0u; ch < chRms.size(); ch++)
             {
                 std::string ch_str = "ch";
                 if (ch < 9)
                 {
                     ch_str += "0";
                 }
-                ch_str += std::to_string(ch + 1) + "/";
+                ch_str += std::to_string(ch + 1u) + "/";
 
                 sender.send(juce::OSCAddressPattern(root + ch_str + time + "kurtosis"), ampKurtoses.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + time + "peak"), ampPeaks.at(ch));
@@ -827,14 +827,14 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 sender.send(juce::OSCAddressPattern(root + ch_str + freq + "skewness"), skewnesses.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + freq + "slope"), slopes.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + freq + "spread"), spreads.at(ch));
-                for (auto b = 0; b < bandMagnitudes.at(ch).size(); b++)
+                for (auto b = 0u; b < bandMagnitudes.at(ch).size(); b++)
                 {
                     std::string b_str = "band";
-                    if (b < 9)
+                    if (b < 9u)
                     {
                         b_str += "0";
                     }
-                    b_str += std::to_string(b + 1);
+                    b_str += std::to_string(b + 1u);
                     sender.send(juce::OSCAddressPattern(root + ch_str + spec + b_str), bandMagnitudes.at(ch).at(b));
                 }
             }
