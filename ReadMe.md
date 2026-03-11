@@ -4,7 +4,10 @@
   - [Amplitude descriptors](#amplitude-descriptors)
   - [Spectral descriptors](#spectral-descriptors)
 - [Pre-built binaries](#pre-built-binaries)
-- [How to build the plugin/standalone](#how-to-build-the-pluginstandalone)
+- [How to build the devices](#how-to-build-the-devices)
+  - [Plugin/standalone](#pluginstandalone)
+  - [Max/MSP externals](#maxmsp-externals)
+  - [VCV Rack module](#vcv-rack-module)
 - [The Case Officer Max for Live device](#the-case-officer-max-for-live-device)
 - [Informer C++ library](#informer-c-library)
 - [pyinformer: Informer Python bindings](#pyinformer-informer-python-bindings)
@@ -113,9 +116,13 @@ In addition to the descriptors mentioned above, a simplified spectrum is provide
 
 Compiled binaries for Linux, Windows and macOS can be found in the [Releases section](https://github.com/valeriorlandini/theinformer/releases).
 
-## How to build the plugin/standalone
+## How to build the devices
 
-Grab the source with `git clone https://github.com/valeriorlandini/theinformer.git --recursive`
+If you prefer to build the devices yourself, first of all Grab the source with `git clone https://github.com/valeriorlandini/theinformer.git --recursive`.
+
+Then, follow the instructions below.
+
+### Plugin/standalone
 
 `cd theinformer` and then create the necessary build files with:
 * `cmake -S . -B build -G "Visual Studio 17 2022"` on Windows (adjust the Visual Studio version if you have an older one.)
@@ -127,6 +134,53 @@ Navigate to the build folder with `cd build`
 Next run `cmake --build . --config Release`
 
 The compiled binaries can be found inside `TheInformer_artefacts/Release` (or simply `TheInformer_artefacts` in Linux) folder.
+
+### Max/MSP externals
+
+`cd theinformer/InformerMax` and then follow the next instructions according to your operating system.
+In both cases, once you built the package, copy the folder `InformerMax` in `Documents/Max 9/Packages` (or `Max 8`, according to your Max/MSP version).
+
+#### Mac 
+
+Run `cmake -G Xcode ..`
+
+Next run `cmake --build . --config Release` or open the Xcode project from this "build" folder and use the GUI.
+
+Note: you can add the `-jX` option where X is the number of cores to use (e.g. `-j4`). This can help speed up your builds, though it may sometimes interleave the error output, making troubleshooting more challenging.
+
+If you are running on a Mac M1+ machine, you will likely see an error `cannot be loaded due to system security policy` when loading your externals in Max. To resolve this, you can ad-hoc codesign your external with `codesign --force --deep -s - myobject.mxo`.
+
+#### Windows
+
+You can run `cmake --help` to get a list of the options available. 
+
+Visual Studio 2022:
+
+`cmake -G "Visual Studio 17 2022" ..`
+
+Visual Studio 2019:
+
+`cmake -G "Visual Studio 16 2019" ..`
+
+Visual Studio 2017:
+
+`cmake -G "Visual Studio 15 2017 Win64" ..`
+
+Having generated the projects, you can now build by opening the .sln file in the build folder with the Visual Studio app (just double-click the .sln file) or you can build on the command line like this:
+
+`cmake --build . --config Release`
+
+Note: you can add the `-jX` option where X is the number of cores to use (e.g. `-j4`). This can help speed up your builds, though it may sometimes interleave the error output, making troubleshooting more challenging.
+
+### VCV Rack module
+
+`cd theinformer/RackPlugin/TheInformer` and then run:
+
+`make dist RACK_DIR=[path to Rack dir]`
+
+Where `[path to Rack dir]` is the path (relative or absolute) to the folder where you uncompressed Rack SDK (that you can download [here](https://vcvrack.com/downloads/)) or Rack source code.
+
+A file with .vcvplugin extension will be created: move this into your Rack modules folder and open VCV Rack.
 
 ## _The Case Officer_ Max for Live device
 

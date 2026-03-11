@@ -1,7 +1,7 @@
 {
 	"author" : "Valerio Orlandini",
 	"description" : "The Informer is a framework for audio descriptors computation. This package implements a Max interface for it, with externals working both in real time and on buffers.",
-	"homepatcher" : "sonus Overview.maxpat",
+	"homepatcher" : "Informer Overview.maxpat",
 	"max_version_min" : "8.0", "max_version_max" : "none",
 	"name" : "Informer for Max",
 	"os" : {
