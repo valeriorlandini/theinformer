@@ -207,6 +207,145 @@ typename Container::value_type skewness(const Container& buffer,
     return skewness;
 }
 
+// FUNDAMENTAL PITCH (YIN ALGORITHM)
+template <typename Container>
+#if __cplusplus >= 202002L
+requires std::floating_point<typename Container::value_type>
+#endif
+typename Container::value_type yin(Container &buffer, typename Container::value_type sample_rate, typename Container::value_type threshold = static_cast<typename Container::value_type>(0.15))
+{
+    using TSample = typename Container::value_type;
+
+    size_t half_buffer_size = buffer.size() / 2;
+    std::vector<TSample> yin_buffer(half_buffer_size, static_cast<TSample>(0.0));
+
+    for (size_t tau = 0; tau < half_buffer_size; ++tau)
+    {
+        yin_buffer[tau] = 0.0;
+    }
+    
+    for (size_t tau = 1; tau < half_buffer_size; ++tau)
+    {
+        for (size_t i = 0; i < half_buffer_size; ++i)
+        {
+            TSample delta = buffer[i] - buffer[i + tau];
+            yin_buffer[tau] += delta * delta;
+        }
+    }
+
+    yin_buffer[0] = 1.0;
+    TSample running_sum = static_cast<TSample>(0.0);
+    for (size_t tau = 1; tau < half_buffer_size; ++tau)
+    {
+        running_sum += yin_buffer[tau];
+        if (running_sum > static_cast<TSample>(0.0))
+        {
+            yin_buffer[tau] *= static_cast<TSample>(tau) / running_sum;
+        }
+        else
+        {
+            yin_buffer[tau] = static_cast<TSample>(1.0);
+        }
+    }
+
+    int tau_estimate = 0;
+    bool found = false;
+
+    for (size_t tau = 2; tau < half_buffer_size; ++tau)
+    {
+        if (yin_buffer[tau] < threshold)
+        {
+            while (tau + 1 < half_buffer_size && yin_buffer[tau + 1] < yin_buffer[tau])
+            {
+                tau++;
+            }
+
+            tau_estimate = static_cast<int>(tau);
+            found = true;
+            break;
+        }
+    }
+        
+    if (!found)
+    {
+        auto min_it = std::min_element(yin_buffer.begin() + 2, yin_buffer.end());
+        tau_estimate = static_cast<int>(std::distance(yin_buffer.begin(), min_it));
+    }
+
+    if (tau_estimate != -1)
+    {
+        TSample pitch_period = static_cast<TSample>(0.0);
+
+        TSample better_tau;
+        size_t x0;
+        size_t x2;
+
+        if (tau_estimate < 1) 
+        {
+            x0 = tau_estimate;
+        } 
+        else 
+        {
+            x0 = tau_estimate - 1;
+        }
+
+        if (tau_estimate + 1 >= static_cast<int>(half_buffer_size)) 
+        {
+            x2 = tau_estimate;
+        } 
+        else 
+        {
+            x2 = tau_estimate + 1;
+        }
+
+        if (x0 == static_cast<size_t>(tau_estimate)) {
+            if (yin_buffer[tau_estimate] <= yin_buffer[x2]) 
+            {
+                better_tau = tau_estimate;
+            } 
+            else 
+            {
+                better_tau = x2;
+            }
+        } 
+        else if (x2 == static_cast<size_t>(tau_estimate)) 
+        {
+            if (yin_buffer[tau_estimate] <= yin_buffer[x0]) 
+            {
+                better_tau = tau_estimate;
+            } 
+            else 
+            {
+                better_tau = x0;
+            }
+        } 
+        else 
+        {
+            TSample s0 = yin_buffer[x0];
+            TSample s1 = yin_buffer[tau_estimate];
+            TSample s2 = yin_buffer[x2];
+
+            TSample denominator = 2.0 * (s2 - 2.0 * s1 + s0);
+            if (std::abs(denominator) > 1e-5) 
+            {
+                better_tau = tau_estimate + (s0 - s2) / denominator;
+            } 
+            else 
+            {
+                better_tau = tau_estimate;
+            }
+        }
+        pitch_period = better_tau;
+    
+        if (pitch_period > 0.0)
+        {
+            return sample_rate / pitch_period;
+        }
+    }
+
+    return static_cast<TSample>(-1.0);
+}
+
 // ZERO CROSSING RATE
 template <typename Container>
 #if __cplusplus >= 202002L
@@ -1198,6 +1337,7 @@ public:
             amp_variance();
             amp_kurtosis();
             amp_skewness();
+            amp_f0yin();
             amp_zerocrossing();
         }
 
@@ -1416,6 +1556,13 @@ public:
         time_descriptors_["skewness"] = Amplitude::skewness(buffer_, mean, amp_variance);
 
         return time_descriptors_["skewness"];
+    }
+
+    TSample amp_f0yin()
+    {
+        time_descriptors_["f0"] = Amplitude::f0_yin(buffer_, sample_rate_);
+
+        return time_descriptors_["f0"];
     }
 
     TSample amp_zerocrossing()
