@@ -1560,7 +1560,7 @@ public:
 
     TSample amp_f0yin()
     {
-        time_descriptors_["f0"] = Amplitude::f0_yin(buffer_, sample_rate_);
+        time_descriptors_["f0"] = Amplitude::yin(buffer_, sample_rate_);
 
         return time_descriptors_["f0"];
     }

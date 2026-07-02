@@ -31,9 +31,9 @@ public:
 		}
 	};
 
-	enum class t_descriptors : int { peak, rms, kurtosis, skewness, variance, zerocrossing, enum_count };
+	enum class t_descriptors : int { peak, rms, kurtosis, skewness, variance, zerocrossing, f0, enum_count };
 
-    enum_map t_descriptors_range = {"peak", "rms", "kurtosis", "skewness", "variance", "zerocrossing"};
+    enum_map t_descriptors_range = {"peak", "rms", "kurtosis", "skewness", "variance", "f0", "zerocrossing", "f0"};
 
 	argument<symbol> descriptor_arg
 	{
@@ -61,6 +61,10 @@ public:
 			if (arg == "variance")
 			{
 				descriptor = t_descriptors::variance;
+			}
+			if (arg == "f0")
+			{
+				descriptor = t_descriptors::f0;
 			}
 			if (arg == "zerocrossing")
 			{
