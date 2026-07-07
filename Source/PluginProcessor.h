@@ -120,6 +120,10 @@ private:
     std::reference_wrapper<juce::dsp::FFT> fftProcessor = fftProcessorSmall;
     std::reference_wrapper<juce::dsp::WindowingFunction<float>> window = windowSmall;
     std::array<std::vector<float>, 64> fftData;
+
+    // Smoothing filters
+    juce::dsp::IIR::Coefficients<float>::Ptr smoothingCoefficients = juce::dsp::IIR::Coefficients<float>::makeLowPass(1.0f / static_cast<float>(fftSize) * 2.0f, 2.5f);
+    std::array<juce::dsp::IIR::Filter<float>, 20> smoothingFilters;
     
     int port = 9000;
 

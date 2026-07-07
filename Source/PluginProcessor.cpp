@@ -182,6 +182,13 @@ void TheInformerAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
     }
 
     getEqualOctaveBandEdges();
+
+    smoothingCoefficients = juce::dsp::IIR::Coefficients<float>::makeLowPass(1.0f / static_cast<float>(fftSize) * 2.0f, 2.5f);
+
+    for (auto& f : smoothingFilters)
+    {
+        f.coefficients = smoothingCoefficients;
+    }
 }
 
 void TheInformerAudioProcessor::releaseResources()
