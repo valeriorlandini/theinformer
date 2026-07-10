@@ -79,7 +79,7 @@ public:
     std::atomic<float>* portParameter = nullptr;
 
     std::atomic<juce::String>* hostParameter = nullptr;
-    
+
     std::atomic<float>* normParameter = nullptr;
 
     std::atomic<float>* reportBandsParameter = nullptr;
@@ -124,7 +124,7 @@ private:
     // Smoothing filters
     juce::dsp::IIR::Coefficients<float>::Ptr smoothingCoefficients = juce::dsp::IIR::Coefficients<float>::makeLowPass(1.0f / static_cast<float>(fftSize) * 2.0f, 2.5f);
     std::array<juce::dsp::IIR::Filter<float>, 20> smoothingFilters;
-    
+
     int port = 9000;
 
     unsigned int reportBands = 3u;
@@ -145,19 +145,19 @@ private:
         return hostString;
     }
 
-    inline void getEqualOctaveBandEdges() 
-    {   
+    inline void getEqualOctaveBandEdges()
+    {
         if (reportBands > 1u)
         {
             const float f_min = 60.0f;
             const float f_max = 16000.0f;
             const float nyquist = 1.0f / invNyquist;
-        
+
             float totalOctaves = std::log2f(f_max / f_min);
             float octavesPerBand = totalOctaves / static_cast<float>(reportBands);
-        
+
             bandsEdges.resize(reportBands + 1u);
-        
+
             bandsEdges[0] = 0.0f;
             for (auto i = 0u; i < reportBands; ++i)
             {
@@ -174,18 +174,18 @@ private:
         if (reportBands > 1u)
         {
             binsPerReportedBand.resize(reportBands);
-    
+
             for (auto band = 0u; band < reportBands; ++band)
             {
                 float bandStartFreq = bandsEdges[band];
                 float bandEndFreq = bandsEdges[band + 1u];
-        
+
                 unsigned int binStart = static_cast<unsigned int>(std::floor(bandStartFreq / fftBandwidth));
                 unsigned int binEnd = static_cast<unsigned int>(std::ceil(bandEndFreq / fftBandwidth));
-        
+
                 binStart = std::max(0u, binStart);
                 binEnd = std::min(fftSize / 2u, binEnd);
-            
+
                 binsPerReportedBand[band] = static_cast<float>(std::max(0u, binEnd - binStart));
             }
         }
@@ -193,6 +193,63 @@ private:
 
     static std::atomic<int> instanceCounter;
     int instance;
+
+    float ampKurtosis = 0.0f;
+    std::vector<float> ampKurtoses;
+
+    float ampPeak = 0.0f;
+    std::vector<float> ampPeaks;
+
+    float rms = 0.0f;
+    std::vector<float> chRms;
+
+    float ampSkewness = 0.0f;
+    std::vector<float> ampSkewnesses;
+
+    float variance = 0.0f;
+    std::vector<float> variances;
+
+    float zerocrossing = 0.0f;
+    std::vector<float> zerocrossings;
+
+    float centroid = 0.0f;
+    std::vector<float> centroids;
+
+    float decrease = 0.0f;
+    std::vector<float> decreases;
+
+    float entropy = 0.0f;
+    std::vector<float> entropies;
+
+    float flatness = 0.0f;
+    std::vector<float> flatnesses;
+
+    float flux = 0.0f;
+    std::vector<float> fluxes;
+
+    float irregularity = 0.0f;
+    std::vector<float> irregularities;
+
+    float kurtosis = 0.0f;
+    std::vector<float> kurtoses;
+
+    float peak = 0.0f;
+    std::vector<float> peaks;
+
+    float rolloff = 0.0f;
+    std::vector<float> rolloffs;
+
+    float scf = 0.0f;
+    std::vector<float> scfs;
+
+    float skewness = 0.0f;
+    std::vector<float> skewnesses;
+
+    float slope = 0.0f;
+    std::vector<float> slopes;
+
+    float spread = 0.0f;
+    std::vector<float> spreads;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TheInformerAudioProcessor)
 };
