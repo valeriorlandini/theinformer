@@ -788,7 +788,8 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                                              reportZerocrossing, reportZerocrossings,
                                              host = makeHost(),
                                              port = int(*portParameter),
-                                             root, bandMagnitudes]() mutable
+                                             root, bandMagnitudes,
+                                             channels = static_cast<unsigned int>(std::min(totalNumInputChannels, 64))]() mutable
         {
             juce::OSCSender sender;
             sender.connect(host, port);
@@ -828,7 +829,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 sender.send(juce::OSCAddressPattern(root + mix + spec + b_str), bandMagnitudes.at(64).at(b));
             }
 
-            for (auto ch = 0u; ch < reportChRms.size(); ch++)
+            for (auto ch = 0u; ch < channels; ch++)
             {
                 std::string ch_str = "ch";
                 if (ch < 9)

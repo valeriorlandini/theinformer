@@ -34,6 +34,31 @@ The Informer. If not, see <https://www.gnu.org/licenses/>.
 #include <cmath>
 #include "BinaryData.h"
 
+enum class Descriptor : size_t
+{
+    AmpKurtosis = 0,
+    AmpPeak,
+    AmpRMS,
+    AmpPitch,
+    AmpSkewness,
+    AmpVariance,
+    AmpZCR,
+    SpecCentroid,
+    SpecCrest,
+    SpecDecrease,
+    SpecEntropy,
+    SpecFlatness,
+    SpecFlux,
+    SpecIrregularity,
+    SpecKurtosis,
+    SpecPeak,
+    SpecRolloff,
+    SpecSkewness,
+    SpecSlope,
+    SpecSpread,
+    NumDescriptors
+};
+
 class TheInformerAudioProcessor : public juce::AudioProcessor
 {
 public:
@@ -123,7 +148,7 @@ private:
 
     // Smoothing filters
     juce::dsp::IIR::Coefficients<float>::Ptr smoothingCoefficients = juce::dsp::IIR::Coefficients<float>::makeLowPass(1.0f / static_cast<float>(fftSize) * 2.0f, 2.5f);
-    std::array<juce::dsp::IIR::Filter<float>, 20> smoothingFilters;
+    std::array<juce::dsp::IIR::Filter<float>, static_cast<size_t>(Descriptor::NumDescriptors)> smoothingFilters;
 
     int port = 9000;
 
