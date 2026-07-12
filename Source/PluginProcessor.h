@@ -107,6 +107,8 @@ public:
 
     std::atomic<float>* normParameter = nullptr;
 
+    std::atomic<float>* smoothParameter = nullptr;
+
     std::atomic<float>* reportBandsParameter = nullptr;
 
     juce::Value rootValue;

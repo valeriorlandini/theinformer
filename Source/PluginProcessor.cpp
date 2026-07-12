@@ -41,6 +41,7 @@ TheInformerAudioProcessor::TheInformerAudioProcessor() :
         std::make_unique<juce::AudioParameterInt>("ip3", "IP address Octet 3", 0, 255, 0),
         std::make_unique<juce::AudioParameterInt>("ip4", "IP address Octet 4", 0, 255, 1),
         std::make_unique<juce::AudioParameterBool>("normalize", "Normalize Values", false),
+        std::make_unique<juce::AudioParameterBool>("smoothing", "Smooth Master Parameters", false),
         std::make_unique<juce::AudioParameterInt>("reportbands", "Report Bands", 2, 16, 3),
 }),
 fftProcessorSmall(orderSmall),
@@ -86,6 +87,7 @@ spreads(64, 0.0f)
     host = makeHost();
 
     normParameter = treeState.getRawParameterValue("normalize");
+    smoothParameter = treeState.getRawParameterValue("smoothing");
 
     reportBandsParameter = treeState.getRawParameterValue("reportbands");
     reportBands = static_cast<unsigned int>(*reportBandsParameter);
@@ -747,6 +749,30 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         auto reportSpread = spread;
         auto reportVariance = variance;
         auto reportZerocrossing = zerocrossing;
+
+        if (*smoothParameter > 0.5f)
+        {
+            reportCentroid = smoothingFilters[static_cast<size_t>(Descriptor::SpecCentroid)].processSample(centroid);
+            reportDecrease = smoothingFilters[static_cast<size_t>(Descriptor::SpecDecrease)].processSample(decrease);
+            reportEntropy = smoothingFilters[static_cast<size_t>(Descriptor::SpecEntropy)].processSample(entropy);
+            reportFlatness = smoothingFilters[static_cast<size_t>(Descriptor::SpecFlatness)].processSample(flatness);
+            reportFlux = smoothingFilters[static_cast<size_t>(Descriptor::SpecFlux)].processSample(flux);
+            reportAmpPeak = smoothingFilters[static_cast<size_t>(Descriptor::AmpPeak)].processSample(ampPeak);
+            reportPeak = smoothingFilters[static_cast<size_t>(Descriptor::SpecPeak)].processSample(peak);
+            reportIrregularity = smoothingFilters[static_cast<size_t>(Descriptor::SpecIrregularity)].processSample(irregularity);
+            reportAmpKurtosis = smoothingFilters[static_cast<size_t>(Descriptor::AmpKurtosis)].processSample(ampKurtosis);
+            reportKurtosis = smoothingFilters[static_cast<size_t>(Descriptor::SpecKurtosis)].processSample(kurtosis);
+            reportRms = smoothingFilters[static_cast<size_t>(Descriptor::AmpRMS)].processSample(rms);
+            reportRolloff = smoothingFilters[static_cast<size_t>(Descriptor::SpecRolloff)].processSample(rolloff);
+            reportScf = smoothingFilters[static_cast<size_t>(Descriptor::SpecCrest)].processSample(scf);
+            reportAmpSkewness = smoothingFilters[static_cast<size_t>(Descriptor::AmpSkewness)].processSample(ampSkewness);
+            reportSkewness = smoothingFilters[static_cast<size_t>(Descriptor::SpecSkewness)].processSample(skewness);
+            reportSlope = smoothingFilters[static_cast<size_t>(Descriptor::SpecSlope)].processSample(slope);
+            reportSpread = smoothingFilters[static_cast<size_t>(Descriptor::SpecSpread)].processSample(spread);
+            reportVariance = smoothingFilters[static_cast<size_t>(Descriptor::AmpVariance)].processSample(variance);
+            reportZerocrossing = smoothingFilters[static_cast<size_t>(Descriptor::AmpZCR)].processSample(zerocrossing);
+        }
+
         auto reportCentroids = centroids;
         auto reportDecreases = decreases;
         auto reportEntropies = entropies;
