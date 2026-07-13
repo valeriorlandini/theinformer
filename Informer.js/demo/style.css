@@ -64,6 +64,41 @@ select {
   box-sizing: border-box; /* Include padding in width */
 }
 
+/* Checkbox controls (spectrogram / overlay / smoothing toggles) shouldn't
+   stretch full-width like the inputs above, and should sit next to their
+   label rather than stack under it. */
+.control-group--checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+.control-group--checkbox label {
+  margin-bottom: 0;
+  width: auto;
+}
+input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.range-with-value {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+.range-with-value input[type="range"] {
+  flex: 1;
+}
+.range-with-value span {
+  font-size: 14px;
+  color: #333;
+  min-width: 36px;
+  text-align: right;
+}
+
 button {
   background-color: #4caf50;
   color: white;

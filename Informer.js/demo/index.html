@@ -38,6 +38,29 @@
       </select>
     </div>
 
+    <div class="control-group control-group--checkbox">
+      <label for="spectrogramToggle">Show spectrogram:</label>
+      <input type="checkbox" id="spectrogramToggle" checked />
+    </div>
+
+    <div class="control-group control-group--checkbox">
+      <label for="overlayToggle">Overlay descriptors:</label>
+      <input type="checkbox" id="overlayToggle" />
+    </div>
+
+    <div class="control-group control-group--checkbox">
+      <label for="smoothToggle">Smooth descriptors:</label>
+      <input type="checkbox" id="smoothToggle" />
+    </div>
+
+    <div class="control-group" id="smoothAmountGroup" style="display: none">
+      <label for="smoothAmount">Smoothing amount:</label>
+      <div class="range-with-value">
+        <input type="range" id="smoothAmount" min="0" max="0.95" step="0.01" value="0.4" />
+        <span id="smoothAmountValue">0.40</span>
+      </div>
+    </div>
+
     <button id="analyzeBtn" disabled>Analyze Audio</button>
     <button id="downloadCsvBtn" disabled>Download CSV</button>
   </div>
@@ -167,6 +190,7 @@
       const times = [];
       const waveform = Array.from(audioBuffer);
       const duration = totalSamples / sampleRate;
+      const magnitudesMatrix = []; // one Float64Array of bin magnitudes per frame, for the spectrogram
       let decodedAudioData = null;
       let originalFileName = null;
 
@@ -209,6 +233,8 @@
           fftSize,
           sampleRate
         );
+        magnitudesMatrix.push(magnitudes);
+
         informer.setMagnitudes(magnitudes);
         informer.computeDescriptors(false, true);
         const freqDesc = informer.getFrequencyDescriptors();
@@ -259,9 +285,128 @@
         waveform,
         descriptors,
         descriptorRanges,
+        magnitudesMatrix,
+        spectrogramImage: buildSpectrogramImage(magnitudesMatrix),
       };
       drawAnalysis();
       renderDescriptorLegend();
+    }
+
+    // --- Spectrogram -----------------------------------------------------
+    // Hand-rolled "magma-like" colormap (a handful of stops, linearly
+    // interpolated) so we don't need to pull in an external colormap library.
+    const SPECTROGRAM_COLOR_STOPS = [
+      [0.0, [0, 0, 4]],
+      [0.13, [40, 11, 84]],
+      [0.26, [101, 21, 110]],
+      [0.39, [159, 42, 99]],
+      [0.52, [212, 72, 66]],
+      [0.65, [245, 125, 21]],
+      [0.78, [250, 193, 39]],
+      [1.0, [252, 255, 164]],
+    ];
+
+    function spectrogramColor(t) {
+      t = Math.max(0, Math.min(1, t));
+      for (let i = 0; i < SPECTROGRAM_COLOR_STOPS.length - 1; i++) {
+        const [t0, c0] = SPECTROGRAM_COLOR_STOPS[i];
+        const [t1, c1] = SPECTROGRAM_COLOR_STOPS[i + 1];
+        if (t >= t0 && t <= t1) {
+          const f = t1 === t0 ? 0 : (t - t0) / (t1 - t0);
+          return [
+            Math.round(c0[0] + (c1[0] - c0[0]) * f),
+            Math.round(c0[1] + (c1[1] - c0[1]) * f),
+            Math.round(c0[2] + (c1[2] - c0[2]) * f),
+          ];
+        }
+      }
+      return SPECTROGRAM_COLOR_STOPS[SPECTROGRAM_COLOR_STOPS.length - 1][1];
+    }
+
+    // Renders the whole spectrogram once, at native (numFrames x numBins)
+    // resolution, into an off-screen canvas. drawSpectrogram() then just
+    // blits/scales that image, so window resizes stay cheap.
+    function buildSpectrogramImage(magnitudesMatrix) {
+      const numFrames = magnitudesMatrix.length;
+      if (numFrames === 0) return null;
+      const numBins = magnitudesMatrix[0].length;
+
+      const DB_FLOOR = -160; // treat anything below this as silence
+      const dbMatrix = new Array(numFrames);
+      let maxDb = -Infinity;
+
+      for (let i = 0; i < numFrames; i++) {
+        const bins = magnitudesMatrix[i];
+        const db = new Float32Array(numBins);
+        for (let b = 0; b < numBins; b++) {
+          const mag = bins[b];
+          const d = mag > 1e-8 ? 20 * Math.log10(mag) : DB_FLOOR;
+          db[b] = d;
+          if (d > maxDb) maxDb = d;
+        }
+        dbMatrix[i] = db;
+      }
+      if (maxDb === -Infinity) maxDb = 0;
+
+      // Display a fixed dynamic range below the loudest frame/bin, which is
+      // the usual convention for audio spectrograms.
+      const DYNAMIC_RANGE_DB = 80;
+      const floor = maxDb - DYNAMIC_RANGE_DB;
+      const range = maxDb - floor || 1;
+
+      const off = document.createElement("canvas");
+      off.width = numFrames;
+      off.height = numBins;
+      const octx = off.getContext("2d");
+      const imgData = octx.createImageData(numFrames, numBins);
+
+      for (let i = 0; i < numFrames; i++) {
+        const db = dbMatrix[i];
+        for (let b = 0; b < numBins; b++) {
+          const norm = Math.max(0, Math.min(1, (db[b] - floor) / range));
+          const [r, g, bl] = spectrogramColor(norm);
+          // Flip vertically: bin 0 (lowest frequency) should render at the
+          // bottom of the image.
+          const row = numBins - 1 - b;
+          const idx = (row * numFrames + i) * 4;
+          imgData.data[idx] = r;
+          imgData.data[idx + 1] = g;
+          imgData.data[idx + 2] = bl;
+          imgData.data[idx + 3] = 255;
+        }
+      }
+      octx.putImageData(imgData, 0, 0);
+      return off;
+    }
+
+    function drawSpectrogram(width, y, height) {
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, y, width, height);
+
+      const plotWidth = width - 60;
+      const img = analysisData && analysisData.spectrogramImage;
+
+      if (img) {
+        const wasSmoothing = ctx.imageSmoothingEnabled;
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(img, 0, 0, img.width, img.height, 60, y, plotWidth, height);
+        ctx.imageSmoothingEnabled = wasSmoothing;
+      }
+
+      // Y-axis labels (frequency)
+      const nyquist = analysisData.sampleRate / 2;
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#ccc";
+      ctx.font = "12px Arial";
+      ctx.fillText(Math.round(nyquist).toLocaleString() + " Hz", 55, y + 12);
+      ctx.fillText("0 Hz", 55, y + height - 4);
+
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#fff";
+      ctx.fillText("Spectrogram", width - 10, y + 16);
+
+      ctx.strokeStyle = "#ddd";
+      ctx.strokeRect(0, y, width, height);
     }
 
     // Descriptor metadata: name, min, max, unit, category
@@ -407,7 +552,7 @@
     });
 
     function handleMouseMove(e) {
-      if (!analysisData || visibleDescriptors.size === 0) return;
+      if (!analysisData) return;
 
       const container = document.getElementById("canvasContainer");
       const rect = canvas.getBoundingClientRect();
@@ -430,32 +575,35 @@
         return;
       }
 
-      // Determine which track (descriptor) is being hovered
-      const visibleList = allDescriptorKeys.filter((k) =>
-        visibleDescriptors.has(k)
-      );
-      const waveformHeight = 80;
-      const trackHeight = 100;
-      const topMargin = 20;
+      // Determine which zone (descriptor track, overlay, waveform,
+      // spectrogram) is being hovered, using the same layout drawAnalysis used.
+      const layout = getLayout(containerWidth);
+      const visibleList = layout.visibleList;
 
-      let hoveredDescriptor = null;
-      let trackIndex = -1;
+      let hoveredDescriptors = []; // one in per-track mode, all overlaid ones in overlay mode
+      let isOverWaveform = false;
+      let isOverSpectrogram = false;
 
-      // Check descriptor tracks
-      for (let i = 0; i < visibleList.length; i++) {
-        const yTop = topMargin + i * trackHeight;
-        const yBottom = yTop + trackHeight;
-        if (mouseY >= yTop && mouseY <= yBottom) {
-          hoveredDescriptor = visibleList[i];
-          trackIndex = i;
-          break;
+      if (layout.overlayMode) {
+        if (mouseY >= layout.tracksY && mouseY <= layout.tracksY + layout.overlayHeight) {
+          hoveredDescriptors = visibleList;
+        }
+      } else {
+        for (let i = 0; i < visibleList.length; i++) {
+          const yTop = layout.tracksY + i * layout.trackHeight;
+          const yBottom = yTop + layout.trackHeight;
+          if (mouseY >= yTop && mouseY <= yBottom) {
+            hoveredDescriptors = [visibleList[i]];
+            break;
+          }
         }
       }
 
-      // Check waveform
-      const waveY = topMargin + visibleList.length * trackHeight;
-      const isOverWaveform =
-        mouseY >= waveY && mouseY <= waveY + waveformHeight;
+      isOverWaveform = mouseY >= layout.waveformY && mouseY <= layout.waveformY + layout.waveformHeight;
+      isOverSpectrogram =
+        layout.showSpectrogram &&
+        mouseY >= layout.spectrogramY &&
+        mouseY <= layout.spectrogramY + layout.spectrogramHeight;
 
       // Find nearest frame index
       const times = analysisData.times;
@@ -474,11 +622,34 @@
       // Build tooltip content
       let content = `<strong>${actualTime.toFixed(3)} s</strong><br>`;
 
-      if (hoveredDescriptor) {
-        const value = analysisData.descriptors[hoveredDescriptor][frameIndex];
-        const unit = descriptorMeta[hoveredDescriptor].unit;
-        content += `${descriptorMeta[hoveredDescriptor].label
-          }: ${value.toFixed(4)}${unit ? " " + unit : ""}`;
+      if (hoveredDescriptors.length > 0) {
+        content += hoveredDescriptors
+          .map((key) => {
+            const value = analysisData.descriptors[key][frameIndex];
+            const unit = descriptorMeta[key].unit;
+            return `${descriptorMeta[key].label}: ${value.toFixed(4)}${unit ? " " + unit : ""}`;
+          })
+          .join("<br>");
+      } else if (isOverSpectrogram) {
+        // Estimate frequency from vertical position, and magnitude from the
+        // nearest frame/bin in the stored matrix.
+        const nyquist = analysisData.sampleRate / 2;
+        const relY = (mouseY - layout.spectrogramY) / layout.spectrogramHeight;
+        const freq = nyquist * (1 - relY);
+
+        const matrix = analysisData.magnitudesMatrix;
+        const bins = matrix && matrix[frameIndex];
+        let magText = "";
+        if (bins && bins.length > 0) {
+          const binIndex = Math.min(
+            bins.length - 1,
+            Math.max(0, Math.round((freq / nyquist) * (bins.length - 1)))
+          );
+          const mag = bins[binIndex];
+          const db = mag > 1e-8 ? 20 * Math.log10(mag) : -Infinity;
+          magText = `<br>${db === -Infinity ? "-inf" : db.toFixed(1)} dB`;
+        }
+        content += `Spectrogram: ${freq.toFixed(0)} Hz${magText}`;
       } else if (isOverWaveform) {
         // Estimate waveform sample (resample)
         const waveform = analysisData.waveform;
@@ -506,6 +677,80 @@
     let analysisData = null;
     const visibleDescriptors = new Set(["centroid"]); // default
 
+    // Distinct colors for "overlay" mode, where several descriptors share one
+    // track. Assigned by stable index so a descriptor keeps the same color
+    // across re-renders and selections.
+    const OVERLAY_PALETTE = [
+      "#e6194b", "#3cb44b", "#4363d8", "#f58231", "#911eb4",
+      "#42d4f4", "#f032e6", "#bfef45", "#fabed4", "#469990",
+      "#dcbeff", "#9A6324", "#800000", "#aaffc3", "#808000",
+      "#ffd8b1", "#000075", "#a9a9a9",
+    ];
+    function overlayColorFor(key) {
+      const idx = allDescriptorKeys.indexOf(key);
+      return OVERLAY_PALETTE[idx % OVERLAY_PALETTE.length];
+    }
+
+    // One-pole (exponential) low-pass smoothing, applied per descriptor
+    // series before plotting. alpha = 1 means no smoothing at all; smaller
+    // alpha means heavier smoothing. Kept purely a display-time transform —
+    // CSV export always writes the raw, unsmoothed descriptor values.
+    function smoothSeries(values, alpha) {
+      if (!values || values.length === 0 || alpha >= 1) return values;
+      const out = new Array(values.length);
+      out[0] = values[0];
+      for (let i = 1; i < values.length; i++) {
+        out[i] = alpha * values[i] + (1 - alpha) * out[i - 1];
+      }
+      return out;
+    }
+
+    function getSmoothingAlpha() {
+      const enabled = document.getElementById("smoothToggle").checked;
+      if (!enabled) return 1;
+      const amount = parseFloat(document.getElementById("smoothAmount").value);
+      return 1 - amount; // amount is "smoothing strength", 0 (none) .. 0.95 (heavy)
+    }
+
+    // Shared layout math, used by both drawAnalysis() and handleMouseMove()
+    // so the hit-testing always matches what's actually drawn.
+    function getLayout(width) {
+      const overlayMode = document.getElementById("overlayToggle").checked;
+      const showSpectrogram = document.getElementById("spectrogramToggle").checked;
+      const visibleList = allDescriptorKeys.filter((k) => visibleDescriptors.has(k));
+
+      const trackHeight = 100;
+      const overlayHeight = 220;
+      const waveformHeight = 80;
+      const spectrogramHeight = showSpectrogram ? 150 : 0;
+      const topMargin = 20;
+      const bottomMargin = 20;
+
+      const tracksHeight = overlayMode
+        ? (visibleList.length > 0 ? overlayHeight : 0)
+        : visibleList.length * trackHeight;
+
+      const tracksY = topMargin;
+      const waveformY = tracksY + tracksHeight;
+      const spectrogramY = waveformY + waveformHeight;
+      const totalHeight = spectrogramY + spectrogramHeight + bottomMargin;
+
+      return {
+        overlayMode,
+        showSpectrogram,
+        visibleList,
+        trackHeight,
+        overlayHeight,
+        waveformHeight,
+        spectrogramHeight,
+        topMargin,
+        tracksY,
+        waveformY,
+        spectrogramY,
+        totalHeight,
+      };
+    }
+
     function drawAnalysis() {
       if (!analysisData) return;
 
@@ -517,43 +762,123 @@
       if (!container) return;
       const width = container.clientWidth;
 
-      const visibleDescriptorsList = allDescriptorKeys.filter((k) =>
-        visibleDescriptors.has(k)
-      );
-      const numTracks = visibleDescriptorsList.length;
-
-      const waveformHeight = 80;
-      const trackHeight = 100;
-      const topMargin = 20;
-      const bottomMargin = 20;
-      const totalHeight =
-        topMargin + numTracks * trackHeight + waveformHeight + bottomMargin;
+      const layout = getLayout(width);
+      const smoothAlpha = getSmoothingAlpha();
 
       // Apply height to container
-      container.style.height = totalHeight + "px";
+      container.style.height = layout.totalHeight + "px";
 
       // Set canvas dimensions in pixels
       canvas.width = width;
-      canvas.height = totalHeight;
+      canvas.height = layout.totalHeight;
 
-      ctx.clearRect(0, 0, width, totalHeight);
+      ctx.clearRect(0, 0, width, layout.totalHeight);
 
-      let currentY = topMargin;
-      for (const key of visibleDescriptorsList) {
-        drawTrack(
-          key,
-          descriptors[key],
-          times,
-          duration,
-          sampleRate,
-          currentY,
-          trackHeight,
-          width
-        );
-        currentY += trackHeight;
+      if (layout.overlayMode) {
+        if (layout.visibleList.length > 0) {
+          drawOverlayTrack(
+            layout.visibleList,
+            descriptors,
+            times,
+            duration,
+            layout.tracksY,
+            layout.overlayHeight,
+            width,
+            smoothAlpha
+          );
+        }
+      } else {
+        let currentY = layout.tracksY;
+        for (const key of layout.visibleList) {
+          drawTrack(
+            key,
+            descriptors[key],
+            times,
+            duration,
+            sampleRate,
+            currentY,
+            layout.trackHeight,
+            width,
+            smoothAlpha
+          );
+          currentY += layout.trackHeight;
+        }
       }
 
-      drawWaveform(waveform, width, totalHeight, waveformHeight, currentY);
+      drawWaveform(waveform, width, layout.totalHeight, layout.waveformHeight, layout.waveformY);
+
+      if (layout.showSpectrogram) {
+        drawSpectrogram(width, layout.spectrogramY, layout.spectrogramHeight);
+      }
+    }
+
+    // Draws every visible descriptor overlaid on a single track, each
+    // independently normalized to its own [min, max] range and colored from
+    // OVERLAY_PALETTE. Useful for spotting how descriptors move together.
+    function drawOverlayTrack(keys, descriptors, times, duration, y, height, width, smoothAlpha) {
+      ctx.fillStyle = "#fafafa";
+      ctx.fillRect(0, y, width, height);
+
+      // Grid lines
+      ctx.strokeStyle = "#eee";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(60, y + height);
+      ctx.lineTo(width, y + height);
+      ctx.moveTo(60, y + height / 2);
+      ctx.lineTo(width, y + height / 2);
+      ctx.moveTo(60, y);
+      ctx.lineTo(width, y);
+      ctx.stroke();
+
+      // Axis labels — values are per-descriptor normalized, so label the
+      // scale rather than real units.
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#555";
+      ctx.font = "12px Arial";
+      ctx.fillText("max", 55, y + 16);
+      ctx.fillText("min", 55, y + height - 5);
+
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#000";
+      ctx.fillText("Overlay (normalized)", width - 10, y + 16);
+
+      const plotWidth = width - 60;
+
+      for (const key of keys) {
+        const rawValues = descriptors[key];
+        if (!rawValues || rawValues.length < 2) continue;
+        const values = smoothSeries(rawValues, smoothAlpha);
+
+        const range = analysisData.descriptorRanges[key];
+        let actualMin = range.min;
+        let actualMax = range.max;
+        if (actualMax !== actualMin) {
+          const pad = (actualMax - actualMin) * 0.05;
+          actualMin -= pad;
+          actualMax += pad;
+        } else {
+          const pad = Math.abs(actualMin) * 0.1 || 0.1;
+          actualMin -= pad;
+          actualMax += pad;
+        }
+
+        ctx.strokeStyle = overlayColorFor(key);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 0; i < times.length; i++) {
+          const x = 60 + (times[i] / duration) * plotWidth;
+          let norm = actualMax !== actualMin ? (values[i] - actualMin) / (actualMax - actualMin) : 0;
+          norm = Math.max(0, Math.min(1, norm));
+          const valY = y + (1 - norm) * height;
+          if (i === 0) ctx.moveTo(x, valY);
+          else ctx.lineTo(x, valY);
+        }
+        ctx.stroke();
+      }
+
+      ctx.strokeStyle = "#ddd";
+      ctx.strokeRect(0, y, width, height);
     }
 
     function drawTrack(
@@ -564,7 +889,8 @@
       sampleRate,
       y,
       height,
-      width
+      width,
+      smoothAlpha
     ) {
       const data = analysisData.descriptorRanges[key];
       let actualMin = data.min;
@@ -634,12 +960,13 @@
         ctx.lineWidth = 2;
         ctx.beginPath();
         const plotWidth = width - 60;
+        const plotValues = smoothSeries(values, smoothAlpha || 1);
         for (let i = 0; i < times.length; i++) {
           const x = 60 + (times[i] / duration) * plotWidth;
           // Use padded range for normalization
           let norm =
             actualMax !== actualMin
-              ? (values[i] - actualMin) / (actualMax - actualMin)
+              ? (plotValues[i] - actualMin) / (actualMax - actualMin)
               : 0;
           norm = Math.max(0, Math.min(1, norm));
           const valY = y + (1 - norm) * height;
@@ -713,10 +1040,11 @@
       freqContainer.innerHTML =
         '<strong style="color:#D32F2F; margin-right:10px;">📊 Frequency:</strong>';
 
+      const overlayMode = document.getElementById("overlayToggle").checked;
+
       allDescriptorKeys.forEach((key) => {
         const meta = descriptorMeta[key];
         const item = document.createElement("span");
-        item.textContent = meta.label;
         item.style.cursor = "pointer";
         item.style.padding = "4px 8px";
         item.style.borderRadius = "4px";
@@ -724,6 +1052,25 @@
         item.style.fontWeight = visibleDescriptors.has(key)
           ? "bold"
           : "normal";
+        item.style.display = "inline-flex";
+        item.style.alignItems = "center";
+        item.style.gap = "5px";
+
+        // In overlay mode, show a swatch matching the line color used in
+        // the combined view, so the legend doubles as a color key.
+        if (overlayMode && visibleDescriptors.has(key)) {
+          const swatch = document.createElement("span");
+          swatch.style.display = "inline-block";
+          swatch.style.width = "10px";
+          swatch.style.height = "10px";
+          swatch.style.borderRadius = "50%";
+          swatch.style.backgroundColor = overlayColorFor(key);
+          item.appendChild(swatch);
+        }
+
+        const labelSpan = document.createElement("span");
+        labelSpan.textContent = meta.label;
+        item.appendChild(labelSpan);
 
         const isTime = meta.category === "time";
         const activeColor = isTime ? "#388E3C" : "#D32F2F";
@@ -885,6 +1232,31 @@
         link.click();
         URL.revokeObjectURL(link.href);
       });
+
+    // New view-option controls: spectrogram, overlay mode, smoothing
+    document.getElementById("spectrogramToggle").addEventListener("change", () => {
+      if (analysisData) drawAnalysis();
+    });
+
+    document.getElementById("overlayToggle").addEventListener("change", () => {
+      if (analysisData) drawAnalysis();
+      renderDescriptorLegend();
+    });
+
+    const smoothToggleEl = document.getElementById("smoothToggle");
+    const smoothAmountGroupEl = document.getElementById("smoothAmountGroup");
+    const smoothAmountEl = document.getElementById("smoothAmount");
+    const smoothAmountValueEl = document.getElementById("smoothAmountValue");
+
+    smoothToggleEl.addEventListener("change", () => {
+      smoothAmountGroupEl.style.display = smoothToggleEl.checked ? "" : "none";
+      if (analysisData) drawAnalysis();
+    });
+
+    smoothAmountEl.addEventListener("input", () => {
+      smoothAmountValueEl.textContent = parseFloat(smoothAmountEl.value).toFixed(2);
+      if (analysisData) drawAnalysis();
+    });
 
     // Handle window resize (e.g. rotate phone)
     let resizeTimeout;
