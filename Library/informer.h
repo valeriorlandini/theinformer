@@ -145,7 +145,7 @@ typename Container::value_type kurtosis(const Container& buffer,
         amp_mean = std::accumulate(buffer.begin(), buffer.end(), static_cast<TSample>(0.0)) / static_cast<TSample>(buffer.size());
     }
 
-    if (buffer.empty() || var == static_cast<TSample>(0.0))
+    if (buffer.empty() || var <= std::numeric_limits<TSample>::epsilon())
     {
         return amp_kurtosis;
     }
@@ -189,7 +189,7 @@ typename Container::value_type skewness(const Container& buffer,
         amp_mean = std::accumulate(buffer.begin(), buffer.end(), static_cast<TSample>(0.0)) / static_cast<TSample>(buffer.size());
     }
 
-    if (buffer.empty() || var == static_cast<TSample>(0.0))
+    if (buffer.empty() || var <= std::numeric_limits<TSample>::epsilon())
     {
         return skewness;
     }
@@ -282,24 +282,24 @@ typename Container::value_type yin(Container &buffer, typename Container::value_
 
         if (tau_estimate < 1) 
         {
-            x0 = tau_estimate;
+            x0 = static_cast<size_t>(tau_estimate);
         } 
         else 
         {
-            x0 = tau_estimate - 1;
+            x0 = static_cast<size_t>(tau_estimate - 1);
         }
 
         if (tau_estimate + 1 >= static_cast<int>(half_buffer_size)) 
         {
-            x2 = tau_estimate;
+            x2 = static_cast<size_t>(tau_estimate);
         } 
         else 
         {
-            x2 = tau_estimate + 1;
+            x2 = static_cast<size_t>(tau_estimate + 1);
         }
 
         if (x0 == static_cast<size_t>(tau_estimate)) {
-            if (yin_buffer[tau_estimate] <= yin_buffer[x2]) 
+            if (yin_buffer[static_cast<size_t>(tau_estimate)] <= yin_buffer[x2]) 
             {
                 better_tau = tau_estimate;
             } 
@@ -310,7 +310,7 @@ typename Container::value_type yin(Container &buffer, typename Container::value_
         } 
         else if (x2 == static_cast<size_t>(tau_estimate)) 
         {
-            if (yin_buffer[tau_estimate] <= yin_buffer[x0]) 
+            if (yin_buffer[static_cast<size_t>(tau_estimate)] <= yin_buffer[x0]) 
             {
                 better_tau = tau_estimate;
             } 
@@ -322,7 +322,7 @@ typename Container::value_type yin(Container &buffer, typename Container::value_
         else 
         {
             TSample s0 = yin_buffer[x0];
-            TSample s1 = yin_buffer[tau_estimate];
+            TSample s1 = yin_buffer[static_cast<size_t>(tau_estimate)];
             TSample s2 = yin_buffer[x2];
 
             TSample denominator = 2.0 * (s2 - 2.0 * s1 + s0);
@@ -1625,12 +1625,12 @@ public:
 
     TSample spectral_kurtosis()
     {
-        if (frequency_descriptors_.find("centroid") != frequency_descriptors_.end())
+        if (frequency_descriptors_.find("centroid") == frequency_descriptors_.end())
         {
             spectral_centroid();
         }
 
-        if (frequency_descriptors_.find("spread") != frequency_descriptors_.end())
+        if (frequency_descriptors_.find("spread") == frequency_descriptors_.end())
         {
             spectral_spread();
         }
@@ -1660,12 +1660,12 @@ public:
 
     TSample spectral_skewness()
     {
-        if (frequency_descriptors_.find("centroid") != frequency_descriptors_.end())
+        if (frequency_descriptors_.find("centroid") == frequency_descriptors_.end())
         {
             spectral_centroid();
         }
 
-        if (frequency_descriptors_.find("spread") != frequency_descriptors_.end())
+        if (frequency_descriptors_.find("spread") == frequency_descriptors_.end())
         {
             spectral_spread();
         }
@@ -1686,7 +1686,7 @@ public:
 
     TSample spectral_spread()
     {
-        if (frequency_descriptors_.find("centroid") != frequency_descriptors_.end())
+        if (frequency_descriptors_.find("centroid") == frequency_descriptors_.end())
         {
             spectral_centroid();
         }

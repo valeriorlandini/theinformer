@@ -33,6 +33,7 @@ The Informer. If not, see <https://www.gnu.org/licenses/>.
 #include <juce_osc/juce_osc.h>
 #include <cmath>
 #include "BinaryData.h"
+#include "../Library/informer.h"
 
 enum class Descriptor : size_t
 {
@@ -114,6 +115,7 @@ public:
     juce::Value rootValue;
 
 private:
+    std::array<Informer::Informer<float>, 64> computeDescriptors;
     unsigned int updateBlocks = 1u;
     unsigned int counter = 0u;
     unsigned int expectedSamples = 0u;
@@ -140,8 +142,8 @@ private:
 
     float fftBandwidth = 44100.0f / (float)fftSizeSmall;
     std::array<float, fftSizeLarge / 2> frequencies = {};
-    std::array<std::array<float, fftSizeLarge / 2>, 64> magnitudes = {};
-    std::array<std::array<float, fftSizeLarge / 2>, 64> prev_magnitudes = {};
+    std::array<std::vector<float>, 64> magnitudes = {};
+    std::array<std::vector<float>, 64> prev_magnitudes = {};
     unsigned int fftSize = static_cast<unsigned int>(fftSizeSmall);
 
     std::reference_wrapper<juce::dsp::FFT> fftProcessor = fftProcessorSmall;
@@ -226,6 +228,9 @@ private:
 
     float ampPeak = 0.0f;
     std::vector<float> ampPeaks;
+
+    float f0 = 0.0f;
+    std::vector<float> f0s;
 
     float rms = 0.0f;
     std::vector<float> chRms;

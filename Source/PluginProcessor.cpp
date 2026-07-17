@@ -50,6 +50,7 @@ fftProcessorLarge(orderLarge),
 windowLarge(fftSizeLarge, juce::dsp::WindowingFunction<float>::hann),
 ampKurtoses(64, 0.0f),
 ampPeaks(64, 0.0f),
+f0s(64, 0.0f),
 chRms(64, 0.0f),
 ampSkewnesses(64, 0.0f),
 variances(64, 0.0f),
@@ -210,6 +211,22 @@ void TheInformerAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
     {
         f.coefficients = smoothingCoefficients;
     }
+
+    for (auto& d : computeDescriptors)
+    {
+        d.set_sample_rate(static_cast<float>(sampleRate));
+        d.set_stft_size(fftSize);
+    }
+
+    for (auto& m : magnitudes)
+    {
+        m.resize(fftSize / 2u, 0.0f);
+    }
+
+    for (auto& m : prev_magnitudes)
+    {
+        m.resize(fftSize / 2u, 0.0f);
+    }
 }
 
 void TheInformerAudioProcessor::releaseResources()
@@ -297,85 +314,29 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         {
             /* AMPLITUDE DESCRIPTORS */
 
-            float frameSamples = static_cast<float>(buffer.getNumSamples()) * static_cast<float>(counter);
+            computeDescriptors.at(ch).set_buffer(samples.at(ch));
+            computeDescriptors.at(ch).compute_descriptors(true, false);
+            auto timeDescriptors = computeDescriptors.at(ch).get_time_descriptors();
 
-            chRms[ch] = std::sqrt(sqrGains[ch] / frameSamples);
+            chRms[ch] = timeDescriptors.at("rms");
             rms += chRms.at(ch);
-            sqrGains[ch] = 0.0f;
 
-            float mean = 0.0f;
-            float chAmpPeak = 0.0f;
-            float chZerocrossing = 0.0f;
-            for (unsigned int n = 0; n < samples.at(ch).size(); n++)
-            {
-                float s = samples.at(ch).at(n);
-                mean += s;
+            ampKurtoses[ch] = timeDescriptors.at("kurtosis");
+            ampKurtosis += ampKurtoses[ch];
 
-                if (n > 0)
-                {
-                    chZerocrossing += std::fabs(static_cast<float>(!std::signbit(s)) - static_cast<float>(!std::signbit(samples.at(ch).at(n - 1))));
-                }
+            ampPeaks[ch] = timeDescriptors.at("peak");
 
-                if (abs(s) > chAmpPeak)
-                {
-                    chAmpPeak = abs(s);
-                    if (chAmpPeak > ampPeak)
-                    {
-                        ampPeak = chAmpPeak;
-                    }
-                }
-            }
+            ampSkewnesses[ch] = timeDescriptors.at("skewness");
+            ampSkewness += ampSkewnesses[ch];
 
-            mean /= samples.at(ch).size();
-            chZerocrossing /= static_cast<float>(std::max(0, static_cast<int>(samples.at(ch).size()) - 1));
-            float chVariance = 0.0f;
-            float chAmpKurtosis = 0.0f;
-            float chAmpSkewness = 0.0f;
-            for (auto const& s : samples.at(ch))
-            {
-                chVariance += std::pow(s - mean, 2.0f);
-            }
-            chVariance /= frameSamples;
+            f0s[ch] = timeDescriptors.at("f0");
+            f0 += f0s[ch];
 
-            float invSqrChVariance = chVariance * chVariance;
+            variances[ch] = timeDescriptors.at("variance");
+            variance += variances[ch];
 
-            // If variance is (almost or equal to) 0, invSqrVariance is left
-            // to 0 so that kurtosis and skewness are not undefined
-            if (abs(invSqrChVariance) > 0.00001f)
-            {
-                invSqrChVariance = 1.0f / invSqrChVariance;
-                for (auto const& s : samples.at(ch))
-                {
-                    chAmpKurtosis += std::pow(s - mean, 4.0f);
-                    chAmpSkewness += std::pow(s - mean, 3.0f);
-                }
-
-                chAmpKurtosis /= frameSamples;
-                chAmpKurtosis *= invSqrChVariance;
-                chAmpKurtosis -= 3.0f;
-
-                chAmpSkewness /= frameSamples;
-                chAmpSkewness /= std::pow(std::sqrt(chVariance), 3.0f);
-            }
-            else
-            {
-                chAmpKurtosis = 0.0f;
-                chAmpSkewness = 0.0f;
-            }
-
-            ampKurtoses[ch] = chAmpKurtosis;
-            ampKurtosis += chAmpKurtosis;
-
-            ampPeaks[ch] = chAmpPeak;
-
-            ampSkewnesses[ch] = chAmpSkewness;
-            ampSkewness += chAmpSkewness;
-
-            variances[ch] = chVariance;
-            variance += chVariance;
-
-            zerocrossings[ch] = chZerocrossing;
-            zerocrossing += chZerocrossing;
+            zerocrossings[ch] = timeDescriptors.at("zerocrossing");
+            zerocrossing += zerocrossings[ch];
 
             /* SPECTRAL DESCRIPTORS */
 
@@ -389,65 +350,28 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             fftProcessor.get().performFrequencyOnlyForwardTransform(fftData.at(ch).data());
 
             unsigned int fftHalf = static_cast<unsigned int>(fftSize) / 2u;
-            float a = 0.0f;
-            float chCentroid = 0.0f;
-            float chDecrease = 0.0f;
-            float chEntropy = 0.0f;
-            float chFlatness = 0.0f;
-            float chFlux = 0.0f;
-            float chIrregularity = 0.0f;
-            float chKurtosis = 0.0f;
-            float chRolloff = 0.0f;
-            float chScf = 0.0f;
-            float chSkewness = 0.0f;
-            float chSlope = 0.0f;
-            float chSpread = 0.0f;
-            float cumulPower = 0.0f;
-            float freqSum = 0.0f;
-            float maxMagnitude = 0.0f;
-            float magnLnSum = 0.0f;
-            float magnSum = 0.0f;
-            std::vector<float> power(fftHalf, 0.0f);
-            float powerSum = 0.0f;
+
             for (unsigned int k = 0; k < fftHalf; k++)
             {
                 prev_magnitudes.at(ch).at(k) = magnitudes.at(ch).at(k);
                 magnitudes.at(ch).at(k) = fabs(fftData.at(ch).at(k));
             }
 
+            computeDescriptors.at(ch).set_previous_magnitudes(prev_magnitudes.at(ch));
+            computeDescriptors.at(ch).set_magnitudes(magnitudes.at(ch));
+            computeDescriptors.at(ch).compute_descriptors(false, true);
+            auto spectralDescriptors = computeDescriptors.at(ch).get_frequency_descriptors();
+
             std::fill(bandMagnitudes.at(ch).begin(), bandMagnitudes.at(ch).end(), 0.0f);
 
             for (unsigned int k = 0u; k < fftHalf; k++)
             {
                 float magnitude = magnitudes.at(ch).at(k);
-                float prev_magnitude = prev_magnitudes.at(ch).at(k);
-                power.at(k) = magnitude * magnitude;
-                powerSum += power.at(k);
-                if (magnitude > maxMagnitude)
-                {
-                    maxMagnitude = magnitude;
-                }
-                float frequency = frequencies.at(k);
-                freqSum += frequency;
-
-                a += frequency * magnitude;
-                magnSum += magnitude;
-
-                if (magnitude > 0.0f)
-                {
-                    magnLnSum += std::log(magnitude);
-                }
-                else
-                {
-                    magnLnSum += std::log(0.00001f);
-                }
-
-                chFlux += std::pow(magnitude - prev_magnitude, 2.0f);
 
                 if (reportBands > 1u)
                 {
                     // Find which reported band the current spectrogram band belongs to
-                    unsigned int currRepBand = std::upper_bound(bandsEdges.begin(), bandsEdges.end(), frequency) - bandsEdges.begin() - 1u;
+                    unsigned int currRepBand = std::upper_bound(bandsEdges.begin(), bandsEdges.end(), frequencies[k]) - bandsEdges.begin() - 1u;
                     // If current magnitude is greater than maximum value stored in the corresponding reported band, update its value
                     bandMagnitudes.at(ch).at(currRepBand) = std::max(magnitude, bandMagnitudes.at(ch).at(currRepBand));
                 }
@@ -461,140 +385,32 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 bandMagnitudes.at(64).at(b) += bandMagnitudes.at(ch).at(b) / static_cast<float>(totalNumInputChannels);
             }
 
-            chFlux = std::sqrt(chFlux);
-            if (powerSum > 0.0f)
-            {
-                for (unsigned int k = 0u; k < fftHalf; k++)
-                {
-                    if (power.at(k) > 0.0f)
-                    {
-                        float powerNorm = power.at(k) / powerSum;
-                        chEntropy += powerNorm * std::log2(powerNorm);
-                    }
-                }
-            }
-            chEntropy *= -1.0f;
-            chEntropy /= std::log2(static_cast<float>(fftHalf));
-            if (abs(magnSum) > 0.00001f)
-            {
-                chCentroid = a / magnSum;
-                chScf = maxMagnitude / magnSum;
-
-                float magnMean = magnSum / static_cast<float>(fftHalf);
-                float magnGeoMean = std::exp(magnLnSum / static_cast<float>(fftHalf));
-                chFlatness = magnGeoMean / magnMean;
-
-                float chSlopeNum = 0.0f;
-                float chSlopeDen = 0.0f;
-                float freqMean = freqSum / static_cast<float>(fftHalf);
-                for (unsigned int k = 0u; k < fftHalf; k++)
-                {
-                    chSlopeNum += (frequencies.at(k) - freqMean) * (magnitudes.at(ch).at(k) - magnMean);
-                    chSlopeDen += (frequencies.at(k) - freqMean) * (frequencies.at(k) - freqMean);
-                }
-                chSlope = chSlopeNum / chSlopeDen;
-                // Multiply by 100 to have a range closer to [-1.0, 1.0]
-                chSlope *= 100.0f;
-            }
-
-            float rolloffThresh = powerSum * 0.85f;
-            bool threshReached = false;
-            a = 0.0f;
-            for (unsigned int k = 0u; k < fftHalf; k++)
-            {
-                float frequency = frequencies.at(k);
-                a += magnitudes.at(ch).at(k) * std::pow(frequency - chCentroid, 2.0);
-
-                if (cumulPower < rolloffThresh)
-                {
-                    cumulPower += power.at(k);
-                }
-                if (cumulPower >= rolloffThresh && !threshReached)
-                {
-                    threshReached = true;
-                    chRolloff = frequencies.at(k);
-                }
-
-                if (k > 0)
-                {
-                    chDecrease += (magnitudes.at(ch).at(k) - magnitudes.at(ch).at(0)) / static_cast<float>(k);
-                    chIrregularity += std::fabs(magnitudes.at(ch).at(k) - magnitudes.at(ch).at(k - 1));
-                }
-            }
-            if (abs(powerSum) > 0.00001f)
-            {
-                chSpread = std::sqrt(a / magnSum);
-            }
-
-            float magnSumNoDC = magnSum - magnitudes.at(ch).at(0);
-            if (magnSumNoDC > 0.0f)
-            {
-                chDecrease /= magnSumNoDC;
-            }
-            else
-            {
-                decrease = 0.0f;
-            }
-
-            if (magnSum > 0.0f)
-            {
-                chIrregularity /= magnSum;
-            }
-            else
-            {
-                chIrregularity = 0.0f;
-            }
-
-            float kurtNum = 0.0f;
-            float kurtDen = 0.0f;
-            float skewNum = 0.0f;
-            float skewDen = 0.0f;
-            for (unsigned int k = 0u; k < fftHalf; k++)
-            {
-                float frequency = frequencies.at(k);
-                float magnitude = magnitudes.at(ch).at(k);
-
-                kurtNum += std::pow(frequency - chCentroid, 4.0f) * magnitude;
-                skewNum += std::pow(frequency - chCentroid, 3.0f) * magnitude;
-                skewDen += magnitude;
-            }
-            kurtDen = skewDen * std::pow(chSpread, 4.0f);
-            skewDen *= std::pow(chSpread, 3.0f);
-            if (abs(skewDen) > 0.00001f)
-            {
-                chSkewness = skewNum / skewDen;
-                chKurtosis = (kurtNum / kurtDen) - 3.0f;
-            }
-
-            auto peakBand = std::max_element(fftData.at(ch).begin(), fftData.at(ch).end());
-            float chPeak = static_cast<float>(std::distance(fftData.at(ch).begin(), peakBand)) * fftBandwidth;
-
-            centroids[ch] = chCentroid;
-            centroid += chCentroid;
-            decreases[ch] = chDecrease;
-            decrease += chDecrease;
-            entropies[ch] = chEntropy;
-            entropy += chEntropy;
-            flatnesses[ch] = chFlatness;
-            flatness += chFlatness;
-            fluxes[ch] = chFlux;
-            flux += chFlux;
-            peaks[ch] = chPeak;
-            peak += chPeak;
-            irregularities[ch] = chIrregularity;
-            irregularity += chIrregularity;
-            kurtoses[ch] = chKurtosis;
-            kurtosis += chKurtosis;
-            rolloffs[ch] = chRolloff;
-            rolloff += chRolloff;
-            scfs[ch] = chScf;
-            scf += chScf;
-            skewnesses[ch] = chSkewness;
-            skewness += chSkewness;
-            slopes[ch] = chSlope;
-            slope += chSlope;
-            spreads[ch] = chSpread;
-            spread += chSpread;
+            centroids[ch] = spectralDescriptors.at("centroid");
+            centroid += centroids[ch];
+            decreases[ch] = spectralDescriptors.at("decrease");
+            decrease += decreases[ch];
+            entropies[ch] = spectralDescriptors.at("entropy");
+            entropy += entropies[ch];
+            flatnesses[ch] = spectralDescriptors.at("flatness");
+            flatness += flatnesses[ch];
+            fluxes[ch] = spectralDescriptors.at("flux");
+            flux += fluxes[ch];
+            peaks[ch] = spectralDescriptors.at("peak");
+            peak += peaks[ch];
+            irregularities[ch] = spectralDescriptors.at("irregularity");
+            irregularity += irregularities[ch];
+            kurtoses[ch] = spectralDescriptors.at("kurtosis");
+            kurtosis += kurtoses[ch];
+            rolloffs[ch] = spectralDescriptors.at("rolloff");
+            rolloff += rolloffs[ch];
+            scfs[ch] = spectralDescriptors.at("crestfactor");
+            scf += scfs[ch];
+            skewnesses[ch] = spectralDescriptors.at("skewness");
+            skewness += skewnesses[ch];
+            slopes[ch] = spectralDescriptors.at("slope");
+            slope += slopes[ch];
+            spreads[ch] = spectralDescriptors.at("spread");
+            spread += spreads[ch];
         }
 
         centroid /= totalNumInputChannels;
@@ -602,6 +418,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         entropy /= totalNumInputChannels;
         flatness /= totalNumInputChannels;
         flux /= totalNumInputChannels;
+        f0 /= totalNumInputChannels;
         peak /= totalNumInputChannels;
         irregularity /= totalNumInputChannels;
         ampKurtosis /= totalNumInputChannels;
@@ -636,6 +453,12 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                 k += 2.0f;
                 k = std::clamp(k, 0.0f, 4.0f);
                 k *= 0.25f;
+            }
+
+            f0 *= invNyquist;
+            for (float& f : f0s)
+            {
+                f *= invNyquist;
             }
 
             centroid *= invNyquist;
@@ -735,6 +558,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         auto reportEntropy = entropy;
         auto reportFlatness = flatness;
         auto reportFlux = flux;
+        auto reportF0 = f0;
         auto reportAmpPeak = ampPeak;
         auto reportPeak = peak;
         auto reportIrregularity = irregularity;
@@ -757,6 +581,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
             reportEntropy = smoothingFilters[static_cast<size_t>(Descriptor::SpecEntropy)].processSample(entropy);
             reportFlatness = smoothingFilters[static_cast<size_t>(Descriptor::SpecFlatness)].processSample(flatness);
             reportFlux = smoothingFilters[static_cast<size_t>(Descriptor::SpecFlux)].processSample(flux);
+            reportF0 = smoothingFilters[static_cast<size_t>(Descriptor::AmpPitch)].processSample(f0);
             reportAmpPeak = smoothingFilters[static_cast<size_t>(Descriptor::AmpPeak)].processSample(ampPeak);
             reportPeak = smoothingFilters[static_cast<size_t>(Descriptor::SpecPeak)].processSample(peak);
             reportIrregularity = smoothingFilters[static_cast<size_t>(Descriptor::SpecIrregularity)].processSample(irregularity);
@@ -778,6 +603,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         auto reportEntropies = entropies;
         auto reportFlatnesses = flatnesses;
         auto reportFluxes = fluxes;
+        auto reportF0s = f0s;
         auto reportAmpPeaks = ampPeaks;
         auto reportPeaks = peaks;
         auto reportIrregularities = irregularities;
@@ -798,6 +624,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
                                              reportEntropy, reportEntropies,
                                              reportFlatness, reportFlatnesses,
                                              reportFlux, reportFluxes,
+                                             reportF0, reportF0s,
                                              reportAmpPeak, reportAmpPeaks,
                                              reportPeak, reportPeaks,
                                              reportIrregularity, reportIrregularities,
@@ -827,6 +654,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 
             sender.send(juce::OSCAddressPattern(root + mix + time + "kurtosis"), reportAmpKurtosis);
             sender.send(juce::OSCAddressPattern(root + mix + time + "peak"), reportAmpPeak);
+            sender.send(juce::OSCAddressPattern(root + mix + time + "pitch"), reportF0);
             sender.send(juce::OSCAddressPattern(root + mix + time + "rms"), reportRms);
             sender.send(juce::OSCAddressPattern(root + mix + time + "skewness"), reportAmpSkewness);
             sender.send(juce::OSCAddressPattern(root + mix + time + "variance"), reportVariance);
@@ -866,6 +694,7 @@ void TheInformerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 
                 sender.send(juce::OSCAddressPattern(root + ch_str + time + "kurtosis"), reportAmpKurtoses.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + time + "peak"), reportAmpPeaks.at(ch));
+                sender.send(juce::OSCAddressPattern(root + ch_str + time + "pitch"), reportF0s.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + time + "rms"), reportChRms.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + time + "skewness"), reportAmpSkewnesses.at(ch));
                 sender.send(juce::OSCAddressPattern(root + ch_str + time + "variance"), reportVariances.at(ch));
