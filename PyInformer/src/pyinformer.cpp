@@ -40,6 +40,13 @@ PYBIND11_MODULE(pyinformer, m)
                   "Calculate amplitude skewness",
                   py::arg("buffer"), py::arg("mean") = -10000.0, py::arg("variance") = -10000.0);
 
+    amplitude.def("yin", &Informer::Amplitude::yin<std::vector<float>>,
+                  "Estimate fundamental frequency using YIN", py::arg("buffer"),
+                  py::arg("sample_rate"), py::arg("threshold") = 0.15f);
+    amplitude.def("yin", &Informer::Amplitude::yin<std::vector<double>>,
+                  "Estimate fundamental frequency using YIN", py::arg("buffer"),
+                  py::arg("sample_rate"), py::arg("threshold") = 0.15);
+
     amplitude.def("zerocrossing", &Informer::Amplitude::zerocrossing<std::vector<float>>,
                   "Calculate zero crossing rate", py::arg("buffer"));
     amplitude.def("zerocrossing", &Informer::Amplitude::zerocrossing<std::vector<double>>,
@@ -246,6 +253,7 @@ PYBIND11_MODULE(pyinformer, m)
     .def("amp_peak", &Informer::Informer<float>::amp_peak)
     .def("amp_rms", &Informer::Informer<float>::amp_rms)
     .def("amp_variance", &Informer::Informer<float>::amp_variance)
+    .def("amp_f0yin", &Informer::Informer<float>::amp_f0yin)
     .def("spectral_centroid", &Informer::Informer<float>::spectral_centroid)
     .def("spectral_flatness", &Informer::Informer<float>::spectral_flatness)
     .def("spectral_peak", &Informer::Informer<float>::spectral_peak);

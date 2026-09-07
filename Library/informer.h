@@ -1357,7 +1357,7 @@ public:
             spectral_rolloff();
             spectral_skewness();
             spectral_slope();
-            fundamental_pitch();
+            // fundamental_pitch();
         }
 
         return true;
@@ -1697,6 +1697,7 @@ public:
         return frequency_descriptors_["spread"];
     }
 
+    /*
     TSample fundamental_pitch()
     {
         frequency_descriptors_["f0"] = Frequency::f0_hps(magnitudes_, 5u, sample_rate_,
@@ -1704,6 +1705,7 @@ public:
 
         return frequency_descriptors_["f0"];
     }
+    */
 
 private:
     std::vector<TSample> precomputed_frequencies_ = {};
